@@ -1895,15 +1895,11 @@
         tbody.innerHTML = "";
         result.data.forEach((item, index) => {
           const totalSoal = (item.jumlah_pg || 0) + (item.jumlah_essai || 0);
-          
-          // Mengambil nama mapel dari 'mapel' atau 'mata_pelajaran'
-          const namaMapel = item.mapel || item.mata_pelajaran || '-';
-          
           const row = `
             <tr>
               <td class="text-center fw-bold">${index + 1}</td>
               <td><strong class="text-primary">${item.kode_soal}</strong></td>
-              <td>${namaMapel}</td>
+              <td>${item.mapel || '-'}</td>
               <td>${item.kelas || '-'}</td>
               <td class="text-center"><span class="badge bg-primary">${item.jumlah_pg || 0}</span></td>
               <td class="text-center"><span class="badge bg-info text-dark">${item.jumlah_essai || 0}</span></td>
@@ -1930,6 +1926,7 @@
       tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Gagal terhubung ke server. Silakan coba lagi.</td></tr>';
     }
   }
+
 
 
   function pilihKodeSoalDaftar(kodeSoal) {
