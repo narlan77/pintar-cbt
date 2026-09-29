@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Guru & Admin - Ujian Online</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- SCRIPT PROTEKSI AKSES (ROUTE GUARD & ROLE CHECK) -->
+  <script>
+    if (sessionStorage.getItem("isGuruLoggedIn") !== "true") {
+      alert("Akses ditolak! Anda harus login terlebih dahulu.");
+      window.location.href = "index.html";
+    }
+  </script>
+  <!-- SCRIPT PROTEKSI AKSES (ROUTE GUARD & ROLE CHECK) -->
+<script>
+  (function() {
+    const isLoggedIn = sessionStorage.getItem("isGuruLoggedIn");
+    const roleGuru = sessionStorage.getItem("roleGuru");
+
+    // Tolak jika belum login ATAU jika role-nya adalah 'Siswa'
+    if (isLoggedIn !== "true" || roleGuru === "Siswa") {
+      alert("Akses ditolak! Halaman ini hanya untuk Guru / Admin.");
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  })();
+</script>
+  <style>
+    body { background-color: #f8f9fa; }
+    .card-custom { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .drop-zone {
+      border: 2px dashed #0d6efd;
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      background-color: #f8faff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .drop-zone:hover {
+      background-color: #eef4ff;
+      border-color: #0b5ed7;
+    }
+    .stat-card {
+      border-left: 4px solid #0d6efd;
+      background: #ffffff;
+      border-radius: 8px;
+    }
+    @media print {
+      .no-print, 
+      #guruTab, 
+      .btn, 
+      nav, 
+      header, 
+      .stat-card, 
+      #statCards, 
+      .filter-box, 
+      .modal-header, 
+      .modal-footer {
+        display: none !important;
+      }
+      .tab-pane { display: none !important; }
+      .tab-pane.active { display: block !important; opacity: 1 !important; }
+      .card, .modal-content { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+      .modal-body { padding: 0 !important; }
+      body { background-color: #fff !important; padding: 0 !important; margin: 0 !important; }
+      .container { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
+      table { width: 100% !important; }
+    }
+  </style>
+
+  <!-- Library Parser Excel (.xlsx) & Word (.docx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+  <script src="config.js"></script>
+</head>
+<body>
+
+<div class="container py-4">
+  <!-- HEADER & NAMA GURU & TOMBOL LOGOUT -->
+  <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <div>
+      <h2 class="mb-0 fw-bold">Dashboard Kelola Ujian</h2>
+      <small class="text-muted">
+        Selamat Datang, <strong id="labelNamaGuru">Guru</strong> 
+        <span id="badgeRole" class="badge bg-secondary ms-1">Guru</span>
+      </small>
+    </div>
+    <button class="btn btn-outline-danger btn-sm fw-bold" onClick="logoutGuru()">
+      🚪 Logout
+    </button>
+  </div>
+
+  <!-- INPUT KODE SOAL UTAMA -->
+  <div class="card card-custom mb-4 p-3 bg-white no-print">
+    <div class="row align-items-center">
+      <div class="col-md-3">
+        <label class="fw-bold" for="kodeSoalInput">Pilih / Masukkan Kode Soal:</label>
+      </div>
+      <div class="col-md-6">
+        <div class="input-group">
+          <input 
+            type="text" 
+            id="kodeSoalInput" 
+            class="form-control" 
+            list="listKodeSoal" 
+            placeholder="Ketik atau pilih dari daftar..."
+            autocomplete="off"
+          >
+          <datalist id="listKodeSoal">
+            <!-- Opsi terisi otomatis -->
+          </datalist>
+          <button class="btn btn-outline-secondary" type="button" onClick="muatDaftarKodeSoal()" title="Segarkan Daftar Kode Soal">
+            🔄
+          </button>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-primary w-100 fw-bold" id="btnMuatPengaturan" onClick="muatDataSoal()">
+          Muat Data Kode Soal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB NAVIGASI UTAMA -->
+  <ul class="nav nav-tabs mb-3 no-print" id="guruTab" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active fw-bold" id="pengaturan-tab" data-bs-toggle="tab" data-bs-target="#tab-pengaturan">Pengaturan Ujian</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link fw-bold" id="import-tab" data-bs-toggle="tab" data-bs-target="#tab-import">Pengelolaan Soal</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link fw-bold" id="hasil-tab" data-bs-toggle="tab" data-bs-target="#tab-hasil" onClick="muatHasilUjian()">Hasil & Nilai Ujian</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link fw-bold" id="tab-analisis-tab" data-bs-toggle="tab" data-bs-target="#tab-analisis" type="button" onClick="muatAnalisisSoal()">📊 Analisis Soal</button>
+    </li>
+    <!-- TAB KHUSUS SUPER ADMIN -->
+    <li class="nav-item" role="presentation" id="tabMenuGuru" style="display: none;">
+      <button class="nav-link fw-bold text-dark bg-warning" id="guru-admin-tab" data-bs-toggle="tab" data-bs-target="#tab-kelola-guru" type="button">👥 Kelola Akun</button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="guruTabContent">
+    
+    <!-- TAB 1: PENGATURAN UJIAN -->
+    <div class="tab-pane fade show active no-print" id="tab-pengaturan">
+      <div class="card card-custom p-4 bg-white">
+        <h5 class="mb-3 fw-bold text-primary">⚙️ Pengaturan Parameter Ujian</h5>
+        <form id="formPengaturan">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Kode Ujian / Kode Soal</label>
+              <input type="text" id="cfgKodeUjian" class="form-control bg-light" readonly placeholder="Terisi otomatis dari Kode Soal di atas">
+            </div>
+
+            <div class="col-md-4">
+              <label for="cfgMapel" class="form-label fw-bold">Mata Pelajaran (Mapel)</label>
+              <select class="form-select" id="cfgMapel" name="mapel" required>
+                <option value="" disabled selected>-- Pilih Mata Pelajaran --</option>
+                <optgroup label="Pendidikan Agama & Budi Pekerti">
+                  <option value="Pendidikan Agama Islam">Pendidikan Agama Islam</option>
+                  <option value="Pendidikan Agama Kristen">Pendidikan Agama Kristen</option>
+                  <option value="Pendidikan Agama Katolik">Pendidikan Agama Katolik</option>
+                  <option value="Pendidikan Agama Hindu">Pendidikan Agama Hindu</option>
+                  <option value="Pendidikan Agama Buddha">Pendidikan Agama Buddha</option>
+                  <option value="Pendidikan Agama Khonghucu">Pendidikan Agama Khonghucu</option>
+                </optgroup>
+                <optgroup label="Mata Pelajaran Umum">
+                  <option value="Pendidikan Pancasila / PKn">Pendidikan Pancasila / PKn</option>
+                  <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                  <option value="Matematika">Matematika</option>
+                  <option value="Bahasa Inggris">Bahasa Inggris</option>
+                  <option value="Informatika">Informatika</option>
+                  <option value="Pendidikan Jasmani, Olahraga & Kesehatan">Pendidikan Jasmani, Olahraga & Kesehatan (PJOK)</option>
+                  <option value="Seni Budaya">Seni Budaya</option>
+                  <option value="Prakarya">Prakarya</option>
+                  <option value="Sejarah">Sejarah</option>
+                </optgroup>
+                <optgroup label="Sains & Sosial (IPA / IPS)">
+                  <option value="IPAS">IPAS (Ilmu Pengetahuan Alam dan Sosial - SD)</option>
+                  <option value="IPA Terpadu">IPA Terpadu (SMP)</option>
+                  <option value="IPS Terpadu">IPS Terpadu (SMP)</option>
+                  <option value="Fisika">Fisika</option>
+                  <option value="Kimia">Kimia</option>
+                  <option value="Biologi">Biologi</option>
+                  <option value="Sosiologi">Sosiologi</option>
+                  <option value="Ekonomi">Ekonomi</option>
+                  <option value="Geografi">Geografi</option>
+                </optgroup>
+                <optgroup label="Pendidikan Agama Islam (Madrasah)">
+                  <option value="Al-Qur'an Hadis">Al-Qur'an Hadis</option>
+                  <option value="Aqidah Akhlak">Aqidah Akhlak</option>
+                  <option value="Fiqih">Fiqih</option>
+                  <option value="Sejarah Kebudayaan Islam (SKI)">Sejarah Kebudayaan Islam (SKI)</option>
+                  <option value="Bahasa Arab">Bahasa Arab</option>
+                </optgroup>
+                <optgroup label="Muatan Lokal & Lainnya">
+                  <option value="Bahasa Sunda">Bahasa Sunda</option>
+                  <option value="Bahasa Jawa">Bahasa Jawa</option>
+                  <option value="Kejuruan / Produktif SMK">Kejuruan / Produktif SMK</option>
+                  <option value="Bimbingan Konseling (BK)">Bimbingan Konseling (BK)</option>
+                </optgroup>
+              </select>
+            </div>
+            
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Jenis Ujian</label>
+              <select id="cfgJenisUjian" class="form-select">
+                <option value="Penilaian Harian">Penilaian Harian (PH) / Formatif</option>
+                <option value="Asesmen Sumatif Tengah Semester">Asesmen Sumatif Tengah Semester (ASTS / UTS)</option>
+                <option value="Asesmen Sumatif Akhir Semester">Asesmen Sumatif Akhir Semester (ASAS / PAS)</option>
+                <option value="Asesmen Sumatif Akhir Tahun">Asesmen Sumatif Akhir Tahun (ASAT / PAT)</option>
+                <option value="Ujian Sekolah">Ujian Sekolah (US) / Ujian Madrasah (UM)</option>
+                <option value="Simulasi / Try Out">Simulasi / Try Out</option>
+              </select>
+            </div>
+
+            <div class="col-md-12">
+              <label class="form-label fw-bold">Daftar Kelas (Peserta Ujian)</label>
+              <input type="text" id="cfgDaftarKelas" class="form-control" placeholder="Contoh: X IPA 1, X IPA 2, X IPS 1 (Pisahkan dengan tanda koma)">
+              <div class="form-text">Kelas-kelas di atas akan muncul sebagai pilihan Drop-Down pada halaman login/ujian siswa.</div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Durasi Ujian (Menit)</label>
+              <input type="number" id="cfgDurasi" class="form-control" value="90">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Penyusun Soal</label>
+              <input type="text" id="cfgPenyusun" class="form-control" placeholder="Nama Guru Penyusun">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Pengawas Ujian</label>
+              <input type="text" id="cfgPengawas" class="form-control" placeholder="Nama Pengawas Ujian">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Status Ujian</label>
+              <select id="cfgStatus" class="form-select">
+                <option value="Aktif">Aktif (Bisa Diakses)</option>
+                <option value="Nonaktif">Nonaktif (Tutup)</option>
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Acak Urutan Soal</label>
+              <select id="cfgAcak" class="form-select">
+                <option value="Ya">Ya</option>
+                <option value="Tidak" selected>Tidak</option>
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Tampilkan Skor ke Siswa</label>
+              <select id="cfgTampilSkor" class="form-select">
+                <option value="Ya" selected>Ya (Tampilkan Skor)</option>
+                <option value="Tidak">Tidak (Sembunyikan Skor)</option>
+              </select>
+            </div>
+
+          </div>
+          <button type="button" class="btn btn-success mt-4 fw-bold" onClick="simpanPengaturan()">💾 Simpan Pengaturan</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- TAB 2: PENGELOLAAN & IMPORT SOAL -->
+    <div class="tab-pane fade no-print" id="tab-import">
+      <div class="card card-custom p-4 bg-white mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="fw-bold mb-0 text-primary">📋 Daftar Kode Soal Terbuat</h5>
+            <small class="text-muted">Daftar seluruh paket bank soal yang tersimpan di sistem.</small>
+          </div>
+          <button class="btn btn-outline-primary btn-sm fw-bold" onClick="muatTabelDaftarKodeSoal()">
+            🔄 Refresh Tabel
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover align-middle" id="tabelDaftarKodeSoal">
+            <thead class="table-dark">
+              <tr>
+                <th style="width: 50px;" class="text-center">No</th>
+                <th>Kode Soal</th>
+                <th>Mata Pelajaran</th>
+                <th>Kelas</th>
+                <th class="text-center">Jumlah PG</th>
+                <th class="text-center">Jumlah Essai</th>
+                <th class="text-center">Total Soal</th>
+                <th class="text-center" style="width: 180px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelDaftarKodeBody">
+              <tr>
+                <td colspan="8" class="text-center py-3 text-muted">Memuat daftar kode soal...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card card-custom p-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0">Upload & Pembuatan Soal</h5>
+          <div>
+            <button type="button" class="btn btn-outline-primary btn-sm fw-bold me-1" onClick="bukaModalBuatSoalManual()">
+              ➕ Buat Soal Manual
+            </button>
+            <button type="button" class="btn btn-purple text-white btn-sm fw-bold me-1" style="background-color: #6f42c1;" onClick="bukaModalGenAI()">
+              🤖 Generator Soal AI (Gemini)
+            </button>
+            <button type="button" class="btn btn-info text-white btn-sm fw-bold me-1" onClick="tinjauDanCetakSoal()">
+              🔍 Tinjau & Cetak Soal
+            </button>
+            <button type="button" class="btn btn-outline-success btn-sm fw-bold" onClick="downloadTemplateExcel()">
+              📥 Download Format Excel (.xlsx)
+            </button>
+          </div>
+        </div>
+        
+        <div class="drop-zone text-center mb-4" onClick="document.getElementById('fileInputSoal').click()">
+          <div class="display-5 text-primary mb-2">📁</div>
+          <h6 class="fw-bold mb-1">Klik di sini atau Tarik File Soal Anda</h6>
+          <p class="text-muted small mb-2">Mendukung format: <strong>.xlsx, .xls, .docx, .txt, .json</strong></p>
+          <button type="button" class="btn btn-outline-primary btn-sm fw-bold">Pilih File dari Komputer</button>
+          <input type="file" id="fileInputSoal" class="d-none" accept=".xlsx, .xls, .docx, .txt, .json" onChange="prosesUploadFile(event)">
+        </div>
+
+        <div id="statusKonversi" class="alert alert-info d-none mb-3" role="alert"></div>
+
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="form-label fw-bold mb-0">Hasil Konversi JSON (Siap Disimpan):</label>
+            <button class="btn btn-sm btn-outline-secondary" onClick="document.getElementById('jsonSoalInput').value=''">Bersihkan Textarea</button>
+          </div>
+          <textarea id="jsonSoalInput" class="form-control font-monospace" rows="10" placeholder='Hasil konversi otomatis dari Excel/Word atau pembuatan manual akan muncul di sini...'></textarea>
+        </div>
+
+        <button type="button" id="btnSimpanSoal" class="btn btn-primary btn-lg w-100 fw-bold" onClick="prosesImportSoal()">
+          💾 Simpan Semua Soal ke Database
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 3: HASIL UJIAN & REKAP NILAI -->
+    <div class="tab-pane fade" id="tab-hasil">
+      <div class="row g-3 mb-3 no-print" id="statCards">
+        <div class="col-md-4">
+          <div class="p-3 stat-card shadow-sm border-start border-primary border-4">
+            <small class="text-muted fw-bold">RATA-RATA NILAI</small>
+            <h3 class="fw-bold text-primary mb-0" id="statRataRata">0</h3>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 stat-card shadow-sm border-start border-success border-4">
+            <small class="text-muted fw-bold">NILAI TERTINGGI</small>
+            <h3 class="fw-bold text-success mb-0" id="statMax">0</h3>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 stat-card shadow-sm border-start border-danger border-4">
+            <small class="text-muted fw-bold">NILAI TERENDAH</small>
+            <h3 class="fw-bold text-danger mb-0" id="statMin">0</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-custom p-4 bg-white" id="areaCetak">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">Rekap Hasil Ujian Siswa</h5>
+            <small class="text-muted" id="subTitleHasil">Kode Soal: - | Mapel: -</small>
+          </div>
+          <div class="no-print">
+            <button class="btn btn-warning btn-sm fw-bold me-1 text-dark" onClick="prosesHitungUlangNilai()">🔄 Hitung Ulang Nilai</button>
+            <button class="btn btn-success btn-sm fw-bold me-1" onClick="exportToExcel()">📊 Download Excel</button>
+            <button class="btn btn-secondary btn-sm fw-bold me-1" onClick="cetakPDF()">🖨️ Cetak / PDF</button>
+            <button class="btn btn-outline-primary btn-sm fw-bold" onClick="muatHasilUjian()">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <div class="row g-2 mb-3 no-print filter-box">
+          <div class="col-md-6">
+            <input type="text" id="searchSiswaInput" class="form-control form-control-sm" placeholder="🔍 Cari Nama atau No Peserta..." onKeyUp="filterHasilUjian()">
+          </div>
+          <div class="col-md-4">
+            <select id="filterKelasSelect" class="form-select form-select-sm" onChange="filterHasilUjian()">
+              <option value="">-- Semua Kelas --</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-sm btn-outline-secondary w-100" onClick="resetFilterHasil()">Reset Filter</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped align-middle" id="tabelHasilUjian">
+            <thead class="table-dark">
+              <tr>
+                <th>Waktu Selesai</th>
+                <th>No Peserta</th>
+                <th>Nama Siswa</th>
+                <th>Kelas</th>
+                <th class="text-center">Nilai PG</th>
+                <th class="text-center">Nilai Essai</th>
+                <th class="text-center">Total Nilai</th>
+                <th class="text-center no-print">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelHasilBody">
+              <tr><td colspan="8" class="text-center">Silakan muat data berdasarkan Kode Soal.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: ANALISIS HASIL UJIAN -->
+    <div class="tab-pane fade" id="tab-analisis" role="tabpanel">
+      <div class="card card-custom p-4 bg-white" id="areaCetakAnalisis">
+        <div class="mb-3 border-bottom pb-2">
+          <h4 class="fw-bold mb-1 text-uppercase text-center text-md-start">Laporan Analisis Butir Soal</h4>
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted fw-bold" id="subTitleAnalisis">Kode Soal: - | Mapel: -</small>
+            <small class="text-muted" id="infoTotalSiswaAnalisis">Total Responden: -</small>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+          <h5 class="fw-bold mb-0">📊 Tabel Analisis Butir Soal</h5>
+          <div>
+            <button class="btn btn-success btn-sm fw-bold me-1" onClick="exportAnalisisToExcel()">📊 Export Excel</button>
+            <button class="btn btn-secondary btn-sm fw-bold me-1" onClick="cetakAnalisisPDF()">🖨️ Cetak / PDF</button>
+            <button class="btn btn-outline-primary btn-sm fw-bold" onClick="muatAnalisisSoal()">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped align-middle" id="tabelAnalisisSoal">
+            <thead class="table-dark text-center">
+              <tr>
+                <th style="width: 60px;">No</th>
+                <th style="width: 80px;">Tipe</th>
+                <th style="width: 80px;">Kunci</th>
+                <th>Sebaran Jawaban (A / B / C / D)</th>
+                <th style="width: 90px;">Benar</th>
+                <th style="width: 90px;">Salah</th>
+                <th style="width: 120px;">% Kesukaran</th>
+                <th style="width: 110px;">Kategori</th>
+              </tr>
+            </thead>
+            <tbody id="tabelAnalisisBody">
+              <tr>
+                <td colspan="8" class="text-center py-3 text-muted">Silakan masukkan Kode Soal dan klik tab ini.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: KELOLA AKUN GURU & SISWA (KHUSUS SUPER ADMIN) -->
+    <div class="tab-pane fade no-print" id="tab-kelola-guru">
+      <div class="card card-custom p-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">👥 Manajemen Akun Pengguna (Guru & Siswa)</h5>
+            <small class="text-muted">Khusus Hak Akses <strong>Super Admin</strong></small>
+          </div>
+          <div>
+            <button class="btn btn-outline-primary btn-sm fw-bold me-2" onClick="muatTabelGuru()">🔄 Refresh Data</button>
+            <button class="btn btn-primary fw-bold" onClick="bukaModalTambahUser()">➕ Tambah Akun Baru</button>
+          </div>
+        </div>
+
+        <!-- FILTER TABEL AKUN -->
+        <div class="row g-2 mb-3">
+          <div class="col-md-4">
+            <select id="filterRoleUser" class="form-select form-select-sm" onchange="filterTabelAkun()">
+              <option value="">-- Semua Peran (Guru & Siswa) --</option>
+              <option value="Guru">Guru / Admin</option>
+              <option value="Siswa">Siswa</option>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <input type="text" id="searchUserAkun" class="form-control form-control-sm" placeholder="🔍 Cari Username, NIS, atau Nama..." onkeyup="filterTabelAkun()">
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover align-middle">
+            <thead class="table-warning text-dark">
+              <tr>
+                <th style="width: 50px;" class="text-center">No</th>
+                <th>Username / NIS</th>
+                <th>Nama Lengkap</th>
+                <th class="text-center">Kelas</th>
+                <th>Password</th>
+                <th class="text-center">Role</th>
+                <th class="text-center" style="width: 150px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelGuruBody">
+              <tr>
+                <td colspan="7" class="text-center py-3 text-muted">Memuat data akun pengguna...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL INPUT SOAL MANUAL -->
+<div class="modal fade no-print" id="modalInputSoal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">➕ Buat / Tambah Soal Manual</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formInputSoalManual">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">No Soal</label>
+              <input type="number" id="mNoSoal" class="form-control" min="1" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Tipe Soal</label>
+              <select id="mTipeSoal" class="form-select" onChange="toggleFormTipeSoal()">
+                <option value="PG">Pilihan Ganda (PG)</option>
+                <option value="ESSAI">Essai / Uraian</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Skor Soal</label>
+              <input type="number" id="mSkorSoal" class="form-control" value="2" min="1" required>
+            </div>
+
+            <div class="col-md-12">
+              <label class="form-label fw-bold">Pertanyaan Ujian</label>
+              <textarea id="mPertanyaan" class="form-control" rows="3" placeholder="Ketik pertanyaan di sini..." required></textarea>
+            </div>
+
+            <div id="containerOpsiPG" class="col-md-12 border p-3 rounded bg-light">
+              <h6 class="fw-bold text-primary mb-3">Opsi Jawaban (Pilihan Ganda)</h6>
+              <div class="row g-2">
+                <div class="col-md-6 mb-2">
+                  <label class="form-label small fw-bold">Opsi A</label>
+                  <input type="text" id="mOpA" class="form-control" placeholder="Jawaban A">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label small fw-bold">Opsi B</label>
+                  <input type="text" id="mOpB" class="form-control" placeholder="Jawaban B">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label small fw-bold">Opsi C</label>
+                  <input type="text" id="mOpC" class="form-control" placeholder="Jawaban C">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label small fw-bold">Opsi D</label>
+                  <input type="text" id="mOpD" class="form-control" placeholder="Jawaban D">
+                </div>
+                <div class="col-md-12 mt-2">
+                  <label class="form-label fw-bold">Kunci Jawaban PG</label>
+                  <select id="mKunciPG" class="form-select fw-bold text-success">
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary fw-bold" onClick="tambahkanSoalManual()">➕ Tambahkan ke Draft</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GENERATOR SOAL AI (GEMINI) -->
+<div class="modal fade no-print" id="modalGenAI" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white" style="background: linear-gradient(45deg, #6f42c1, #0d6efd);">
+        <h5 class="modal-title fw-bold">🤖 Generator Soal Berbasis AI (Gemini)</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formGenAI">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Kode Soal</label>
+              <input type="text" id="aiKodeSoal" class="form-control" readonly>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Mata Pelajaran</label>
+              <input type="text" id="aiMapel" class="form-control" readonly placeholder="Diambil dari Pengaturan">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Tingkat / Kelas</label>
+              <input type="text" id="aiKelas" class="form-control" placeholder="Contoh: Kelas 7 SMP / X SMA">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Jumlah Soal PG</label>
+              <input type="number" id="aiJumlahPG" class="form-control" value="10" min="0" max="50">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Jumlah Soal Essai</label>
+              <input type="number" id="aiJumlahEssai" class="form-control" value="2" min="0" max="20">
+            </div>
+
+            <div class="col-md-12">
+              <label class="form-label fw-bold">Topik / Materi / Kompetensi Dasar</label>
+              <textarea id="aiTopik" class="form-control" rows="3" placeholder="Masukkan materi pembahasan, bab, atau indikator soal..." required></textarea>
+            </div>
+
+            <div class="col-md-12">
+              <label class="form-label fw-bold text-secondary">Draft Prompt Otomatis:</label>
+              <textarea id="aiGeneratedPrompt" class="form-control font-monospace bg-light" rows="5" readonly></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer d-flex justify-content-between align-items-center">
+        <small class="text-muted">
+          💡 <i>Prompt akan disalin otomatis. Di Gemini, tinggal tekan <b>Ctrl + V</b> lalu Enter.</i>
+        </small>
+        <div>
+          <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Batal</button>
+          <a href="https://gemini.google.com/app" target="_blank" class="btn btn-purple text-white fw-bold" style="background-color: #6f42c1;" onclick="salinPromptSaja(event)">
+            🚀 Salin Prompt & Buka Gemini
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TINJAU & CETAK BANK SOAL -->
+<div class="modal fade" id="modalTinjauSoal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white no-print">
+        <h5 class="modal-title fw-bold">🔍 Pratinjau & Cetak Bank Soal</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" id="areaCetakSoal">
+        <div class="text-center mb-4 border-bottom pb-3">
+          <h4 class="fw-bold mb-1">LEMBAR BANK SOAL UJIAN</h4>
+          <h6 class="mb-1">Mata Pelajaran: <span id="previewMapelSoal" class="fw-bold text-primary">-</span></h6>
+          <small class="text-muted">Kode Ujian: <span id="previewKodeSoal" class="fw-bold">-</span></small>
+        </div>
+        <div id="containerListTinjauSoal"></div>
+      </div>
+      <div class="modal-footer no-print">
+        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-success fw-bold" onClick="window.print()">🖨️ Cetak / Simpan PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LIHAT JAWABAN SISWA LENGKAP -->
+<div class="modal fade" id="modalLihatJawaban" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white no-print">
+        <h5 class="modal-title fw-bold text-dark">📄 Lembar Jawaban Siswa</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <div class="modal-body" id="areaCetakModal">
+        <div class="p-3 bg-light rounded border mb-3">
+          <div class="row">
+            <div class="col-md-6">
+              <strong>Nama Siswa:</strong> <span id="ljNamaSiswa">-</span><br>
+              <strong>No. Peserta:</strong> <span id="ljNoPeserta">-</span>
+            </div>
+            <div class="col-md-6">
+              <strong>Mata Pelajaran:</strong> <span id="ljMapel" class="fw-bold text-primary">-</span><br>
+              <strong>Kelas:</strong> <span id="ljKelasSiswa">-</span> | <strong>Total Nilai:</strong> <span id="ljTotalNilai" class="badge bg-success fs-6">-</span>
+            </div>
+          </div>
+        </div>
+        
+        <div id="containerLembarJawabanLengkap"></div>
+      </div>
+
+      <div class="modal-footer no-print">
+        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" id="btnCetakLJ" class="btn btn-primary fw-bold">🖨️ Cetak Lembar Jawaban</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PERIKSA & BERI NILAI ESSAI -->
+<div class="modal fade no-print" id="modalEssai" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">Koreksi Jawaban Essai</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3 border-bottom pb-2">
+          <strong>Siswa:</strong> <span id="modalNamaSiswa">-</span> | <strong>Kelas:</strong> <span id="modalKelasSiswa">-</span>
+        </div>
+        <div id="containerJawabanEssai"></div>
+        <div class="mt-4 p-3 bg-light rounded border">
+          <label class="form-label fw-bold text-primary">Input / Update Nilai Essai (0 - 100):</label>
+          <input type="number" id="inputNilaiEssaiModal" class="form-control form-control-lg fw-bold" placeholder="Masukkan total nilai essai" min="0" max="100">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-success fw-bold" onClick="simpanNilaiEssai()">Simpan Nilai Essai</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TAMBAH / EDIT AKUN USER (GURU & SISWA) -->
+<div class="modal fade no-print" id="modalTambahGuru" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title fw-bold" id="modalUserTitle">➕ Tambah Akun Pengguna Baru</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formTambahGuru">
+          <input type="hidden" id="editUserMode" value="add">
+          <input type="hidden" id="origUsername" value="">
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Hak Akses / Role</label>
+            <select id="addRoleGuru" class="form-select fw-bold" onchange="toggleFormRoleSiswa()">
+              <option value="Siswa" selected>Siswa</option>
+              <option value="Guru">Guru / Pengawas</option>
+              <option value="Super Admin">Super Admin</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold" id="lblUsernameInput">NIS / Username</label>
+            <input type="text" id="addUsernameGuru" class="form-control" placeholder="Contoh: 2026001 / Username" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Nama Lengkap</label>
+            <input type="text" id="addNamaGuru" class="form-control" placeholder="Contoh: Ahmad Fauzi / Ahmad, S.Pd." required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold" id="lblPasswordInput">Password</label>
+            <input type="password" id="addPasswordGuru" class="form-control" placeholder="Masukkan password" required>
+          </div>
+          <div class="mb-3" id="containerAddKelasSiswa">
+            <label class="form-label fw-bold text-primary">Kelas (Khusus Siswa)</label>
+            <input type="text" id="addKelasSiswa" class="form-control" placeholder="Contoh: IX-A / XII IPA 1">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary fw-bold" onClick="prosesSimpanUser()">Simpan Akun</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  let rawDataAnalisis = [];
+  let rawDataHasil = [];
+  let filteredHasil = [];
+  let rawDataBankSoal = [];
+  let rawDataUserAkun = [];
+  let selectedIndexHasil = -1;
+  let currentMapel = "-";
+
+  let modalEssaiInstance = null;
+  let modalTambahGuruInstance = null;
+  let modalInputSoalInstance = null;
+  let modalTinjauSoalInstance = null;
+  let modalLihatJawabanInstance = null;
+  let modalGenAIInstance = null;
+
+  async function apiPost(payload) {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      throw new Error("Respon jaringan tidak OK (Status: " + res.status + ")");
+    }
+    return await res.json();
+  }
+
+  function selectDropdownValue(selectId, targetVal) {
+    const selectElem = document.getElementById(selectId);
+    if (!selectElem || !targetVal) return;
+
+    let found = false;
+    const searchVal = String(targetVal).trim().toLowerCase();
+
+    for (let i = 0; i < selectElem.options.length; i++) {
+      const optVal = selectElem.options[i].value.trim().toLowerCase();
+      const optText = selectElem.options[i].text.trim().toLowerCase();
+
+      if (optVal === searchVal || optText === searchVal || optVal.includes(searchVal) || searchVal.includes(optVal)) {
+        selectElem.selectedIndex = i;
+        found = true;
+        break;
+      }
+    }
+    if (!found && selectElem.options.length > 0) {
+      selectElem.selectedIndex = 0;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    const nama = sessionStorage.getItem("namaGuru") || "Guru";
+    const role = sessionStorage.getItem("roleGuru") || "Guru";
+
+    document.getElementById("labelNamaGuru").innerText = nama;
+    
+    const badgeRole = document.getElementById("badgeRole");
+    badgeRole.innerText = role;
+
+    if (role === "Super Admin") {
+      badgeRole.className = "badge bg-warning text-dark ms-1";
+      document.getElementById("tabMenuGuru").style.display = "block";
+    } else {
+      badgeRole.className = "badge bg-secondary ms-1";
+      document.getElementById("tabMenuGuru").style.display = "none";
+    }
+
+    modalEssaiInstance = new bootstrap.Modal(document.getElementById('modalEssai'));
+    modalTambahGuruInstance = new bootstrap.Modal(document.getElementById('modalTambahGuru'));
+    modalInputSoalInstance = new bootstrap.Modal(document.getElementById('modalInputSoal'));
+    modalTinjauSoalInstance = new bootstrap.Modal(document.getElementById('modalTinjauSoal'));
+    modalLihatJawabanInstance = new bootstrap.Modal(document.getElementById('modalLihatJawaban'));
+    modalGenAIInstance = new bootstrap.Modal(document.getElementById('modalGenAI'));
+
+    // Event Listener saat Tab Kelola Guru diklik
+    const tabGuruEl = document.getElementById("guru-admin-tab");
+    if (tabGuruEl) {
+      tabGuruEl.addEventListener("click", muatTabelGuru);
+    }
+
+    const aiInputs = ['aiJumlahPG', 'aiJumlahEssai', 'aiTopik', 'aiKelas'];
+    aiInputs.forEach(id => {
+      document.getElementById(id)?.addEventListener('input', generatePromptText);
+    });
+
+    const importTabEl = document.getElementById("import-tab");
+    if (importTabEl) {
+      importTabEl.addEventListener("click", muatTabelDaftarKodeSoal);
+    }
+
+    const lastKode = localStorage.getItem("guru_last_kode_soal");
+    if (lastKode) {
+      document.getElementById("kodeSoalInput").value = lastKode;
+      document.getElementById("cfgKodeUjian").value = lastKode;
+    }
+
+    document.getElementById("kodeSoalInput").addEventListener("input", function(e) {
+      const val = e.target.value.trim().toUpperCase();
+      localStorage.setItem("guru_last_kode_soal", val);
+      document.getElementById("cfgKodeUjian").value = val;
+    });
+
+    const lastTab = localStorage.getItem("guru_active_tab");
+    if (lastTab) {
+      const tabTrigger = document.querySelector(`#guruTab button[data-bs-target="${lastTab}"]`);
+      if (tabTrigger) {
+        const tab = new bootstrap.Tab(tabTrigger);
+        tab.show();
+        if (lastTab === "#tab-hasil" && lastKode) {
+          muatHasilUjian();
+        } else if (lastTab === "#tab-analisis" && lastKode) {
+          muatAnalisisSoal();
+        } else if (lastTab === "#tab-import") {
+          muatTabelDaftarKodeSoal();
+        } else if (lastTab === "#tab-kelola-guru" && role === "Super Admin") {
+          muatTabelGuru();
+        }
+      }
+    }
+
+    const tabEls = document.querySelectorAll('#guruTab button[data-bs-toggle="tab"]');
+    tabEls.forEach(tabEl => {
+      tabEl.addEventListener('shown.bs.tab', function (event) {
+        const target = event.target.getAttribute('data-bs-target');
+        localStorage.setItem("guru_active_tab", target);
+      });
+    });
+  });
+
+  function logoutGuru() {
+    if (confirm("Apakah Anda yakin ingin keluar dari Panel Guru?")) {
+      sessionStorage.removeItem("isGuruLoggedIn");
+      sessionStorage.removeItem("namaGuru");
+      sessionStorage.removeItem("roleGuru");
+      localStorage.removeItem("guru_last_kode_soal");
+      localStorage.removeItem("guru_active_tab");
+      window.location.href = "index.html";
+    }
+  }
+
+  function getKodeSoal() {
+    const kode = document.getElementById("kodeSoalInput").value.trim().toUpperCase();
+    if (!kode) {
+      alert("Masukkan Kode Soal terlebih dahulu di bagian atas!");
+      return null;
+    }
+    document.getElementById("cfgKodeUjian").value = kode;
+    return kode;
+  }
+
+  // --- FUNGSI TOGGLE FORM USER ROLE ---
+  function toggleFormRoleSiswa() {
+    const role = document.getElementById("addRoleGuru").value;
+    const containerKelas = document.getElementById("containerAddKelasSiswa");
+    const lblUsername = document.getElementById("lblUsernameInput");
+
+    if (role === "Siswa") {
+      containerKelas.style.display = "block";
+      lblUsername.innerText = "NIS / No. Peserta / Username";
+    } else {
+      containerKelas.style.display = "none";
+      lblUsername.innerText = "Username / NIP";
+    }
+  }
+
+  // --- FUNGSI KELOLA AKUN (GURU & SISWA) ---
+  async function muatTabelGuru() {
+    const tbody = document.getElementById("tabelGuruBody");
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning me-2"></div>Memuat data akun pengguna...</td></tr>';
+
+    try {
+      const result = await apiPost({ action: "getPengguna" });
+
+      if (result.status === "success" && Array.isArray(result.data)) {
+        rawDataUserAkun = result.data;
+        filterTabelAkun();
+      } else {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Gagal memuat: ${result.message || 'Terjadi kesalahan'}</td></tr>`;
+      }
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">Gagal terhubung ke server. Silakan coba lagi.</td></tr>';
+    }
+  }
+
+  function filterTabelAkun() {
+    const tbody = document.getElementById("tabelGuruBody");
+    const filterRole = document.getElementById("filterRoleUser").value.trim().toLowerCase();
+    const searchVal = document.getElementById("searchUserAkun").value.trim().toLowerCase();
+
+    const filtered = rawDataUserAkun.filter(item => {
+      const roleItem = String(item.role || "Siswa").toLowerCase();
+      const userItem = String(item.username || "").toLowerCase();
+      const namaItem = String(item.nama || "").toLowerCase();
+
+      const matchRole = filterRole === "" || roleItem === filterRole || (filterRole === "guru" && roleItem === "super admin");
+      const matchSearch = searchVal === "" || userItem.includes(searchVal) || namaItem.includes(searchVal);
+
+      return matchRole && matchSearch;
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Tidak ada data akun yang sesuai.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = "";
+    filtered.forEach((item, index) => {
+      const roleStr = item.role || "Siswa";
+      let badgeClass = "bg-info text-dark";
+
+      if (roleStr === "Super Admin") badgeClass = "bg-danger text-white";
+      else if (roleStr === "Guru") badgeClass = "bg-primary text-white";
+
+      const row = `
+        <tr>
+          <td class="text-center fw-bold">${index + 1}</td>
+          <td><strong class="text-primary">${item.username}</strong></td>
+          <td>${item.nama}</td>
+          <td class="text-center"><span class="badge bg-light text-dark border">${item.kelas || '-'}</span></td>
+          <td><code class="fs-6 text-dark">${item.password}</code></td>
+          <td class="text-center"><span class="badge ${badgeClass}">${roleStr}</span></td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-warning text-dark fw-bold me-1" onclick="bukaModalEditUser('${item.username}', '${item.nama}', '${item.password}', '${roleStr}', '${item.kelas || ''}')" title="Edit Akun Ini">
+              ✏️ Edit
+            </button>
+            <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusGuru('${item.username}')" title="Hapus User Ini">
+              🗑️
+            </button>
+          </td>
+        </tr>
+      `;
+      tbody.innerHTML += row;
+    });
+  }
+
+  function bukaModalTambahUser() {
+    document.getElementById("modalUserTitle").innerText = "➕ Tambah Akun Pengguna Baru";
+    document.getElementById("editUserMode").value = "add";
+    document.getElementById("formTambahGuru").reset();
+    document.getElementById("addUsernameGuru").readOnly = false;
+    document.getElementById("addRoleGuru").value = "Siswa";
+    toggleFormRoleSiswa();
+    modalTambahGuruInstance.show();
+  }
+
+  function bukaModalEditUser(username, nama, password, role, kelas) {
+    document.getElementById("modalUserTitle").innerText = "✏️ Ubah Data Akun Pengguna";
+    document.getElementById("editUserMode").value = "edit";
+    document.getElementById("origUsername").value = username;
+
+    document.getElementById("addUsernameGuru").value = username;
+    document.getElementById("addUsernameGuru").readOnly = true; // NIS/Username tidak diubah
+    document.getElementById("addNamaGuru").value = nama;
+    document.getElementById("addPasswordGuru").value = password;
+    document.getElementById("addRoleGuru").value = role;
+    document.getElementById("addKelasSiswa").value = kelas;
+
+    toggleFormRoleSiswa();
+    modalTambahGuruInstance.show();
+  }
+
+  async function prosesSimpanUser() {
+    const mode = document.getElementById("editUserMode").value;
+    const username = document.getElementById("addUsernameGuru").value.trim();
+    const nama = document.getElementById("addNamaGuru").value.trim();
+    const password = document.getElementById("addPasswordGuru").value.trim();
+    const role = document.getElementById("addRoleGuru").value;
+    const kelas = document.getElementById("addKelasSiswa").value.trim();
+
+    if (!username || !nama || !password) {
+      alert("Username/NIS, Nama Lengkap, dan Password wajib diisi!");
+      return;
+    }
+
+    const payload = {
+      action: mode === "edit" ? "editUser" : "tambahGuru",
+      username: username,
+      nama: nama,
+      password: password,
+      role: role,
+      kelas: role === "Siswa" ? kelas : ""
+    };
+
+    try {
+      const result = await apiPost(payload);
+      if (result.status === "success") {
+        alert(result.message || "Berhasil menyimpan data akun!");
+        document.getElementById("formTambahGuru").reset();
+        modalTambahGuruInstance.hide();
+        muatTabelGuru();
+      } else {
+        alert("Gagal: " + result.message);
+      }
+    } catch (e) {
+      alert("Terjadi kesalahan sistem saat menyimpan akun: " + e.message);
+    }
+  }
+
+  async function hapusGuru(username) {
+    if (!confirm(`⚠️ PERINGATAN: Apakah Anda yakin ingin menghapus akun '${username}'?`)) {
+      return;
+    }
+
+    try {
+      const result = await apiPost({
+        action: "hapusGuru",
+        username: username
+      });
+
+      if (result.status === "success") {
+        alert(result.message || "Akun berhasil dihapus!");
+        muatTabelGuru();
+      } else {
+        alert("Gagal menghapus: " + result.message);
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan koneksi saat menghapus user.");
+    }
+  }
+
+  // --- FUNGSI LAINNYA ---
+  function downloadTemplateExcel() {
+    const kode = document.getElementById("kodeSoalInput").value.trim().toUpperCase() || "ATS-MTK7";
+    const dataTemplate = [
+      {
+        "Kode Soal": kode, "No Soal": 1, "Tipe": "PG", "Pertanyaan": "Hasil dari 1/2 + 3/4 adalah...",
+        "Opsi A": "1 1/4", "Opsi B": "5/4", "Opsi C": "2/4", "Opsi D": "3/2", "Kunci": "A", "Skor": 2
+      },
+      {
+        "Kode Soal": kode, "No Soal": 2, "Tipe": "ESSAI", "Pertanyaan": "Jelaskan langkah-langkah penjumlahan pecahan!",
+        "Opsi A": "", "Opsi B": "", "Opsi C": "", "Opsi D": "", "Kunci": "-", "Skor": 10
+      }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(dataTemplate);
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cell_address = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!worksheet[cell_address]) continue;
+        worksheet[cell_address].t = 's';
+        worksheet[cell_address].z = '@';
+      }
+    }
+    worksheet['!cols'] = [{ wch: 15 }, { wch: 8 }, { wch: 10 }, { wch: 50 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 8 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bank Soal");
+    XLSX.writeFile(workbook, `Template_Import_Soal_${kode}.xlsx`);
+  }
+
+  async function muatDataSoal() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+
+    const btn = document.getElementById("btnMuatPengaturan");
+    const teksAsli = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Memuat Data...`;
+
+    try {
+      const data = await apiPost({ action: "getPengaturan", kode: kode });
+      if (data.status === "success" && data.data) {
+        const cfg = Array.isArray(data.data) ? (data.data[0] || {}) : data.data;
+        if (!cfg || Object.keys(cfg).length === 0) {
+          alert(`Pengaturan untuk kode '${kode}' belum diset.`);
+          return;
+        }
+
+        document.getElementById("cfgKodeUjian").value = kode;
+        const mapelValue = cfg.mata_pelajaran || cfg.mapel || "";
+        selectDropdownValue("cfgMapel", mapelValue);
+        document.getElementById("cfgDurasi").value = cfg.durasi || 90;
+        document.getElementById("cfgPenyusun").value = cfg.penyusun || cfg.nama_ujian || "";
+        document.getElementById("cfgPengawas").value = cfg.pengawas || "";
+        document.getElementById("cfgDaftarKelas").value = cfg.daftar_kelas || cfg.kelas || "";
+
+        currentMapel = mapelValue || "-";
+        selectDropdownValue("cfgJenisUjian", cfg.jenis_ujian || "");
+        selectDropdownValue("cfgStatus", cfg.status_ujian || cfg.status || "Aktif");
+        selectDropdownValue("cfgAcak", cfg.acak_soal || "Tidak");
+        selectDropdownValue("cfgTampilSkor", cfg.tampil_skor || cfg.tampilkan_skor || "Ya");
+
+        alert(`Data pengaturan untuk kode '${kode}' berhasil dimuat.`);
+      } else {
+        alert(data.message || `Data pengaturan belum diset.`);
+      }
+    } catch (e) {
+      alert("Gagal memuat pengaturan: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = teksAsli;
+    }
+  }
+
+  async function simpanPengaturan() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+
+    const btn = document.querySelector("#formPengaturan button[onClick='simpanPengaturan()']") || event.currentTarget;
+    const teksAsli = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
+
+    const payload = {
+      action: "savePengaturan",
+      kode_soal: kode,
+      mata_pelajaran: document.getElementById("cfgMapel") ? document.getElementById("cfgMapel").value.trim() : "",
+      jenis_ujian: document.getElementById("cfgJenisUjian") ? document.getElementById("cfgJenisUjian").value : "",
+      durasi: document.getElementById("cfgDurasi") ? (parseInt(document.getElementById("cfgDurasi").value) || 90) : 90,
+      penyusun: document.getElementById("cfgPenyusun") ? document.getElementById("cfgPenyusun").value : "",
+      pengawas: document.getElementById("cfgPengawas") ? document.getElementById("cfgPengawas").value : "",
+      status_ujian: document.getElementById("cfgStatus") ? document.getElementById("cfgStatus").value : "Aktif",
+      acak_soal: document.getElementById("cfgAcak") ? document.getElementById("cfgAcak").value : "Tidak",
+      kelas: document.getElementById("cfgDaftarKelas") ? document.getElementById("cfgDaftarKelas").value.trim() : "",
+      tampil_skor: document.getElementById("cfgTampilSkor") ? document.getElementById("cfgTampilSkor").value : "Ya"
+    };
+
+    try {
+      const result = await apiPost(payload);
+      currentMapel = payload.mata_pelajaran || "-";
+      alert(result.message || "Pengaturan berhasil disimpan!");
+    } catch (e) {
+      alert("Gagal menyimpan pengaturan: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = teksAsli;
+    }
+  }
+
+  function toggleFormTipeSoal() {
+    const tipe = document.getElementById("mTipeSoal").value;
+    const containerPG = document.getElementById("containerOpsiPG");
+    if (tipe === "ESSAI") {
+      containerPG.style.display = "none";
+      document.getElementById("mSkorSoal").value = "10";
+    } else {
+      containerPG.style.display = "block";
+      document.getElementById("mSkorSoal").value = "2";
+    }
+  }
+
+  function bukaModalBuatSoalManual() {
+    let listSoalEx = [];
+    try {
+      const txt = document.getElementById("jsonSoalInput").value.trim();
+      if (txt) listSoalEx = JSON.parse(txt);
+    } catch(e){}
+
+    document.getElementById("mNoSoal").value = listSoalEx.length + 1;
+    document.getElementById("mPertanyaan").value = "";
+    document.getElementById("mOpA").value = "";
+    document.getElementById("mOpB").value = "";
+    document.getElementById("mOpC").value = "";
+    document.getElementById("mOpD").value = "";
+    document.getElementById("mTipeSoal").value = "PG";
+    toggleFormTipeSoal();
+    modalInputSoalInstance.show();
+  }
+
+  function tambahkanSoalManual() {
+    const noSoal = parseInt(document.getElementById("mNoSoal").value) || 1;
+    const tipe = document.getElementById("mTipeSoal").value;
+    const skor = parseInt(document.getElementById("mSkorSoal").value) || 2;
+    const pertanyaan = document.getElementById("mPertanyaan").value.trim();
+
+    if (!pertanyaan) { alert("Pertanyaan soal wajib diisi!"); return; }
+
+    let itemSoal = { no_soal: noSoal, tipe: tipe, pertanyaan: pertanyaan, skor: skor };
+    if (tipe === "PG") {
+      itemSoal.opA = document.getElementById("mOpA").value.trim();
+      itemSoal.opB = document.getElementById("mOpB").value.trim();
+      itemSoal.opC = document.getElementById("mOpC").value.trim();
+      itemSoal.opD = document.getElementById("mOpD").value.trim();
+      itemSoal.kunci = document.getElementById("mKunciPG").value;
+    } else {
+      itemSoal.opA = ""; itemSoal.opB = ""; itemSoal.opC = ""; itemSoal.opD = ""; itemSoal.kunci = "-";
+    }
+
+    let currentList = [];
+    try {
+      const currentTxt = document.getElementById("jsonSoalInput").value.trim();
+      if (currentTxt) currentList = JSON.parse(currentTxt);
+    } catch(e){}
+
+    currentList.push(itemSoal);
+    tampilkanHasilKonversi(currentList);
+    modalInputSoalInstance.hide();
+  }
+
+  async function tinjauDanCetakSoal(kodeSoal) {
+    if (!kodeSoal || typeof kodeSoal !== "string") {
+      kodeSoal = typeof getKodeSoal === "function" ? getKodeSoal() : document.getElementById("kodeSoalInput")?.value.trim().toUpperCase();
+    }
+    if (!kodeSoal) { alert("Kode soal tidak boleh kosong!"); return; }
+
+    try {
+      const targetUrl = typeof API_URL !== "undefined" ? API_URL : "";
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "getSoalByKode", kode_soal: kodeSoal })
+      });
+      const result = await response.json();
+
+      if (result.status !== "success" || !result.data || result.data.length === 0) {
+        alert(result.message || "Data soal tidak ditemukan!");
+        return;
+      }
+
+      const listSoal = result.data;
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) { alert("Pop-up diblokir!"); return; }
+
+      let htmlContent = `
+        <!DOCTYPE html>
+        <html><head><title>Naskah Soal - ${kodeSoal}</title></head>
+        <body onload="window.print()">
+          <h2>NASKAH SOAL UJIAN - KODE: ${kodeSoal}</h2>
+          <hr>
+      `;
+
+      listSoal.forEach((item, index) => {
+        const no = item.no_soal || (index + 1);
+        htmlContent += `<p><b>${no}. ${item.pertanyaan}</b></p>`;
+        if (item.tipe === "PG") {
+          htmlContent += `<ul><li>A. ${item.opA}</li><li>B. ${item.opB}</li><li>C. ${item.opC}</li><li>D. ${item.opD}</li></ul>`;
+        }
+      });
+
+      htmlContent += `</body></html>`;
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    } catch (error) {
+      alert("Terjadi kesalahan cetak soal.");
+    }
+  }
+
+  function prosesUploadFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const statusBox = document.getElementById("statusKonversi");
+    statusBox.className = "alert alert-info";
+    statusBox.innerText = `Memproses file "${file.name}"...`;
+    statusBox.classList.remove("d-none");
+
+    const fileName = file.name.toLowerCase();
+    if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) parseExcel(file);
+    else if (fileName.endsWith(".docx")) parseWord(file);
+    else if (fileName.endsWith(".json") || fileName.endsWith(".txt")) parseTextOrJson(file);
+    else showErrorKonversi("Format file tidak didukung!");
+  }
+
+  function parseExcel(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rawJson = XLSX.utils.sheet_to_json(sheet);
+
+        const listSoal = rawJson.map((row, index) => ({
+          no_soal: parseInt(row.no_soal || row["No Soal"] || (index + 1)),
+          tipe: String(row.tipe || row["Tipe"] || "PG").trim().toUpperCase(),
+          pertanyaan: String(row.pertanyaan || row["Pertanyaan"] || ""),
+          opA: String(row.opA || row["Opsi A"] || ""),
+          opB: String(row.opB || row["Opsi B"] || ""),
+          opC: String(row.opC || row["Opsi C"] || ""),
+          opD: String(row.opD || row["Opsi D"] || ""),
+          kunci: String(row.kunci || row["Kunci"] || "").trim().toUpperCase(),
+          skor: parseInt(row.skor || row["Skor"] || 2)
+        }));
+        tampilkanHasilKonversi(listSoal);
+      } catch (err) { showErrorKonversi("Gagal membaca Excel: " + err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function parseWord(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      mammoth.extractRawText({ arrayBuffer: e.target.result })
+        .then(function(result) { parseTextFormat(result.value); })
+        .catch(function(err) { showErrorKonversi("Gagal membaca Word: " + err.message); });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function parseTextOrJson(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try { tampilkanHasilKonversi(JSON.parse(e.target.result)); }
+      catch (err) { parseTextFormat(e.target.result); }
+    };
+    reader.readAsText(file);
+  }
+
+  function parseTextFormat(text) {
+    try {
+      const blocks = text.split(/(?=^\s*\d+[\.\)])/m);
+      const listSoal = [];
+      blocks.forEach((block) => {
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length < 2) return;
+        let pertanyaan = lines[0].replace(/^\d+[\.\)]\s*/, '');
+        let opA = "", opB = "", opC = "", opD = "", kunci = "A", tipe = "PG";
+
+        lines.forEach(line => {
+          if (/^[A|a][\.\)]/.test(line)) opA = line.replace(/^[A|a][\.\)]\s*/, '');
+          else if (/^[B|b][\.\)]/.test(line)) opB = line.replace(/^[B|b][\.\)]\s*/, '');
+          else if (/^[C|c][\.\)]/.test(line)) opC = line.replace(/^[C|c][\.\)]\s*/, '');
+          else if (/^[D|d][\.\)]/.test(line)) opD = line.replace(/^[D|d][\.\)]\s*/, '');
+          else if (/^(Kunci|Jawaban):/i.test(line)) kunci = line.split(':')[1].trim().toUpperCase();
+          else if (/^(Tipe):/i.test(line)) tipe = line.split(':')[1].trim().toUpperCase();
+        });
+
+        if (pertanyaan) {
+          listSoal.push({ no_soal: listSoal.length + 1, tipe: tipe || "PG", pertanyaan: pertanyaan, opA: opA, opB: opB, opC: opC, opD: opD, kunci: kunci || "A", skor: 2 });
+        }
+      });
+      if (listSoal.length === 0) throw new Error("Format teks tidak dikenali.");
+      tampilkanHasilKonversi(listSoal);
+    } catch (err) { showErrorKonversi(err.message); }
+  }
+
+  function tampilkanHasilKonversi(listSoal) {
+    document.getElementById("jsonSoalInput").value = JSON.stringify(listSoal, null, 2);
+    const statusBox = document.getElementById("statusKonversi");
+    statusBox.className = "alert alert-success";
+    statusBox.innerText = `Berhasil! Terkonversi ${listSoal.length} soal dalam draft.`;
+    statusBox.classList.remove("d-none");
+  }
+
+  function showErrorKonversi(msg) {
+    const statusBox = document.getElementById("statusKonversi");
+    statusBox.className = "alert alert-danger";
+    statusBox.innerText = msg;
+    statusBox.classList.remove("d-none");
+  }
+
+  async function prosesImportSoal() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+
+    const jsonText = document.getElementById("jsonSoalInput").value.trim();
+    if (!jsonText) { alert("Area JSON Soal kosong!"); return; }
+
+    let listSoal = [];
+    try { listSoal = JSON.parse(jsonText); }
+    catch (e) { alert("Format JSON Soal tidak valid!"); return; }
+
+    const btnSimpan = document.getElementById("btnSimpanSoal");
+    btnSimpan.disabled = true;
+    btnSimpan.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
+
+    try {
+      const result = await apiPost({ action: "importSoal", kode_soal: kode, list_soal: listSoal });
+      alert(result.message || "Soal berhasil disimpan!");
+      muatTabelDaftarKodeSoal();
+    } catch (e) { alert("Gagal mengimport soal: " + e.message); }
+    finally { btnSimpan.disabled = false; btnSimpan.innerHTML = "💾 Simpan Semua Soal ke Database"; }
+  }
+
+  async function muatHasilUjian() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+
+    const tbody = document.getElementById("tabelHasilBody");
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat rekap...</td></tr>';
+
+    try {
+      const result = await apiPost({ action: "getHasilUjian", kode_soal: kode });
+      if (result.status === "success") {
+        rawDataBankSoal = result.bank_soal || [];
+        rawDataHasil = result.data || [];
+        filteredHasil = [...rawDataHasil];
+        populasiFilterKelas();
+        updateStatistikUjian();
+        renderTabelHasil(filteredHasil);
+      } else { tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Gagal: ${result.message}</td></tr>`; }
+    } catch (e) { tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Terjadi kesalahan koneksi.</td></tr>'; }
+  }
+
+  function renderTabelHasil(dataList) {
+    const tbody = document.getElementById("tabelHasilBody");
+    tbody.innerHTML = "";
+    if (!dataList || dataList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Data tidak ditemukan.</td></tr>';
+      return;
+    }
+
+    dataList.forEach((item) => {
+      const pg = parseFloat(item.skor_pg || 0);
+      const es = parseFloat(item.nilai_essai || 0);
+      const total = pg + es;
+      const origIndex = rawDataHasil.indexOf(item);
+
+      const row = `
+        <tr>
+          <td>${new Date(item.timestamp).toLocaleString("id-ID")}</td>
+          <td>${item.no_peserta || '-'}</td>
+          <td class="fw-bold">${item.nama}</td>
+          <td>${item.kelas}</td>
+          <td class="text-center"><span class="badge bg-primary fs-6">${pg}</span></td>
+          <td class="text-center"><span class="badge bg-info text-dark fs-6">${es}</span></td>
+          <td class="text-center"><span class="badge bg-success fs-6">${total}</span></td>
+          <td class="text-center no-print">
+            <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" onclick="bukaModalLihatJawaban(${origIndex})">📄 Jawaban</button>
+            <button class="btn btn-sm btn-warning text-dark fw-bold me-1" onclick="bukaModalEssai(${origIndex})">✏️ Koreksi</button>
+            <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusHasilSiswa('${item.no_peserta}', this)">🗑️</button>
+          </td>
+        </tr>
+      `;
+      tbody.innerHTML += row;
+    });
+  }
+
+  async function bukaModalLihatJawaban(index) {
+    const item = rawDataHasil[index];
+    if (!item) return;
+
+    document.getElementById("ljNamaSiswa").innerText = item.nama;
+    document.getElementById("ljNoPeserta").innerText = item.no_peserta || '-';
+    document.getElementById("ljKelasSiswa").innerText = item.kelas;
+    document.getElementById("ljTotalNilai").innerText = (parseFloat(item.skor_pg || 0) + parseFloat(item.nilai_essai || 0));
+
+    let detailJawaban = {};
+    try { detailJawaban = typeof item.detail_jawaban === 'string' ? JSON.parse(item.detail_jawaban) : item.detail_jawaban; } catch(e){}
+
+    const container = document.getElementById("containerLembarJawabanLengkap");
+    container.innerHTML = "";
+
+    rawDataBankSoal.forEach((soal, idx) => {
+      const noKey = idx + 1;
+      const meJawab = detailJawaban[noKey] || "-";
+      container.innerHTML += `
+        <div class="card mb-2">
+          <div class="card-body">
+            <b>No. ${noKey} (${soal.tipe}):</b> ${soal.pertanyaan}<br>
+            <small class="text-primary">Jawaban Siswa: ${meJawab}</small>
+          </div>
+        </div>
+      `;
+    });
+    modalLihatJawabanInstance.show();
+  }
+
+  function populasiFilterKelas() {
+    const select = document.getElementById("filterKelasSelect");
+    select.innerHTML = '<option value="">-- Semua Kelas --</option>';
+    const daftarKelas = [...new Set(rawDataHasil.map(i => i.kelas).filter(Boolean))];
+    daftarKelas.forEach(k => select.innerHTML += `<option value="${k}">${k}</option>`);
+  }
+
+  function filterHasilUjian() {
+    const search = document.getElementById("searchSiswaInput").value.toLowerCase().trim();
+    const filterKelas = document.getElementById("filterKelasSelect").value.trim();
+
+    filteredHasil = rawDataHasil.filter(item => {
+      const matchSearch = search === "" || String(item.nama).toLowerCase().includes(search) || String(item.no_peserta).toLowerCase().includes(search);
+      const matchKelas = filterKelas === "" || String(item.kelas) === filterKelas;
+      return matchSearch && matchKelas;
+    });
+    renderTabelHasil(filteredHasil);
+    updateStatistikUjian(filteredHasil);
+  }
+
+  function resetFilterHasil() {
+    document.getElementById("searchSiswaInput").value = "";
+    document.getElementById("filterKelasSelect").value = "";
+    filteredHasil = [...rawDataHasil];
+    renderTabelHasil(filteredHasil);
+    updateStatistikUjian(filteredHasil);
+  }
+
+  function updateStatistikUjian(dataList = rawDataHasil) {
+    if (!dataList || dataList.length === 0) {
+      document.getElementById("statRataRata").innerText = "0";
+      document.getElementById("statMax").innerText = "0";
+      document.getElementById("statMin").innerText = "0";
+      return;
+    }
+    const totals = dataList.map(item => parseFloat(item.skor_pg || 0) + parseFloat(item.nilai_essai || 0));
+    document.getElementById("statRataRata").innerText = (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1);
+    document.getElementById("statMax").innerText = Math.max(...totals);
+    document.getElementById("statMin").innerText = Math.min(...totals);
+  }
+
+  async function hapusHasilSiswa(noPeserta) {
+    const kode = getKodeSoal();
+    if (!kode || !confirm(`Hapus hasil ujian No/NIS: ${noPeserta}?`)) return;
+    try {
+      const result = await apiPost({ action: "hapusHasilUjian", kode_soal: kode, no_peserta: String(noPeserta).trim() });
+      if (result.status === "success") { alert(result.message); muatHasilUjian(); }
+      else alert("Gagal: " + result.message);
+    } catch (e) { alert("Kesalahan koneksi saat menghapus."); }
+  }
+
+  function bukaModalEssai(index) {
+    selectedIndexHasil = index;
+    const item = rawDataHasil[index];
+    document.getElementById("modalNamaSiswa").innerText = item.nama;
+    document.getElementById("modalKelasSiswa").innerText = item.kelas;
+
+    let detailJawaban = {};
+    try { detailJawaban = typeof item.detail_jawaban === 'string' ? JSON.parse(item.detail_jawaban) : item.detail_jawaban; } catch(e){}
+    let detailNilaiEssai = {};
+    try { detailNilaiEssai = typeof item.detail_nilai_essai === 'string' ? JSON.parse(item.detail_nilai_essai) : (item.detail_nilai_essai || {}); } catch(e){}
+
+    const container = document.getElementById("containerJawabanEssai");
+    container.innerHTML = "";
+
+    rawDataBankSoal.forEach((soal, idx) => {
+      if (soal.tipe === "ESSAI" || soal.tipe === "ESSAY") {
+        const keyUnik = idx + 1;
+        const jw = detailJawaban[keyUnik] || "(Tidak dijawab)";
+        const nilai = detailNilaiEssai[keyUnik] !== undefined ? detailNilaiEssai[keyUnik] : 0;
+
+        container.innerHTML += `
+          <div class="card mb-2">
+            <div class="card-body">
+              <p><b>Soal:</b> ${soal.pertanyaan}</p>
+              <p><b>Jawaban:</b> ${jw}</p>
+              <input type="number" class="form-control form-control-sm input-nilai-per-soal" data-key="${keyUnik}" value="${nilai}" oninput="hitungTotalNilaiEssaiModal()">
+            </div>
+          </div>
+        `;
+      }
+    });
+    hitungTotalNilaiEssaiModal();
+    modalEssaiInstance.show();
+  }
+
+  function hitungTotalNilaiEssaiModal() {
+    let total = 0;
+    document.querySelectorAll(".input-nilai-per-soal").forEach(input => { total += parseFloat(input.value) || 0; });
+    document.getElementById("inputNilaiEssaiModal").value = total;
+  }
+
+  async function simpanNilaiEssai() {
+    if (selectedIndexHasil < 0) return;
+    const item = rawDataHasil[selectedIndexHasil];
+    const detailNilaiPerNomor = {};
+    let totalNilaiEssai = 0;
+
+    document.querySelectorAll(".input-nilai-per-soal").forEach(input => {
+      const key = input.getAttribute("data-key");
+      const val = parseFloat(input.value) || 0;
+      detailNilaiPerNomor[key] = val;
+      totalNilaiEssai += val;
+    });
+
+    try {
+      const result = await apiPost({
+        action: "simpanNilaiEssai",
+        kode_soal: getKodeSoal(),
+        no_peserta: item.no_peserta,
+        nilai_essai: totalNilaiEssai,
+        detail_nilai_essai: detailNilaiPerNomor
+      });
+      if (result.status === "success") {
+        modalEssaiInstance.hide();
+        muatHasilUjian();
+      } else alert("Gagal: " + result.message);
+    } catch (e) { alert("Kesalahan koneksi."); }
+  }
+
+  async function muatAnalisisSoal() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+    const tbody = document.getElementById("tabelAnalisisBody");
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat analisis...</td></tr>';
+
+    try {
+      const result = await apiPost({ action: "analisisSoal", kode_soal: kode });
+      if (result.status === "success") {
+        rawDataAnalisis = result.analisis || result.data || [];
+        tbody.innerHTML = "";
+        rawDataAnalisis.forEach(item => {
+          tbody.innerHTML += `
+            <tr>
+              <td class="text-center">${item.no_soal}</td>
+              <td class="text-center">${item.tipe}</td>
+              <td class="text-center fw-bold">${item.kunci || "-"}</td>
+              <td>A:${item.sebaran?.A||0} B:${item.sebaran?.B||0} C:${item.sebaran?.C||0} D:${item.sebaran?.D||0}</td>
+              <td class="text-center text-success">${item.benar}</td>
+              <td class="text-center text-danger">${item.salah}</td>
+              <td class="text-center">${item.tingkat_kesukaran}</td>
+              <td class="text-center">${item.kategori}</td>
+            </tr>
+          `;
+        });
+      } else tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Gagal: ${result.message}</td></tr>`;
+    } catch (e) { tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Terjadi kesalahan koneksi.</td></tr>'; }
+  }
+
+  function cetakAnalisisPDF() { window.print(); }
+  function cetakPDF() { window.print(); }
+  function exportAnalisisToExcel() {
+    const worksheet = XLSX.utils.json_to_sheet(rawDataAnalisis);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Analisis");
+    XLSX.writeFile(workbook, `Analisis_Soal.xlsx`);
+  }
+  function exportToExcel() {
+    const worksheet = XLSX.utils.json_to_sheet(filteredHasil);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Hasil Ujian");
+    XLSX.writeFile(workbook, `Hasil_Ujian.xlsx`);
+  }
+  async function prosesHitungUlangNilai() {
+    const kode = getKodeSoal();
+    if (!kode || !confirm(`Hitung ulang skor PG kode ${kode}?`)) return;
+    try {
+      const result = await apiPost({ action: "hitungUlangSkor", kode_soal: kode });
+      alert(result.message);
+      muatHasilUjian();
+    } catch (e) { alert("Kesalahan koneksi."); }
+  }
+
+  async function muatDaftarKodeSoal() {
+    const datalist = document.getElementById("listKodeSoal");
+    if (!datalist) return;
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "getdaftarkodesoal" })
+      });
+      const response = await res.json();
+      if (response.status === "success" && Array.isArray(response.data)) {
+        datalist.innerHTML = "";
+        response.data.forEach(kode => datalist.innerHTML += `<option value="${kode}">`);
+      }
+    } catch (err) {}
+  }
+
+  function bukaModalGenAI() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+    document.getElementById("aiKodeSoal").value = kode;
+    generatePromptText();
+    modalGenAIInstance.show();
+  }
+
+  function generatePromptText() {
+    const kode = document.getElementById("aiKodeSoal")?.value || "";
+    const mapel = document.getElementById("cfgMapel")?.value || "";
+    const topic = document.getElementById("aiTopik")?.value || "";
+    document.getElementById("aiGeneratedPrompt").value = `Buatkan soal ${mapel} materi ${topic} untuk kode ${kode}`;
+  }
+
+  function salinPromptSaja(e) {
+    const promptArea = document.getElementById("aiGeneratedPrompt");
+    promptArea.select();
+    document.execCommand("copy");
+    alert("Prompt disalin!");
+  }
+
+  async function muatTabelDaftarKodeSoal() {
+    const tbody = document.getElementById("tabelDaftarKodeBody");
+    if (!tbody) return;
+    try {
+      const result = await apiPost({ action: "getDaftarSemuaKodeSoal" });
+      if (result.status === "success" && Array.isArray(result.data)) {
+        tbody.innerHTML = "";
+        result.data.forEach((item, idx) => {
+          tbody.innerHTML += `
+            <tr>
+              <td class="text-center">${idx + 1}</td>
+              <td><b>${item.kode_soal}</b></td>
+              <td>${item.mapel || '-'}</td>
+              <td>${item.kelas || '-'}</td>
+              <td class="text-center">${item.jumlah_pg || 0}</td>
+              <td class="text-center">${item.jumlah_essai || 0}</td>
+              <td class="text-center">${(item.jumlah_pg || 0) + (item.jumlah_essai || 0)}</td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-primary" onclick="pilihKodeSoalDaftar('${item.kode_soal}')">📌 Pilih</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="hapusBankSoal('${item.kode_soal}')">🗑️</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+    } catch (err) {}
+  }
+
+  function pilihKodeSoalDaftar(kodeSoal) {
+    document.getElementById("kodeSoalInput").value = kodeSoal;
+    document.getElementById("cfgKodeUjian").value = kodeSoal;
+    localStorage.setItem("guru_last_kode_soal", kodeSoal);
+  }
+
+  async function hapusBankSoal(kodeSoal) {
+    if (!confirm(`Hapus bank soal kode '${kodeSoal}'?`)) return;
+    try {
+      const result = await apiPost({ action: "hapusKodeSoal", kode_soal: kodeSoal });
+      if (result.status === "success") muatTabelDaftarKodeSoal();
+    } catch (err) {}
+  }
+</script>
+</body>
+</html>
