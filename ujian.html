@@ -135,7 +135,7 @@
         <div class="card-body p-4 p-md-4">
           <form id="formMasukUjian" onsubmit="mulaiKonfirmasiUjian(event)">
             
-            <!-- 1. Input NIS / NISN (DILETAK BANJIR PALING ATAS) -->
+            <!-- 1. Input NIS / NISN -->
             <div class="mb-3">
               <label for="inputNisSiswa" class="form-label fw-semibold small text-muted">NO. PESERTA / NIS / NISN</label>
               <div class="input-group">
@@ -145,7 +145,7 @@
               </div>
             </div>
 
-            <!-- 2. Dropdown Kode Soal (TERKUNCI SECARA DEFAULT) -->
+            <!-- 2. Dropdown Kode Soal -->
             <div class="mb-3">
               <label for="inputKodeSoal" class="form-label fw-semibold small text-muted">KODE SOAL / UJIAN</label>
               <div class="input-group">
@@ -186,7 +186,7 @@
           </form>
 
           <div class="text-center mt-4 pt-2 border-top">
-            <a href="index.html" class="text-decoration-none small text-muted"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Halaman Utama</a>
+            <a href="siswa.html" class="text-decoration-none small text-muted"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Dashboard Siswa</a>
           </div>
         </div>
 
@@ -226,7 +226,7 @@
 
             <!-- OPTION / KOTAK JAWABAN (DIBUAT TERPISAH) -->
             <div id="opsiJawabanContainer">
-              <!-- Opsi A-E atau Textarea Essai dimuat dinamis -->
+              <!-- Opsi A-D/E atau Textarea Essai dimuat dinamis -->
             </div>
           </div>
 
@@ -271,122 +271,182 @@
   let timerAutoSaveEssai = null;
   let statusUjianAktif = false;
 
-// PEMERIKSAAN OTOMATIS SAAT HALAMAN DI-REFRESH / LOADED
-document.addEventListener("DOMContentLoaded", function() {
+  // Helper Get API URL
+  function getApiUrl() {
+    return (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : (typeof API_URL !== 'undefined' ? API_URL : "");
+  }
+
+  // PEMERIKSAAN OTOMATIS SAAT HALAMAN DI-REFRESH / LOADED
+  document.addEventListener("DOMContentLoaded", function() {
+    const sesiSaved = localStorage.getItem("sesi_ujian_aktif");
+    
+    // Cek apakah ada data direct dari portal siswa.html
+    if (sesiSaved) {
+      try {
+        const parsed = JSON.parse(sesiSaved);
+        if (parsed.dataPeserta && parsed.dataPeserta.kode && (!parsed.listSoal || parsed.listSoal.length === 0)) {
+          // Direct launch dari siswa.html, otomatis jalankan pemuatan soal
+          dataPeserta = parsed.dataPeserta;
+          otomatikMulaiDariSiswa(dataPeserta);
+          return;
+        }
+      } catch (e) {}
+    }
+
     cekSesiUjianAktif();
 
     // Event Listener pada Input No. Peserta / NIS
     const inputNis = document.getElementById("inputNisSiswa");
     if (inputNis) {
-      // Pemicu 1: Jalankan saat penulisan selesai dan kursor berpindah keluar (blur)
       inputNis.addEventListener("blur", function() {
         prosesVerifikasiDanMuatKode(this.value);
       });
 
-      // Pemicu 2: Jalankan saat menekan tombol Enter
       inputNis.addEventListener("keydown", function(e) {
         if (e.key === "Enter") {
-          e.preventDefault(); // Mencegah form langsung terkirim
-          this.blur(); // Memindahkan fokus agar memicu proses verifikasi
+          e.preventDefault();
+          this.blur();
         }
       });
     }
   });
 
-// VERIFIKASI NO PESERTA & FILTER KODE SOAL TERSEDIA
-async function prosesVerifikasiDanMuatKode(noPeserta) {
-  const valNis = String(noPeserta || "").trim();
-  const selectKode = document.getElementById("inputKodeSoal");
-  const btnRefresh = document.getElementById("btnRefreshKode");
-  const selectKelas = document.getElementById("inputKelasSiswa");
+  // OTOMATIS MEMULAI UJIAN JIKA BERASAL DARI PORTAL SISWA
+  async function otomatikMulaiDariSiswa(peserta) {
+    document.getElementById("sectionLoginUjian").classList.add("d-none");
+    document.getElementById("sectionLembarUjian").classList.remove("d-none");
 
-  const targetUrl = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : (typeof API_URL !== 'undefined' ? API_URL : "");
+    document.getElementById("infoSiswa").innerText = `${peserta.nama} (${peserta.kelas})`;
+    document.getElementById("infoKode").innerText = peserta.kode;
+    document.getElementById("labelMataPelajaran").innerText = `Ujian: ${peserta.kode}`;
 
-  if (!valNis) {
-    if (selectKode) {
-      selectKode.disabled = true;
-      selectKode.innerHTML = '<option value="">-- Masukkan No. Peserta Terlebih Dahulu --</option>';
+    document.getElementById("soalKonten").innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Memuat bank soal...</p></div>`;
+
+    try {
+      const targetUrl = getApiUrl();
+      const res = await fetch(targetUrl, {
+        method: "POST",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "getsoalsiswa", kode: peserta.kode })
+      });
+
+      const result = await res.json();
+
+      if (result.status === "success" || result.status === "ok") {
+        listSoal = result.soal || result.data || [];
+        if (listSoal.length === 0) throw new Error("Bank soal untuk kode ini kosong.");
+
+        const durasiMenit = parseInt(result.durasi) || 60;
+        sisaDetik = durasiMenit * 60;
+
+        localStorage.setItem("waktu_mulai_ujian", Date.now());
+        localStorage.setItem("durasi_total_detik", sisaDetik);
+
+        aktifkanProteksiNavigasi();
+        simpanSesiLokal();
+        renderGridNomor();
+        tampilkanSoal(0);
+        jalankanTimer();
+      } else {
+        alert(result.message || "Kode soal tidak ditemukan.");
+        window.location.href = "siswa.html";
+      }
+    } catch (err) {
+      alert("Gagal memuat soal: " + err.message);
+      window.location.href = "siswa.html";
     }
-    if (btnRefresh) btnRefresh.disabled = true;
-    if (selectKelas) selectKelas.innerHTML = '<option value="">-- Pilih Kode Soal Terlebih Dahulu --</option>';
-    return;
   }
 
-  if (selectKode) {
-    selectKode.disabled = true;
-    selectKode.innerHTML = '<option value="">⏳ Memeriksa Ujian Tersedia...</option>';
-  }
-  if (btnRefresh) btnRefresh.disabled = true;
+  // VERIFIKASI NO PESERTA & FILTER KODE SOAL TERSEDIA
+  async function prosesVerifikasiDanMuatKode(noPeserta) {
+    const valNis = String(noPeserta || "").trim();
+    const selectKode = document.getElementById("inputKodeSoal");
+    const btnRefresh = document.getElementById("btnRefreshKode");
+    const selectKelas = document.getElementById("inputKelasSiswa");
 
-  try {
-    const [resKodeRaw, resCekRaw] = await Promise.all([
-      fetch(targetUrl, {
-        method: "POST",
-        redirect: "follow",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "getdaftarkodesoal" })
-      }),
-      fetch(targetUrl, {
-        method: "POST",
-        redirect: "follow",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "cekSoalSiswa", no_peserta: valNis })
-      })
-    ]);
+    const targetUrl = getApiUrl();
 
-    const resKodeData = await resKodeRaw.json();
-    const resCekData = await resCekRaw.json();
-
-    if (resKodeData.status !== "success" || !Array.isArray(resKodeData.data)) {
-      if (selectKode) selectKode.innerHTML = '<option value="">-- Tidak Ada Ujian Aktif --</option>';
+    if (!valNis) {
+      if (selectKode) {
+        selectKode.disabled = true;
+        selectKode.innerHTML = '<option value="">-- Masukkan No. Peserta Terlebih Dahulu --</option>';
+      }
+      if (btnRefresh) btnRefresh.disabled = true;
+      if (selectKelas) selectKelas.innerHTML = '<option value="">-- Pilih Kode Soal Terlebih Dahulu --</option>';
       return;
     }
 
-    const semuaKode = resKodeData.data;
-    const soalSelesai = (resCekData && resCekData.soal_selesai) ? resCekData.soal_selesai : [];
-
     if (selectKode) {
-      selectKode.innerHTML = '<option value="">-- Pilih Kode Soal --</option>';
-
-      semuaKode.forEach(kode => {
-        const kodeClean = String(kode).trim().toUpperCase();
-        const isSelesai = soalSelesai.map(s => String(s).trim().toUpperCase()).includes(kodeClean);
-
-        if (isSelesai) {
-          selectKode.innerHTML += `<option value="${kode}" disabled style="color: #dc3545; background-color: #f8d7da;">${kode} ✔️ (Sudah Dikerjakan)</option>`;
-        } else {
-          selectKode.innerHTML += `<option value="${kode}">${kode}</option>`;
-        }
-      });
-
-      selectKode.disabled = false;
+      selectKode.disabled = true;
+      selectKode.innerHTML = '<option value="">⏳ Memeriksa Ujian Tersedia...</option>';
     }
-    if (btnRefresh) btnRefresh.disabled = false;
+    if (btnRefresh) btnRefresh.disabled = true;
 
-  } catch (err) {
-    console.error("Gagal verifikasi no peserta & kode soal:", err);
-    if (selectKode) {
-      selectKode.innerHTML = '<option value="">-- Gagal Memuat (Cek Deployment / API_URL) --</option>';
+    try {
+      const [resKodeRaw, resCekRaw] = await Promise.all([
+        fetch(targetUrl, {
+          method: "POST",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "getdaftarkodesoal" })
+        }),
+        fetch(targetUrl, {
+          method: "POST",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "cekSoalSiswa", no_peserta: valNis })
+        })
+      ]);
+
+      const resKodeData = await resKodeRaw.json();
+      const resCekData = await resCekRaw.json();
+
+      if (resKodeData.status !== "success" || !Array.isArray(resKodeData.data)) {
+        if (selectKode) selectKode.innerHTML = '<option value="">-- Tidak Ada Ujian Aktif --</option>';
+        return;
+      }
+
+      const semuaKode = resKodeData.data;
+      const soalSelesai = (resCekData && resCekData.soal_selesai) ? resCekData.soal_selesai : [];
+
+      if (selectKode) {
+        selectKode.innerHTML = '<option value="">-- Pilih Kode Soal --</option>';
+
+        semuaKode.forEach(kode => {
+          const kodeClean = String(kode).trim().toUpperCase();
+          const isSelesai = soalSelesai.map(s => String(s).trim().toUpperCase()).includes(kodeClean);
+
+          if (isSelesai) {
+            selectKode.innerHTML += `<option value="${kode}" disabled style="color: #dc3545; background-color: #f8d7da;">${kode} ✔️ (Sudah Dikerjakan)</option>`;
+          } else {
+            selectKode.innerHTML += `<option value="${kode}">${kode}</option>`;
+          }
+        });
+
+        selectKode.disabled = false;
+      }
+      if (btnRefresh) btnRefresh.disabled = false;
+
+    } catch (err) {
+      console.error("Gagal verifikasi no peserta & kode soal:", err);
+      if (selectKode) {
+        selectKode.innerHTML = '<option value="">-- Gagal Memuat (Cek Deployment / API_URL) --</option>';
+      }
     }
   }
-}
 
-function refreshKodeSoal() {
-  const inputNis = document.getElementById("inputNisSiswa");
-  const valNis = inputNis ? inputNis.value : "";
-  prosesVerifikasiDanMuatKode(valNis);
-}
+  function refreshKodeSoal() {
+    const inputNis = document.getElementById("inputNisSiswa");
+    const valNis = inputNis ? inputNis.value : "";
+    prosesVerifikasiDanMuatKode(valNis);
+  }
 
-  // ==========================================
-  // FITUR: PENCEGAHAN DAN PERINGATAN TOMBOL BACK
-  // ==========================================
+  // PENCEGAHAN DAN PERINGATAN TOMBOL BACK
   function aktifkanProteksiNavigasi() {
     statusUjianAktif = true;
-
-    // Dorong history awal
     history.pushState(null, null, location.href);
 
-    // Mencegah/menjebak navigasi Back pada browser
     window.onpopstate = function () {
       if (statusUjianAktif) {
         history.pushState(null, null, location.href);
@@ -394,10 +454,9 @@ function refreshKodeSoal() {
       }
     };
 
-    // Peringatan sebelum menutup tab/refresh
     window.onbeforeunload = function (e) {
       if (statusUjianAktif) {
-        const msg = "Ujian sedang berlangsung. Jawaban tersimpan di memori perangkat, tetapi waktu akan terus berjalan. Yakin ingin meninggalkan halaman?";
+        const msg = "Ujian sedang berlangsung. Yakin ingin meninggalkan halaman?";
         e = e || window.event;
         if (e) e.returnValue = msg;
         return msg;
@@ -416,14 +475,15 @@ function refreshKodeSoal() {
     if (sesiSaved) {
       try {
         const parsed = JSON.parse(sesiSaved);
+        if (!parsed.listSoal || parsed.listSoal.length === 0) return;
+
         dataPeserta = parsed.dataPeserta;
         listSoal = parsed.listSoal;
         jawabanSiswa = parsed.jawabanSiswa || {};
         indexSoalAktif = parsed.indexSoalAktif || 0;
         
-        // Hitung selisih waktu agar timer tetap akurat meskipun di-refresh
-        const waktuMulai = parsed.waktuMulai; 
-        const durasiTotalDetik = parsed.durasiTotalDetik;
+        const waktuMulai = parsed.waktuMulai || Date.now(); 
+        const durasiTotalDetik = parsed.durasiTotalDetik || 3600;
         const detikBerjalan = Math.floor((Date.now() - waktuMulai) / 1000);
         sisaDetik = durasiTotalDetik - detikBerjalan;
 
@@ -433,7 +493,6 @@ function refreshKodeSoal() {
           return;
         }
 
-        // Langsung tampilkan ruang ujian
         document.getElementById("infoSiswa").innerText = `${dataPeserta.nama} (${dataPeserta.kelas})`;
         document.getElementById("infoKode").innerText = dataPeserta.kode;
         document.getElementById("labelMataPelajaran").innerText = `Ujian: ${dataPeserta.kode}`;
@@ -441,9 +500,7 @@ function refreshKodeSoal() {
         document.getElementById("sectionLoginUjian").classList.add("d-none");
         document.getElementById("sectionLembarUjian").classList.remove("d-none");
 
-        // Aktifkan proteksi back
         aktifkanProteksiNavigasi();
-
         renderGridNomor();
         tampilkanSoal(indexSoalAktif);
         jalankanTimer();
@@ -487,12 +544,7 @@ function refreshKodeSoal() {
     const noPeserta = elNis ? elNis.value.trim() : "";
 
     if (!kode || !nama || !kelas || !noPeserta) {
-      alert("Harap lengkapi semua data (No Peserta, Kode Soal, Nama, dan Kelas)!");
-      return;
-    }
-
-    if (elKode && elKode.selectedOptions.length && elKode.selectedOptions[0].disabled) {
-      alert("Anda sudah pernah mengerjakan ujian dengan Kode Soal ini!");
+      alert("Harap lengkapi semua data!");
       return;
     }
 
@@ -503,17 +555,12 @@ function refreshKodeSoal() {
     dataPeserta = { kode, noPeserta, nama, kelas };
 
     try {
-      const res = await fetch(API_URL, {
+      const targetUrl = getApiUrl();
+      const res = await fetch(targetUrl, {
         method: "POST",
-        mode: "cors",            
         redirect: "follow",      
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8" 
-        },
-        body: JSON.stringify({
-          action: "getsoalsiswa",
-          kode: kode
-        })
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "getsoalsiswa", kode: kode })
       });
 
       const result = await res.json();
@@ -525,7 +572,7 @@ function refreshKodeSoal() {
           throw new Error("Bank soal untuk kode ini masih kosong.");
         }
 
-        const durasiMenit = parseInt(result.durasi) || 90;
+        const durasiMenit = parseInt(result.durasi) || 60;
         sisaDetik = durasiMenit * 60;
         
         localStorage.setItem("waktu_mulai_ujian", Date.now());
@@ -538,15 +585,13 @@ function refreshKodeSoal() {
         document.getElementById("sectionLoginUjian").classList.add("d-none");
         document.getElementById("sectionLembarUjian").classList.remove("d-none");
 
-        // Aktifkan proteksi tombol back
         aktifkanProteksiNavigasi();
-
         simpanSesiLokal();
         renderGridNomor();
         tampilkanSoal(0);
         jalankanTimer();
       } else {
-        alert(result.message || "Kode Ujian tidak ditemukan atau tidak aktif.");
+        alert(result.message || "Kode Ujian tidak ditemukan.");
       }
     } catch (err) {
       alert("Gagal memuat ujian: " + err.message);
@@ -562,30 +607,12 @@ function refreshKodeSoal() {
     const item = listSoal[index];
     const keyUnik = index + 1;
 
-    let tipeSoal = String(item.tipe || "").trim().toUpperCase();
-    
-    let teksPertanyaan = item.pertanyaan;
-    let opA = item.opA;
-    let opB = item.opB;
-    let opC = item.opC;
-    let opD = item.opD;
-    let opE = item.opE;
-
-    if (teksPertanyaan && (teksPertanyaan.trim().toUpperCase() === "PG" || teksPertanyaan.trim().toUpperCase() === "ESSAI" || teksPertanyaan.trim().toUpperCase() === "ESSAY")) {
-      tipeSoal = teksPertanyaan.trim().toUpperCase();
-
-      teksPertanyaan = item.opA;
-      opA = item.opB;
-      opB = item.opC;
-      opC = item.opD;
-      opD = item.opE;
-      opE = ""; 
-    }
+    let tipeSoal = String(item.tipe || "PG").trim().toUpperCase();
+    let teksPertanyaan = item.pertanyaan || "";
 
     const isEssai = (tipeSoal === "ESSAI" || tipeSoal === "ESSAY" || tipeSoal === "ES");
 
     document.getElementById("labelNomorSoal").innerText = `Soal No. ${index + 1} dari ${listSoal.length} (${isEssai ? "Essai" : "Pilihan Ganda"})`;
-    
     document.getElementById("soalKonten").innerHTML = teksPertanyaan || "-";
 
     const containerOpsi = document.getElementById("opsiJawabanContainer");
@@ -603,17 +630,12 @@ function refreshKodeSoal() {
       containerOpsi.innerHTML = htmlEssai;
     } 
     else {
-      opA = fixPecahanDariTanggal(opA);
-      opB = fixPecahanDariTanggal(opB);
-      opC = fixPecahanDariTanggal(opC);
-      opD = fixPecahanDariTanggal(opD);
-
       const pilihan = [
-        { key: "A", val: opA },
-        { key: "B", val: opB },
-        { key: "C", val: opC },
-        { key: "D", val: opD },
-        { key: "E", val: opE }
+        { key: "A", val: fixPecahanDariTanggal(item.opA) },
+        { key: "B", val: fixPecahanDariTanggal(item.opB) },
+        { key: "C", val: fixPecahanDariTanggal(item.opC) },
+        { key: "D", val: fixPecahanDariTanggal(item.opD) },
+        { key: "E", val: fixPecahanDariTanggal(item.opE) }
       ];
 
       pilihan.forEach(opt => {
@@ -646,13 +668,11 @@ function refreshKodeSoal() {
     }
     simpanSesiLokal();
     updateGridNomorUI();
-    
     autoSaveJawabanKeServer(keyUnik, isiJawaban);
   }
 
   function handleInputEssai(keyUnik, isiJawaban) {
     pilihJawaban(keyUnik, isiJawaban);
-
     if (timerAutoSaveEssai) clearTimeout(timerAutoSaveEssai);
     timerAutoSaveEssai = setTimeout(() => {
       autoSaveJawabanKeServer(keyUnik, isiJawaban);
@@ -670,7 +690,7 @@ function refreshKodeSoal() {
     tampilkanStatusAutoSave("Menyimpan...");
 
     const payload = {
-      action: "autoSaveJawaban",
+      action: "autosave",
       id_peserta: dataPeserta.noPeserta,
       kode_ujian: dataPeserta.kode,
       no_soal: noSoal,
@@ -678,11 +698,10 @@ function refreshKodeSoal() {
     };
 
     try {
-      fetch(API_URL, {
+      const targetUrl = getApiUrl();
+      fetch(targetUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
       })
       .then(res => res.json())
@@ -742,7 +761,6 @@ function refreshKodeSoal() {
   // 5. HITUNG WAKTU MUNDUR (TIMER)
   function jalankanTimer() {
     const box = document.getElementById("boxTimer");
-
     if (timerInterval) clearInterval(timerInterval);
 
     timerInterval = setInterval(() => {
@@ -784,7 +802,7 @@ function refreshKodeSoal() {
     kirimJawabanKeServer();
   }
 
- async function kirimJawabanKeServer() {
+  async function kirimJawabanKeServer() {
     if (timerInterval) clearInterval(timerInterval);
     matikanProteksiNavigasi();
 
@@ -806,13 +824,11 @@ function refreshKodeSoal() {
     };
 
     try {
-      const res = await fetch(API_URL, {
+      const targetUrl = getApiUrl();
+      const res = await fetch(targetUrl, {
         method: "POST",
-        mode: "cors",
         redirect: "follow",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
       });
       const result = await res.json();
@@ -820,7 +836,6 @@ function refreshKodeSoal() {
       hapusSesiLokal();
 
       if (result.status === "success") {
-        // Cek apakah opsi tampil_skor diset ke "Ya"
         const isTampilSkor = String(result.tampil_skor || "").trim().toLowerCase() === "ya";
         const skorHtml = isTampilSkor ? `
           <div class="my-3 p-3 bg-light rounded border">
@@ -835,19 +850,19 @@ function refreshKodeSoal() {
               <div class="display-1 text-success mb-2">✅</div>
               <h3 class="fw-bold mb-1">Ujian Selesai!</h3>
               <p class="text-muted">Jawaban Anda telah berhasil tersimpan di sistem.</p>
-              
               ${skorHtml}
-
-              <a href="index.html" class="btn btn-primary mt-3 fw-bold w-100">Kembali ke Halaman Utama</a>
+              <a href="siswa.html" class="btn btn-primary mt-3 fw-bold w-100">Kembali ke Dashboard Siswa</a>
             </div>
           </div>
         `;
       } else {
         alert("Gagal menyimpan jawaban: " + (result.message || "Respon server tidak valid"));
+        window.location.href = "siswa.html";
       }
     } catch (e) {
       hapusSesiLokal();
-      alert("Terjadi kesalahan koneksi saat mengirim jawaban. Silakan hubungi pengawas.");
+      alert("Terjadi kesalahan koneksi saat mengirim jawaban.");
+      window.location.href = "siswa.html";
     }
   }
   
@@ -863,26 +878,18 @@ function refreshKodeSoal() {
     selectKelas.innerHTML = '<option value="">-- Memuat Kelas... --</option>';
 
     try {
-      const res = await fetch(API_URL, {
+      const targetUrl = getApiUrl();
+      const res = await fetch(targetUrl, {
         method: "POST",
-        mode: "cors",
         redirect: "follow",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: "getpengaturan", kode: kodeSoal })
       });
 
-      const rawText = await res.text();
-
-      if (rawText.trim().startsWith("<!DOCTYPE") || rawText.trim().startsWith("<html")) {
-        throw new Error("Server mengembalikan halaman HTML/Error. Cek kembali izin Deployment Apps Script.");
-      }
-
-      const response = JSON.parse(rawText);
+      const response = await res.json();
 
       if (response.status === "success" && response.data) {
         const cfg = response.data;
-        
-        // Dikonversi ke String terlebih dahulu untuk mencegah error .trim()
         const rawKelas = cfg.kelas !== undefined ? cfg.kelas : (cfg.daftar_kelas !== undefined ? cfg.daftar_kelas : "");
         const strKelas = String(rawKelas).trim();
 
@@ -903,14 +910,7 @@ function refreshKodeSoal() {
       }
     } catch (error) {
       console.error("Gagal memuat kelas:", error);
-      selectKelas.innerHTML = `<option value="">-- Gagal memuat kelas (${error.message}) --</option>`;
-    }
-  }
-
-  async function refreshKodeSoal() {
-    const valNis = document.getElementById("inputNisSiswa")?.value.trim();
-    if (valNis) {
-      await prosesVerifikasiDanMuatKode(valNis);
+      selectKelas.innerHTML = `<option value="Semua Kelas">Semua Kelas</option>`;
     }
   }
 
