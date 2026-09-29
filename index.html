@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal CBT Ujian Online</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #f4f6f9; min-height: 100vh; display: flex; flex-direction: column; }
+    .main-hero { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 60px 0; border-radius: 0 0 24px 24px; margin-bottom: 40px; }
+    .card-access { border: none; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); transition: transform 0.2s ease; }
+    .card-access:hover { transform: translateY(-4px); }
+  </style>
+  <script src="config.js"></script>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-graduation-cap me-2"></i>CBT Online</a>
+    </div>
+  </nav>
+
+  <!-- HERO SECTION -->
+  <div class="main-hero text-center">
+    <div class="container">
+      <h1 class="display-5 fw-bold mb-3">Selamat Datang di Portal Ujian</h1>
+      <p class="lead mb-0">Silakan pilih jenis portal login di bawah ini untuk masuk ke akun Anda.</p>
+    </div>
+  </div>
+
+  <!-- CONTAINER UTAMA - DUA KARTU LOGIN -->
+  <div class="container flex-grow-1">
+    <div class="row justify-content-center g-4">
+      
+      <!-- KARTU 1: PANEL SISWA -->
+      <div class="col-md-5">
+        <div class="card card-access h-100 p-4 bg-white text-center">
+          <div class="mb-3 display-4 text-primary"><i class="fa-solid fa-user-graduate"></i></div>
+          <h3 class="fw-bold mb-2">Portal Siswa</h3>
+          <p class="text-muted mb-4">Masuk ke akun siswa untuk mengerjakan ujian dan melihat riwayat nilai.</p>
+          <button class="btn btn-primary btn-lg fw-bold w-100 mt-auto" onclick="bukaModalSiswa()">
+            <i class="fa-solid fa-right-to-bracket me-2"></i> Login Siswa
+          </button>
+        </div>
+      </div>
+
+      <!-- KARTU 2: PANEL GURU / ADMIN -->
+      <div class="col-md-5">
+        <div class="card card-access h-100 p-4 bg-white text-center">
+          <div class="mb-3 display-4 text-warning"><i class="fa-solid fa-chalkboard-user"></i></div>
+          <h3 class="fw-bold mb-2">Panel Guru & Admin</h3>
+          <p class="text-muted mb-4">Kelola bank soal, pengaturan durasi, rekap nilai, dan analisis hasil ujian.</p>
+          <button class="btn btn-outline-primary btn-lg fw-bold w-100 mt-auto" onclick="bukaModalGuru()">
+            <i class="fa-solid fa-user-shield me-2"></i> Login Guru / Admin
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="text-center py-4 text-muted border-top mt-5 bg-white">
+    <div class="container"><small>&copy; 2026 Portal Ujian Online. All rights reserved.</small></div>
+  </footer>
+
+  <!-- MODAL 1: LOGIN SISWA -->
+  <div class="modal fade" id="modalLoginSiswa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-graduate me-2"></i>Login Akun Siswa</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="formLoginSiswaIndex" onsubmit="prosesLoginSiswa(event)">
+            <div class="mb-3">
+              <label class="form-label fw-bold small">NIS / NO. PESERTA</label>
+              <input type="text" id="siswaNis" class="form-control" placeholder="Masukkan NIS / Username" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small">PASSWORD</label>
+              <input type="password" id="siswaPass" class="form-control" placeholder="Masukkan Password" required>
+            </div>
+            <div id="msgErrorSiswa" class="alert alert-danger d-none my-2"></div>
+            <button type="submit" id="btnSubmitSiswa" class="btn btn-primary w-100 fw-bold py-2 mt-2">
+              Masuk ke Ruang Siswa
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: LOGIN GURU -->
+  <div class="modal fade" id="modalLoginGuru" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-chalkboard-user me-2"></i>Login Panel Pengajar</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="formLoginGuruIndex" onsubmit="prosesLoginGuru(event)">
+            <div class="mb-3">
+              <label class="form-label fw-bold small">USERNAME / NIP</label>
+              <input type="text" id="guruUser" class="form-control" placeholder="Masukkan Username / NIP" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small">PASSWORD</label>
+              <input type="password" id="guruPass" class="form-control" placeholder="Masukkan Password" required>
+            </div>
+            <div id="msgErrorGuru" class="alert alert-danger d-none my-2"></div>
+            <button type="submit" id="btnSubmitGuru" class="btn btn-dark w-100 fw-bold py-2 mt-2">
+              Masuk ke Panel Guru
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let modalSiswaObj, modalGuruObj;
+
+    document.addEventListener("DOMContentLoaded", function() {
+      modalSiswaObj = new bootstrap.Modal(document.getElementById('modalLoginSiswa'));
+      modalGuruObj = new bootstrap.Modal(document.getElementById('modalLoginGuru'));
+    });
+
+    function bukaModalSiswa() { modalSiswaObj.show(); }
+    function bukaModalGuru() { modalGuruObj.show(); }
+
+    // LOGIN SISWA -> REDIRECT KE siswa.html
+    async function prosesLoginSiswa(e) {
+      e.preventDefault();
+      const u = document.getElementById("siswaNis").value.trim();
+      const p = document.getElementById("siswaPass").value.trim();
+      const err = document.getElementById("msgErrorSiswa");
+      const btn = document.getElementById("btnSubmitSiswa");
+
+      err.classList.add("d-none");
+      btn.disabled = true;
+      btn.innerText = "Memeriksa...";
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "loginsiswa", username: u, password: p })
+        });
+        const data = await res.json();
+
+        if (data.status === "success" && data.data) {
+          // Simpan Sesi Siswa
+          localStorage.setItem("akun_siswa_login", JSON.stringify({
+            nis: data.data.nis,
+            nama: data.data.nama,
+            kelas: data.data.kelas || "Siswa"
+          }));
+          window.location.href = "siswa.html";
+        } else {
+          err.innerText = data.message || "NIS / Password Siswa salah!";
+          err.classList.remove("d-none");
+        }
+      } catch(ex) {
+        err.innerText = "Gagal terhubung ke server.";
+        err.classList.remove("d-none");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Masuk ke Ruang Siswa";
+      }
+    }
+
+    // LOGIN GURU -> REDIRECT KE guru.html
+async function prosesLoginGuru(e) {
+  e.preventDefault();
+  const u = document.getElementById("guruUser").value.trim();
+  const p = document.getElementById("guruPass").value.trim();
+  const err = document.getElementById("msgErrorGuru");
+  const btn = document.getElementById("btnSubmitGuru");
+
+  err.classList.add("d-none");
+  btn.disabled = true;
+  btn.innerText = "Memeriksa...";
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "loginguru", username: u, password: p })
+    });
+    const data = await res.json();
+
+    if (data.status === "success") {
+      const userRole = String(data.role || "").trim();
+
+      // PROTEKSI TAMBAHAN: Cegah akun Siswa masuk via Panel Guru
+      if (userRole === "Siswa") {
+        err.innerText = "Akses ditolak! Akun Siswa tidak diizinkan masuk ke Panel Guru.";
+        err.classList.remove("d-none");
+        return;
+      }
+
+      sessionStorage.setItem("isGuruLoggedIn", "true");
+      sessionStorage.setItem("namaGuru", data.nama || "Guru");
+      sessionStorage.setItem("roleGuru", userRole || "Guru");
+      
+      window.location.href = "guru.html";
+    } else {
+      err.innerText = data.message || "Username / Password Guru salah!";
+      err.classList.remove("d-none");
+    }
+  } catch(ex) {
+    err.innerText = "Gagal terhubung ke server: " + ex.toString();
+    err.classList.remove("d-none");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Masuk ke Panel Guru";
+  }
+}
+  </script>
+</body>
+</html>
