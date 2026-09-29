@@ -4,7 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Guru & Admin - Ujian Online</title>
-  <!-- Bootstrap 5 CSS -->
+  
+  <!-- Google Fonts & Bootstrap 5 CSS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   
   <!-- SCRIPT PROTEKSI AKSES (ROUTE GUARD & ROLE CHECK) -->
@@ -14,41 +18,127 @@
       window.location.href = "index.html";
     }
   </script>
-  <!-- SCRIPT PROTEKSI AKSES (ROUTE GUARD & ROLE CHECK) -->
-<script>
-  (function() {
-    const isLoggedIn = sessionStorage.getItem("isGuruLoggedIn");
-    const roleGuru = sessionStorage.getItem("roleGuru");
+  <script>
+    (function() {
+      const isLoggedIn = sessionStorage.getItem("isGuruLoggedIn");
+      const roleGuru = sessionStorage.getItem("roleGuru");
 
-    // Tolak jika belum login ATAU jika role-nya adalah 'Siswa'
-    if (isLoggedIn !== "true" || roleGuru === "Siswa") {
-      alert("Akses ditolak! Halaman ini hanya untuk Guru / Admin.");
-      sessionStorage.clear();
-      window.location.href = "index.html";
-    }
-  })();
-</script>
+      // Tolak jika belum login ATAU jika role-nya adalah 'Siswa'
+      if (isLoggedIn !== "true" || roleGuru === "Siswa") {
+        alert("Akses ditolak! Halaman ini hanya untuk Guru / Admin.");
+        sessionStorage.clear();
+        window.location.href = "index.html";
+      }
+    })();
+  </script>
+
   <style>
-    body { background-color: #f8f9fa; }
-    .card-custom { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    :root {
+      --primary-color: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --secondary-color: #6366f1;
+      --dark-bg: #0f172a;
+      --light-bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--light-bg);
+      color: #334155;
+    }
+
+    .header-panel {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1);
+    }
+
+    .card-custom {
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+      background: var(--card-bg);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
     .drop-zone {
-      border: 2px dashed #0d6efd;
-      border-radius: 12px;
-      padding: 30px;
+      border: 2px dashed #93c5fd;
+      border-radius: 16px;
+      padding: 40px 20px;
       text-align: center;
-      background-color: #f8faff;
+      background-color: #eff6ff;
       cursor: pointer;
       transition: all 0.3s ease;
     }
+
     .drop-zone:hover {
-      background-color: #eef4ff;
-      border-color: #0b5ed7;
+      background-color: #dbeafe;
+      border-color: var(--primary-color);
+      transform: translateY(-2px);
     }
+
     .stat-card {
-      border-left: 4px solid #0d6efd;
       background: #ffffff;
-      border-radius: 8px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      padding: 20px;
+      transition: all 0.3s ease;
     }
+    
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px -5px rgba(0,0,0,0.08);
+    }
+
+    .nav-tabs {
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .nav-tabs .nav-link {
+      color: #64748b;
+      border: none;
+      border-bottom: 3px solid transparent;
+      padding: 12px 20px;
+      font-weight: 600;
+      border-radius: 0;
+      transition: all 0.2s ease;
+    }
+
+    .nav-tabs .nav-link:hover {
+      color: var(--primary-color);
+      border-color: transparent;
+    }
+
+    .nav-tabs .nav-link.active {
+      color: var(--primary-color);
+      background: transparent;
+      border-bottom: 3px solid var(--primary-color);
+    }
+
+    .btn-purple {
+      background-color: #8b5cf6 !important;
+      border-color: #8b5cf6 !important;
+    }
+
+    .btn-purple:hover {
+      background-color: #7c3aed !important;
+      border-color: #7c3aed !important;
+    }
+
+    .table {
+      border-color: var(--border-color);
+    }
+
+    .table thead {
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+    }
+
     @media print {
       .no-print, 
       #guruTab, 
@@ -81,31 +171,31 @@
 
 <div class="container py-4">
   <!-- HEADER & NAMA GURU & TOMBOL LOGOUT -->
-  <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+  <div class="header-panel d-flex justify-content-between align-items-center no-print">
     <div>
-      <h2 class="mb-0 fw-bold">Dashboard Kelola Ujian</h2>
-      <small class="text-muted">
-        Selamat Datang, <strong id="labelNamaGuru">Guru</strong> 
-        <span id="badgeRole" class="badge bg-secondary ms-1">Guru</span>
-      </small>
+      <h3 class="mb-1 fw-bold text-white">Dashboard Kelola Ujian</h3>
+      <div class="text-white-50 small">
+        Selamat Datang, <strong id="labelNamaGuru" class="text-white">Guru</strong> 
+        <span id="badgeRole" class="badge bg-secondary ms-2 px-2 py-1">Guru</span>
+      </div>
     </div>
-    <button class="btn btn-outline-danger btn-sm fw-bold" onClick="logoutGuru()">
+    <button class="btn btn-outline-light btn-sm px-3 py-2 fw-semibold rounded-pill" onClick="logoutGuru()">
       🚪 Logout
     </button>
   </div>
 
   <!-- INPUT KODE SOAL UTAMA -->
-  <div class="card card-custom mb-4 p-3 bg-white no-print">
-    <div class="row align-items-center">
+  <div class="card card-custom mb-4 p-4 no-print">
+    <div class="row align-items-center g-3">
       <div class="col-md-3">
-        <label class="fw-bold" for="kodeSoalInput">Pilih / Masukkan Kode Soal:</label>
+        <label class="fw-bold text-dark" for="kodeSoalInput">Pilih / Masukkan Kode Soal:</label>
       </div>
       <div class="col-md-6">
         <div class="input-group">
           <input 
             type="text" 
             id="kodeSoalInput" 
-            class="form-control" 
+            class="form-control form-control-lg fs-6" 
             list="listKodeSoal" 
             placeholder="Ketik atau pilih dari daftar..."
             autocomplete="off"
@@ -113,13 +203,13 @@
           <datalist id="listKodeSoal">
             <!-- Opsi terisi otomatis -->
           </datalist>
-          <button class="btn btn-outline-secondary" type="button" onClick="muatDaftarKodeSoal()" title="Segarkan Daftar Kode Soal">
+          <button class="btn btn-outline-secondary px-3" type="button" onClick="muatDaftarKodeSoal()" title="Segarkan Daftar Kode Soal">
             🔄
           </button>
         </div>
       </div>
       <div class="col-md-3">
-        <button class="btn btn-primary w-100 fw-bold" id="btnMuatPengaturan" onClick="muatDataSoal()">
+        <button class="btn btn-primary btn-lg w-100 fw-bold fs-6 shadow-sm" id="btnMuatPengaturan" onClick="muatDataSoal()">
           Muat Data Kode Soal
         </button>
       </div>
@@ -127,22 +217,22 @@
   </div>
 
   <!-- TAB NAVIGASI UTAMA -->
-  <ul class="nav nav-tabs mb-3 no-print" id="guruTab" role="tablist">
+  <ul class="nav nav-tabs mb-4 no-print" id="guruTab" role="tablist">
     <li class="nav-item">
-      <button class="nav-link active fw-bold" id="pengaturan-tab" data-bs-toggle="tab" data-bs-target="#tab-pengaturan">Pengaturan Ujian</button>
+      <button class="nav-link active" id="pengaturan-tab" data-bs-toggle="tab" data-bs-target="#tab-pengaturan">⚙️ Pengaturan Ujian</button>
     </li>
     <li class="nav-item">
-      <button class="nav-link fw-bold" id="import-tab" data-bs-toggle="tab" data-bs-target="#tab-import">Pengelolaan Soal</button>
+      <button class="nav-link" id="import-tab" data-bs-toggle="tab" data-bs-target="#tab-import">📝 Pengelolaan Soal</button>
     </li>
     <li class="nav-item">
-      <button class="nav-link fw-bold" id="hasil-tab" data-bs-toggle="tab" data-bs-target="#tab-hasil" onClick="muatHasilUjian()">Hasil & Nilai Ujian</button>
+      <button class="nav-link" id="hasil-tab" data-bs-toggle="tab" data-bs-target="#tab-hasil" onClick="muatHasilUjian()">📈 Hasil & Nilai Ujian</button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link fw-bold" id="tab-analisis-tab" data-bs-toggle="tab" data-bs-target="#tab-analisis" type="button" onClick="muatAnalisisSoal()">📊 Analisis Soal</button>
+      <button class="nav-link" id="tab-analisis-tab" data-bs-toggle="tab" data-bs-target="#tab-analisis" type="button" onClick="muatAnalisisSoal()">📊 Analisis Soal</button>
     </li>
     <!-- TAB KHUSUS SUPER ADMIN -->
     <li class="nav-item" role="presentation" id="tabMenuGuru" style="display: none;">
-      <button class="nav-link fw-bold text-dark bg-warning" id="guru-admin-tab" data-bs-toggle="tab" data-bs-target="#tab-kelola-guru" type="button">👥 Kelola Akun</button>
+      <button class="nav-link text-dark fw-bold badge bg-warning text-wrap ms-2" id="guru-admin-tab" data-bs-toggle="tab" data-bs-target="#tab-kelola-guru" type="button">👥 Kelola Akun</button>
     </li>
   </ul>
 
@@ -150,17 +240,17 @@
     
     <!-- TAB 1: PENGATURAN UJIAN -->
     <div class="tab-pane fade show active no-print" id="tab-pengaturan">
-      <div class="card card-custom p-4 bg-white">
-        <h5 class="mb-3 fw-bold text-primary">⚙️ Pengaturan Parameter Ujian</h5>
+      <div class="card card-custom p-4">
+        <h5 class="mb-4 fw-bold text-primary">⚙️ Pengaturan Parameter Ujian</h5>
         <form id="formPengaturan">
           <div class="row g-3">
             <div class="col-md-4">
-              <label class="form-label fw-bold">Kode Ujian / Kode Soal</label>
+              <label class="form-label fw-semibold">Kode Ujian / Kode Soal</label>
               <input type="text" id="cfgKodeUjian" class="form-control bg-light" readonly placeholder="Terisi otomatis dari Kode Soal di atas">
             </div>
 
             <div class="col-md-4">
-              <label for="cfgMapel" class="form-label fw-bold">Mata Pelajaran (Mapel)</label>
+              <label for="cfgMapel" class="form-label fw-semibold">Mata Pelajaran (Mapel)</label>
               <select class="form-select" id="cfgMapel" name="mapel" required>
                 <option value="" disabled selected>-- Pilih Mata Pelajaran --</option>
                 <optgroup label="Pendidikan Agama & Budi Pekerti">
@@ -210,7 +300,7 @@
             </div>
             
             <div class="col-md-4">
-              <label class="form-label fw-bold">Jenis Ujian</label>
+              <label class="form-label fw-semibold">Jenis Ujian</label>
               <select id="cfgJenisUjian" class="form-select">
                 <option value="Penilaian Harian">Penilaian Harian (PH) / Formatif</option>
                 <option value="Asesmen Sumatif Tengah Semester">Asesmen Sumatif Tengah Semester (ASTS / UTS)</option>
@@ -222,28 +312,28 @@
             </div>
 
             <div class="col-md-12">
-              <label class="form-label fw-bold">Daftar Kelas (Peserta Ujian)</label>
+              <label class="form-label fw-semibold">Daftar Kelas (Peserta Ujian)</label>
               <input type="text" id="cfgDaftarKelas" class="form-control" placeholder="Contoh: X IPA 1, X IPA 2, X IPS 1 (Pisahkan dengan tanda koma)">
-              <div class="form-text">Kelas-kelas di atas akan muncul sebagai pilihan Drop-Down pada halaman login/ujian siswa.</div>
+              <div class="form-text text-muted">Kelas-kelas di atas akan muncul sebagai pilihan Drop-Down pada halaman login/ujian siswa.</div>
             </div>
 
             <div class="col-md-4">
-              <label class="form-label fw-bold">Durasi Ujian (Menit)</label>
+              <label class="form-label fw-semibold">Durasi Ujian (Menit)</label>
               <input type="number" id="cfgDurasi" class="form-control" value="90">
             </div>
 
             <div class="col-md-4">
-              <label class="form-label fw-bold">Penyusun Soal</label>
+              <label class="form-label fw-semibold">Penyusun Soal</label>
               <input type="text" id="cfgPenyusun" class="form-control" placeholder="Nama Guru Penyusun">
             </div>
 
             <div class="col-md-4">
-              <label class="form-label fw-bold">Pengawas Ujian</label>
+              <label class="form-label fw-semibold">Pengawas Ujian</label>
               <input type="text" id="cfgPengawas" class="form-control" placeholder="Nama Pengawas Ujian">
             </div>
 
             <div class="col-md-4">
-              <label class="form-label fw-bold">Status Ujian</label>
+              <label class="form-label fw-semibold">Status Ujian</label>
               <select id="cfgStatus" class="form-select">
                 <option value="Aktif">Aktif (Bisa Diakses)</option>
                 <option value="Nonaktif">Nonaktif (Tutup)</option>
@@ -251,7 +341,7 @@
             </div>
 
             <div class="col-md-4">
-              <label class="form-label fw-bold">Acak Urutan Soal</label>
+              <label class="form-label fw-semibold">Acak Urutan Soal</label>
               <select id="cfgAcak" class="form-select">
                 <option value="Ya">Ya</option>
                 <option value="Tidak" selected>Tidak</option>
@@ -259,7 +349,7 @@
             </div>
 
             <div class="col-md-4">
-              <label class="form-label fw-bold">Tampilkan Skor ke Siswa</label>
+              <label class="form-label fw-semibold">Tampilkan Skor ke Siswa</label>
               <select id="cfgTampilSkor" class="form-select">
                 <option value="Ya" selected>Ya (Tampilkan Skor)</option>
                 <option value="Tidak">Tidak (Sembunyikan Skor)</option>
@@ -267,26 +357,26 @@
             </div>
 
           </div>
-          <button type="button" class="btn btn-success mt-4 fw-bold" onClick="simpanPengaturan()">💾 Simpan Pengaturan</button>
+          <button type="button" class="btn btn-success px-4 py-2 mt-4 fw-bold shadow-sm" onClick="simpanPengaturan()">💾 Simpan Pengaturan</button>
         </form>
       </div>
     </div>
 
     <!-- TAB 2: PENGELOLAAN & IMPORT SOAL -->
     <div class="tab-pane fade no-print" id="tab-import">
-      <div class="card card-custom p-4 bg-white mb-4">
+      <div class="card card-custom p-4 mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
             <h5 class="fw-bold mb-0 text-primary">📋 Daftar Kode Soal Terbuat</h5>
             <small class="text-muted">Daftar seluruh paket bank soal yang tersimpan di sistem.</small>
           </div>
-          <button class="btn btn-outline-primary btn-sm fw-bold" onClick="muatTabelDaftarKodeSoal()">
+          <button class="btn btn-outline-primary btn-sm fw-bold px-3 rounded-pill" onClick="muatTabelDaftarKodeSoal()">
             🔄 Refresh Tabel
           </button>
         </div>
 
-        <div class="table-responsive">
-          <table class="table table-bordered table-hover align-middle" id="tabelDaftarKodeSoal">
+        <div class="table-responsive rounded-3 border">
+          <table class="table table-hover align-middle mb-0" id="tabelDaftarKodeSoal">
             <thead class="table-dark">
               <tr>
                 <th style="width: 50px;" class="text-center">No</th>
@@ -301,37 +391,37 @@
             </thead>
             <tbody id="tabelDaftarKodeBody">
               <tr>
-                <td colspan="8" class="text-center py-3 text-muted">Memuat daftar kode soal...</td>
+                <td colspan="8" class="text-center py-4 text-muted">Memuat daftar kode soal...</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <div class="card card-custom p-4 bg-white">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="fw-bold mb-0">Upload & Pembuatan Soal</h5>
-          <div>
-            <button type="button" class="btn btn-outline-primary btn-sm fw-bold me-1" onClick="bukaModalBuatSoalManual()">
+      <div class="card card-custom p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+          <h5 class="fw-bold mb-0 text-dark">Upload & Pembuatan Soal</h5>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm fw-semibold" onClick="bukaModalBuatSoalManual()">
               ➕ Buat Soal Manual
             </button>
-            <button type="button" class="btn btn-purple text-white btn-sm fw-bold me-1" style="background-color: #6f42c1;" onClick="bukaModalGenAI()">
+            <button type="button" class="btn btn-purple text-white btn-sm fw-semibold" onClick="bukaModalGenAI()">
               🤖 Generator Soal AI (Gemini)
             </button>
-            <button type="button" class="btn btn-info text-white btn-sm fw-bold me-1" onClick="tinjauDanCetakSoal()">
+            <button type="button" class="btn btn-info text-white btn-sm fw-semibold" onClick="tinjauDanCetakSoal()">
               🔍 Tinjau & Cetak Soal
             </button>
-            <button type="button" class="btn btn-outline-success btn-sm fw-bold" onClick="downloadTemplateExcel()">
+            <button type="button" class="btn btn-outline-success btn-sm fw-semibold" onClick="downloadTemplateExcel()">
               📥 Download Format Excel (.xlsx)
             </button>
           </div>
         </div>
         
-        <div class="drop-zone text-center mb-4" onClick="document.getElementById('fileInputSoal').click()">
-          <div class="display-5 text-primary mb-2">📁</div>
-          <h6 class="fw-bold mb-1">Klik di sini atau Tarik File Soal Anda</h6>
-          <p class="text-muted small mb-2">Mendukung format: <strong>.xlsx, .xls, .docx, .txt, .json</strong></p>
-          <button type="button" class="btn btn-outline-primary btn-sm fw-bold">Pilih File dari Komputer</button>
+        <div class="drop-zone mb-4" onClick="document.getElementById('fileInputSoal').click()">
+          <div class="display-6 text-primary mb-2">📂</div>
+          <h6 class="fw-bold mb-1 text-dark">Klik di sini atau Tarik File Soal Anda</h6>
+          <p class="text-muted small mb-3">Mendukung format: <strong>.xlsx, .xls, .docx, .txt, .json</strong></p>
+          <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold rounded-pill">Pilih File dari Komputer</button>
           <input type="file" id="fileInputSoal" class="d-none" accept=".xlsx, .xls, .docx, .txt, .json" onChange="prosesUploadFile(event)">
         </div>
 
@@ -339,13 +429,13 @@
 
         <div class="mb-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <label class="form-label fw-bold mb-0">Hasil Konversi JSON (Siap Disimpan):</label>
-            <button class="btn btn-sm btn-outline-secondary" onClick="document.getElementById('jsonSoalInput').value=''">Bersihkan Textarea</button>
+            <label class="form-label fw-bold mb-0 text-dark">Hasil Konversi JSON (Siap Disimpan):</label>
+            <button class="btn btn-sm btn-link text-decoration-none text-danger fw-semibold" onClick="document.getElementById('jsonSoalInput').value=''">Bersihkan Textarea</button>
           </div>
-          <textarea id="jsonSoalInput" class="form-control font-monospace" rows="10" placeholder='Hasil konversi otomatis dari Excel/Word atau pembuatan manual akan muncul di sini...'></textarea>
+          <textarea id="jsonSoalInput" class="form-control font-monospace border-secondary-subtle" rows="8" placeholder='Hasil konversi otomatis dari Excel/Word atau pembuatan manual akan muncul di sini...'></textarea>
         </div>
 
-        <button type="button" id="btnSimpanSoal" class="btn btn-primary btn-lg w-100 fw-bold" onClick="prosesImportSoal()">
+        <button type="button" id="btnSimpanSoal" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" onClick="prosesImportSoal()">
           💾 Simpan Semua Soal ke Database
         </button>
       </div>
@@ -353,38 +443,38 @@
 
     <!-- TAB 3: HASIL UJIAN & REKAP NILAI -->
     <div class="tab-pane fade" id="tab-hasil">
-      <div class="row g-3 mb-3 no-print" id="statCards">
+      <div class="row g-3 mb-4 no-print" id="statCards">
         <div class="col-md-4">
-          <div class="p-3 stat-card shadow-sm border-start border-primary border-4">
-            <small class="text-muted fw-bold">RATA-RATA NILAI</small>
-            <h3 class="fw-bold text-primary mb-0" id="statRataRata">0</h3>
+          <div class="stat-card border-start border-primary border-4">
+            <small class="text-uppercase fw-bold text-muted">Rata-Rata Nilai</small>
+            <h2 class="fw-extrabold text-primary mb-0 mt-1" id="statRataRata">0</h2>
           </div>
         </div>
         <div class="col-md-4">
-          <div class="p-3 stat-card shadow-sm border-start border-success border-4">
-            <small class="text-muted fw-bold">NILAI TERTINGGI</small>
-            <h3 class="fw-bold text-success mb-0" id="statMax">0</h3>
+          <div class="stat-card border-start border-success border-4">
+            <small class="text-uppercase fw-bold text-muted">Nilai Tertinggi</small>
+            <h2 class="fw-extrabold text-success mb-0 mt-1" id="statMax">0</h2>
           </div>
         </div>
         <div class="col-md-4">
-          <div class="p-3 stat-card shadow-sm border-start border-danger border-4">
-            <small class="text-muted fw-bold">NILAI TERENDAH</small>
-            <h3 class="fw-bold text-danger mb-0" id="statMin">0</h3>
+          <div class="stat-card border-start border-danger border-4">
+            <small class="text-uppercase fw-bold text-muted">Nilai Terendah</small>
+            <h2 class="fw-extrabold text-danger mb-0 mt-1" id="statMin">0</h2>
           </div>
         </div>
       </div>
 
-      <div class="card card-custom p-4 bg-white" id="areaCetak">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="card card-custom p-4" id="areaCetak">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <div>
-            <h5 class="fw-bold mb-0">Rekap Hasil Ujian Siswa</h5>
+            <h5 class="fw-bold mb-0 text-dark">Rekap Hasil Ujian Siswa</h5>
             <small class="text-muted" id="subTitleHasil">Kode Soal: - | Mapel: -</small>
           </div>
-          <div class="no-print">
-            <button class="btn btn-warning btn-sm fw-bold me-1 text-dark" onClick="prosesHitungUlangNilai()">🔄 Hitung Ulang Nilai</button>
-            <button class="btn btn-success btn-sm fw-bold me-1" onClick="exportToExcel()">📊 Download Excel</button>
-            <button class="btn btn-secondary btn-sm fw-bold me-1" onClick="cetakPDF()">🖨️ Cetak / PDF</button>
-            <button class="btn btn-outline-primary btn-sm fw-bold" onClick="muatHasilUjian()">🔄 Refresh</button>
+          <div class="no-print d-flex flex-wrap gap-1">
+            <button class="btn btn-warning btn-sm fw-semibold text-dark" onClick="prosesHitungUlangNilai()">🔄 Hitung Ulang Nilai</button>
+            <button class="btn btn-success btn-sm fw-semibold" onClick="exportToExcel()">📊 Download Excel</button>
+            <button class="btn btn-secondary btn-sm fw-semibold" onClick="cetakPDF()">🖨️ Cetak / PDF</button>
+            <button class="btn btn-outline-primary btn-sm fw-semibold" onClick="muatHasilUjian()">🔄 Refresh</button>
           </div>
         </div>
 
@@ -398,12 +488,12 @@
             </select>
           </div>
           <div class="col-md-2">
-            <button class="btn btn-sm btn-outline-secondary w-100" onClick="resetFilterHasil()">Reset Filter</button>
+            <button class="btn btn-sm btn-outline-secondary w-100 fw-semibold" onClick="resetFilterHasil()">Reset Filter</button>
           </div>
         </div>
 
-        <div class="table-responsive">
-          <table class="table table-bordered table-striped align-middle" id="tabelHasilUjian">
+        <div class="table-responsive rounded-3 border">
+          <table class="table table-striped align-middle mb-0" id="tabelHasilUjian">
             <thead class="table-dark">
               <tr>
                 <th>Waktu Selesai</th>
@@ -417,7 +507,7 @@
               </tr>
             </thead>
             <tbody id="tabelHasilBody">
-              <tr><td colspan="8" class="text-center">Silakan muat data berdasarkan Kode Soal.</td></tr>
+              <tr><td colspan="8" class="text-center py-4">Silakan muat data berdasarkan Kode Soal.</td></tr>
             </tbody>
           </table>
         </div>
@@ -426,26 +516,26 @@
 
     <!-- TAB 4: ANALISIS HASIL UJIAN -->
     <div class="tab-pane fade" id="tab-analisis" role="tabpanel">
-      <div class="card card-custom p-4 bg-white" id="areaCetakAnalisis">
-        <div class="mb-3 border-bottom pb-2">
-          <h4 class="fw-bold mb-1 text-uppercase text-center text-md-start">Laporan Analisis Butir Soal</h4>
+      <div class="card card-custom p-4" id="areaCetakAnalisis">
+        <div class="mb-3 border-bottom pb-3">
+          <h4 class="fw-bold mb-1 text-uppercase text-center text-md-start text-dark">Laporan Analisis Butir Soal</h4>
           <div class="d-flex justify-content-between align-items-center">
-            <small class="text-muted fw-bold" id="subTitleAnalisis">Kode Soal: - | Mapel: -</small>
-            <small class="text-muted" id="infoTotalSiswaAnalisis">Total Responden: -</small>
+            <small class="text-muted fw-semibold" id="subTitleAnalisis">Kode Soal: - | Mapel: -</small>
+            <small class="text-muted fw-semibold" id="infoTotalSiswaAnalisis">Total Responden: -</small>
           </div>
         </div>
 
         <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-          <h5 class="fw-bold mb-0">📊 Tabel Analisis Butir Soal</h5>
+          <h5 class="fw-bold mb-0 text-dark">📊 Tabel Analisis Butir Soal</h5>
           <div>
-            <button class="btn btn-success btn-sm fw-bold me-1" onClick="exportAnalisisToExcel()">📊 Export Excel</button>
-            <button class="btn btn-secondary btn-sm fw-bold me-1" onClick="cetakAnalisisPDF()">🖨️ Cetak / PDF</button>
-            <button class="btn btn-outline-primary btn-sm fw-bold" onClick="muatAnalisisSoal()">🔄 Refresh</button>
+            <button class="btn btn-success btn-sm fw-semibold me-1" onClick="exportAnalisisToExcel()">📊 Export Excel</button>
+            <button class="btn btn-secondary btn-sm fw-semibold me-1" onClick="cetakAnalisisPDF()">🖨️ Cetak / PDF</button>
+            <button class="btn btn-outline-primary btn-sm fw-semibold" onClick="muatAnalisisSoal()">🔄 Refresh</button>
           </div>
         </div>
 
-        <div class="table-responsive">
-          <table class="table table-bordered table-striped align-middle" id="tabelAnalisisSoal">
+        <div class="table-responsive rounded-3 border">
+          <table class="table table-striped align-middle mb-0" id="tabelAnalisisSoal">
             <thead class="table-dark text-center">
               <tr>
                 <th style="width: 60px;">No</th>
@@ -460,7 +550,7 @@
             </thead>
             <tbody id="tabelAnalisisBody">
               <tr>
-                <td colspan="8" class="text-center py-3 text-muted">Silakan masukkan Kode Soal dan klik tab ini.</td>
+                <td colspan="8" class="text-center py-4 text-muted">Silakan masukkan Kode Soal dan klik tab ini.</td>
               </tr>
             </tbody>
           </table>
@@ -470,15 +560,15 @@
 
     <!-- TAB 5: KELOLA AKUN GURU & SISWA (KHUSUS SUPER ADMIN) -->
     <div class="tab-pane fade no-print" id="tab-kelola-guru">
-      <div class="card card-custom p-4 bg-white">
+      <div class="card card-custom p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h5 class="fw-bold mb-0">👥 Manajemen Akun Pengguna (Guru & Siswa)</h5>
+            <h5 class="fw-bold mb-0 text-dark">👥 Manajemen Akun Pengguna (Guru & Siswa)</h5>
             <small class="text-muted">Khusus Hak Akses <strong>Super Admin</strong></small>
           </div>
           <div>
-            <button class="btn btn-outline-primary btn-sm fw-bold me-2" onClick="muatTabelGuru()">🔄 Refresh Data</button>
-            <button class="btn btn-primary fw-bold" onClick="bukaModalTambahUser()">➕ Tambah Akun Baru</button>
+            <button class="btn btn-outline-primary btn-sm fw-semibold me-2" onClick="muatTabelGuru()">🔄 Refresh Data</button>
+            <button class="btn btn-primary btn-sm fw-bold px-3" onClick="bukaModalTambahUser()">➕ Tambah Akun Baru</button>
           </div>
         </div>
 
@@ -496,8 +586,8 @@
           </div>
         </div>
 
-        <div class="table-responsive">
-          <table class="table table-bordered table-hover align-middle">
+        <div class="table-responsive rounded-3 border">
+          <table class="table table-hover align-middle mb-0">
             <thead class="table-warning text-dark">
               <tr>
                 <th style="width: 50px;" class="text-center">No</th>
@@ -511,7 +601,7 @@
             </thead>
             <tbody id="tabelGuruBody">
               <tr>
-                <td colspan="7" class="text-center py-3 text-muted">Memuat data akun pengguna...</td>
+                <td colspan="7" class="text-center py-4 text-muted">Memuat data akun pengguna...</td>
               </tr>
             </tbody>
           </table>
@@ -524,57 +614,57 @@
 
 <!-- MODAL INPUT SOAL MANUAL -->
 <div class="modal fade no-print" id="modalInputSoal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title fw-bold">➕ Buat / Tambah Soal Manual</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body p-4">
         <form id="formInputSoalManual">
           <div class="row g-3">
             <div class="col-md-4">
-              <label class="form-label fw-bold">No Soal</label>
+              <label class="form-label fw-semibold">No Soal</label>
               <input type="number" id="mNoSoal" class="form-control" min="1" required>
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-bold">Tipe Soal</label>
+              <label class="form-label fw-semibold">Tipe Soal</label>
               <select id="mTipeSoal" class="form-select" onChange="toggleFormTipeSoal()">
                 <option value="PG">Pilihan Ganda (PG)</option>
                 <option value="ESSAI">Essai / Uraian</option>
               </select>
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-bold">Skor Soal</label>
+              <label class="form-label fw-semibold">Skor Soal</label>
               <input type="number" id="mSkorSoal" class="form-control" value="2" min="1" required>
             </div>
 
             <div class="col-md-12">
-              <label class="form-label fw-bold">Pertanyaan Ujian</label>
+              <label class="form-label fw-semibold">Pertanyaan Ujian</label>
               <textarea id="mPertanyaan" class="form-control" rows="3" placeholder="Ketik pertanyaan di sini..." required></textarea>
             </div>
 
-            <div id="containerOpsiPG" class="col-md-12 border p-3 rounded bg-light">
+            <div id="containerOpsiPG" class="col-md-12 border p-3 rounded-3 bg-light">
               <h6 class="fw-bold text-primary mb-3">Opsi Jawaban (Pilihan Ganda)</h6>
               <div class="row g-2">
                 <div class="col-md-6 mb-2">
-                  <label class="form-label small fw-bold">Opsi A</label>
+                  <label class="form-label small fw-semibold">Opsi A</label>
                   <input type="text" id="mOpA" class="form-control" placeholder="Jawaban A">
                 </div>
                 <div class="col-md-6 mb-2">
-                  <label class="form-label small fw-bold">Opsi B</label>
+                  <label class="form-label small fw-semibold">Opsi B</label>
                   <input type="text" id="mOpB" class="form-control" placeholder="Jawaban B">
                 </div>
                 <div class="col-md-6 mb-2">
-                  <label class="form-label small fw-bold">Opsi C</label>
+                  <label class="form-label small fw-semibold">Opsi C</label>
                   <input type="text" id="mOpC" class="form-control" placeholder="Jawaban C">
                 </div>
                 <div class="col-md-6 mb-2">
-                  <label class="form-label small fw-bold">Opsi D</label>
+                  <label class="form-label small fw-semibold">Opsi D</label>
                   <input type="text" id="mOpD" class="form-control" placeholder="Jawaban D">
                 </div>
                 <div class="col-md-12 mt-2">
-                  <label class="form-label fw-bold">Kunci Jawaban PG</label>
+                  <label class="form-label fw-semibold">Kunci Jawaban PG</label>
                   <select id="mKunciPG" class="form-select fw-bold text-success">
                     <option value="A">A</option>
                     <option value="B">B</option>
@@ -588,8 +678,8 @@
           </div>
         </form>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Batal</button>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Batal</button>
         <button type="button" class="btn btn-primary fw-bold" onClick="tambahkanSoalManual()">➕ Tambahkan ke Draft</button>
       </div>
     </div>
@@ -598,56 +688,56 @@
 
 <!-- MODAL GENERATOR SOAL AI (GEMINI) -->
 <div class="modal fade no-print" id="modalGenAI" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white" style="background: linear-gradient(45deg, #6f42c1, #0d6efd);">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header text-white" style="background: linear-gradient(135deg, #6f42c1, #0d6efd);">
         <h5 class="modal-title fw-bold">🤖 Generator Soal Berbasis AI (Gemini)</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body p-4">
         <form id="formGenAI">
           <div class="row g-3">
             <div class="col-md-4">
-              <label class="form-label fw-bold">Kode Soal</label>
-              <input type="text" id="aiKodeSoal" class="form-control" readonly>
+              <label class="form-label fw-semibold">Kode Soal</label>
+              <input type="text" id="aiKodeSoal" class="form-control bg-light" readonly>
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-bold">Mata Pelajaran</label>
-              <input type="text" id="aiMapel" class="form-control" readonly placeholder="Diambil dari Pengaturan">
+              <label class="form-label fw-semibold">Mata Pelajaran</label>
+              <input type="text" id="aiMapel" class="form-control bg-light" readonly placeholder="Diambil dari Pengaturan">
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-bold">Tingkat / Kelas</label>
+              <label class="form-label fw-semibold">Tingkat / Kelas</label>
               <input type="text" id="aiKelas" class="form-control" placeholder="Contoh: Kelas 7 SMP / X SMA">
             </div>
 
             <div class="col-md-6">
-              <label class="form-label fw-bold">Jumlah Soal PG</label>
+              <label class="form-label fw-semibold">Jumlah Soal PG</label>
               <input type="number" id="aiJumlahPG" class="form-control" value="10" min="0" max="50">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-bold">Jumlah Soal Essai</label>
+              <label class="form-label fw-semibold">Jumlah Soal Essai</label>
               <input type="number" id="aiJumlahEssai" class="form-control" value="2" min="0" max="20">
             </div>
 
             <div class="col-md-12">
-              <label class="form-label fw-bold">Topik / Materi / Kompetensi Dasar</label>
+              <label class="form-label fw-semibold">Topik / Materi / Kompetensi Dasar</label>
               <textarea id="aiTopik" class="form-control" rows="3" placeholder="Masukkan materi pembahasan, bab, atau indikator soal..." required></textarea>
             </div>
 
             <div class="col-md-12">
-              <label class="form-label fw-bold text-secondary">Draft Prompt Otomatis:</label>
+              <label class="form-label fw-semibold text-secondary">Draft Prompt Otomatis:</label>
               <textarea id="aiGeneratedPrompt" class="form-control font-monospace bg-light" rows="5" readonly></textarea>
             </div>
           </div>
         </form>
       </div>
-      <div class="modal-footer d-flex justify-content-between align-items-center">
+      <div class="modal-footer bg-light d-flex justify-content-between align-items-center">
         <small class="text-muted">
           💡 <i>Prompt akan disalin otomatis. Di Gemini, tinggal tekan <b>Ctrl + V</b> lalu Enter.</i>
         </small>
         <div>
-          <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Batal</button>
-          <a href="https://gemini.google.com/app" target="_blank" class="btn btn-purple text-white fw-bold" style="background-color: #6f42c1;" onclick="salinPromptSaja(event)">
+          <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Batal</button>
+          <a href="https://gemini.google.com/app" target="_blank" class="btn btn-purple text-white fw-bold" onclick="salinPromptSaja(event)">
             🚀 Salin Prompt & Buka Gemini
           </a>
         </div>
@@ -659,21 +749,21 @@
 <!-- MODAL TINJAU & CETAK BANK SOAL -->
 <div class="modal fade" id="modalTinjauSoal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
-    <div class="modal-content">
+    <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-dark text-white no-print">
         <h5 class="modal-title fw-bold">🔍 Pratinjau & Cetak Bank Soal</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-4" id="areaCetakSoal">
         <div class="text-center mb-4 border-bottom pb-3">
-          <h4 class="fw-bold mb-1">LEMBAR BANK SOAL UJIAN</h4>
+          <h4 class="fw-bold mb-1 text-dark">LEMBAR BANK SOAL UJIAN</h4>
           <h6 class="mb-1">Mata Pelajaran: <span id="previewMapelSoal" class="fw-bold text-primary">-</span></h6>
           <small class="text-muted">Kode Ujian: <span id="previewKodeSoal" class="fw-bold">-</span></small>
         </div>
         <div id="containerListTinjauSoal"></div>
       </div>
-      <div class="modal-footer no-print">
-        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Tutup</button>
+      <div class="modal-footer bg-light no-print">
+        <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Tutup</button>
         <button type="button" class="btn btn-success fw-bold" onClick="window.print()">🖨️ Cetak / Simpan PDF</button>
       </div>
     </div>
@@ -683,14 +773,14 @@
 <!-- MODAL LIHAT JAWABAN SISWA LENGKAP -->
 <div class="modal fade" id="modalLihatJawaban" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
+    <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-info text-white no-print">
         <h5 class="modal-title fw-bold text-dark">📄 Lembar Jawaban Siswa</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       
-      <div class="modal-body" id="areaCetakModal">
-        <div class="p-3 bg-light rounded border mb-3">
+      <div class="modal-body p-4" id="areaCetakModal">
+        <div class="p-3 bg-light rounded-3 border mb-3">
           <div class="row">
             <div class="col-md-6">
               <strong>Nama Siswa:</strong> <span id="ljNamaSiswa">-</span><br>
@@ -706,8 +796,8 @@
         <div id="containerLembarJawabanLengkap"></div>
       </div>
 
-      <div class="modal-footer no-print">
-        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Tutup</button>
+      <div class="modal-footer bg-light no-print">
+        <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Tutup</button>
         <button type="button" id="btnCetakLJ" class="btn btn-primary fw-bold">🖨️ Cetak Lembar Jawaban</button>
       </div>
     </div>
@@ -742,19 +832,19 @@
 
 <!-- MODAL TAMBAH / EDIT AKUN USER (GURU & SISWA) -->
 <div class="modal fade no-print" id="modalTambahGuru" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-warning text-dark">
         <h5 class="modal-title fw-bold" id="modalUserTitle">➕ Tambah Akun Pengguna Baru</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body p-4">
         <form id="formTambahGuru">
           <input type="hidden" id="editUserMode" value="add">
           <input type="hidden" id="origUsername" value="">
 
           <div class="mb-3">
-            <label class="form-label fw-bold">Hak Akses / Role</label>
+            <label class="form-label fw-semibold">Hak Akses / Role</label>
             <select id="addRoleGuru" class="form-select fw-bold" onchange="toggleFormRoleSiswa()">
               <option value="Siswa" selected>Siswa</option>
               <option value="Guru">Guru / Pengawas</option>
@@ -762,25 +852,25 @@
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-bold" id="lblUsernameInput">NIS / Username</label>
+            <label class="form-label fw-semibold" id="lblUsernameInput">NIS / Username</label>
             <input type="text" id="addUsernameGuru" class="form-control" placeholder="Contoh: 2026001 / Username" required>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-bold">Nama Lengkap</label>
+            <label class="form-label fw-semibold">Nama Lengkap</label>
             <input type="text" id="addNamaGuru" class="form-control" placeholder="Contoh: Ahmad Fauzi / Ahmad, S.Pd." required>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-bold" id="lblPasswordInput">Password</label>
+            <label class="form-label fw-semibold" id="lblPasswordInput">Password</label>
             <input type="password" id="addPasswordGuru" class="form-control" placeholder="Masukkan password" required>
           </div>
           <div class="mb-3" id="containerAddKelasSiswa">
-            <label class="form-label fw-bold text-primary">Kelas (Khusus Siswa)</label>
+            <label class="form-label fw-semibold text-primary">Kelas (Khusus Siswa)</label>
             <input type="text" id="addKelasSiswa" class="form-control" placeholder="Contoh: IX-A / XII IPA 1">
           </div>
         </form>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Batal</button>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Batal</button>
         <button type="button" class="btn btn-primary fw-bold" onClick="prosesSimpanUser()">Simpan Akun</button>
       </div>
     </div>
