@@ -1648,31 +1648,156 @@
     const item = rawDataHasil[index];
     if (!item) return;
 
+    const kode = typeof getKodeSoal === 'function' ? getKodeSoal() : "";
+
+    const btnCetak = document.getElementById("btnCetakLJ");
+    if (btnCetak) {
+      btnCetak.onclick = function() {
+        cetakAreaModalJawaban();
+      };
+    }
+
+    if ((!window.rawDataAnalisis || window.rawDataAnalisis.length === 0) && kode) {
+      try {
+        const payload = { action: "analisisSoal", kode_soal: kode };
+        const result = await apiPost(payload);
+        if (result.status === "success") {
+          window.rawDataAnalisis = result.analisis || result.data || [];
+        }
+      } catch (e) {
+        console.error("Gagal mengambil kunci dari analisis:", e);
+      }
+    }
+
+    const mapKunciAnalisis = {};
+    if (window.rawDataAnalisis && Array.isArray(window.rawDataAnalisis)) {
+      window.rawDataAnalisis.forEach(a => {
+        if (a.no_soal !== undefined) {
+          mapKunciAnalisis[a.no_soal] = a.kunci;
+        }
+      });
+    }
+
     document.getElementById("ljNamaSiswa").innerText = item.nama;
-    document.getElementById("ljNoPeserta").innerText = item.no_peserta || '-';
+    document.getElementById("ljNoPeserta").innerText = item.no_peserta || item.noPeserta || '-';
     document.getElementById("ljKelasSiswa").innerText = item.kelas;
-    document.getElementById("ljTotalNilai").innerText = (parseFloat(item.skor_pg || 0) + parseFloat(item.nilai_essai || 0));
+    document.getElementById("ljMapel").innerText = document.getElementById("cfgMapel").value || currentMapel || "-";
+
+    const pg = parseFloat(item.skor_pg || 0);
+    const es = parseFloat(item.nilai_essai || 0);
+    document.getElementById("ljTotalNilai").innerText = pg + es;
 
     let detailJawaban = {};
     try { detailJawaban = typeof item.detail_jawaban === 'string' ? JSON.parse(item.detail_jawaban) : item.detail_jawaban; } catch(e){}
 
+    let detailNilaiEssai = {};
+    try { detailNilaiEssai = typeof item.detail_nilai_essai === 'string' ? JSON.parse(item.detail_nilai_essai) : (item.detail_nilai_essai || {}); } catch(e){}
+
     const container = document.getElementById("containerLembarJawabanLengkap");
     container.innerHTML = "";
 
+    if (!rawDataBankSoal || rawDataBankSoal.length === 0) {
+      container.innerHTML = `<div class="alert alert-warning">Data bank soal tidak ditemukan untuk perbandingan.</div>`;
+      modalLihatJawabanInstance.show();
+      return;
+    }
+
     rawDataBankSoal.forEach((soal, idx) => {
-      const noKey = idx + 1;
-      const meJawab = detailJawaban[noKey] || "-";
+      const noSoalKey = idx + 1;
+      const noSoal = soal.no_soal || noSoalKey;
+      const tipe = String(soal.tipe || "PG").trim().toUpperCase();
+      const isPG = tipe === "PG" || tipe === "PILGAN";
+
+      const meJawabRaw = detailJawaban[noSoalKey] ?? 
+                         detailJawaban[String(noSoalKey)] ?? 
+                         detailJawaban[noSoal] ?? 
+                         detailJawaban[String(noSoal)] ?? "-";
+
+      let statusBadge = "";
+      let detailHtml = "";
+
+      if (isPG) {
+        const kunciRaw = soal.kunci || soal.kunci_jawaban || mapKunciAnalisis[noSoal] || mapKunciAnalisis[noSoalKey] || "";
+        const kunci = String(kunciRaw).trim().toUpperCase();
+        const meUpper = String(meJawabRaw).trim().toUpperCase();
+
+        const isBenar = meUpper !== "" && meUpper !== "-" && meUpper === kunci;
+
+        statusBadge = isBenar 
+          ? `<span class="badge bg-success">BENAR (+${soal.skor || 2})</span>` 
+          : `<span class="badge bg-danger">SALAH (0)</span>`;
+
+        detailHtml = `
+          <div class="row mt-2">
+            <div class="col-6">Jawaban Siswa: <strong class="${isBenar ? 'text-success' : 'text-danger'}">${meJawabRaw}</strong></div>
+            <div class="col-6">Kunci Jawaban: <strong class="text-primary">${kunci || "-"}</strong></div>
+          </div>
+        `;
+      } else {
+        const nilaiEss = detailNilaiEssai[noSoalKey] ?? detailNilaiEssai[String(noSoalKey)] ?? 0;
+        statusBadge = `<span class="badge bg-info text-dark">Skor Essai: ${nilaiEss} / ${soal.skor || 10}</span>`;
+        detailHtml = `
+          <div class="p-2 bg-light rounded border mt-2">
+            <strong>Jawaban Essai Siswa:</strong>
+            <div>${meJawabRaw}</div>
+          </div>
+        `;
+      }
+
       container.innerHTML += `
-        <div class="card mb-2">
+        <div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>No. ${noSoal} (${tipe})</span>
+            ${statusBadge}
+          </div>
           <div class="card-body">
-            <b>No. ${noKey} (${soal.tipe}):</b> ${soal.pertanyaan}<br>
-            <small class="text-primary">Jawaban Siswa: ${meJawab}</small>
+            <p class="mb-1"><strong>Soal:</strong> ${soal.pertanyaan || '-'}</p>
+            ${detailHtml}
           </div>
         </div>
       `;
     });
+
     modalLihatJawabanInstance.show();
   }
+
+  function cetakAreaModalJawaban() {
+    const isiModal = document.getElementById("areaCetakModal").innerHTML;
+    const printWindow = window.open("", "_blank");
+    
+    if (!printWindow) {
+      alert("Pop-up diblokir browser! Izinkan pop-up untuk mencetak.");
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="UTF-8">
+        <title>Cetak Lembar Jawaban Siswa</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+          body { padding: 20px; font-family: Arial, sans-serif; background: #fff; }
+          @media print {
+            .no-print { display: none !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <h3 class="text-center mb-4 fw-bold">HASIL & LEMBAR JAWABAN SISWA</h3>
+        ${isiModal}
+      </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+  }
+
 
   function populasiFilterKelas() {
     const select = document.getElementById("filterKelasSelect");
