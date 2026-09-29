@@ -1823,17 +1823,36 @@
   async function muatDaftarKodeSoal() {
     const datalist = document.getElementById("listKodeSoal");
     if (!datalist) return;
+
     try {
       const res = await fetch(API_URL, {
-        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        method: "POST",
+        mode: "cors",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: "getdaftarkodesoal" })
       });
-      const response = await res.json();
-      if (response.status === "success" && Array.isArray(response.data)) {
-        datalist.innerHTML = "";
-        response.data.forEach(kode => datalist.innerHTML += `<option value="${kode}">`);
+
+      if (!res.ok) {
+        throw new Error("HTTP Status: " + res.status);
       }
-    } catch (err) {}
+
+      const response = await res.json();
+
+      if (response.status === "success" && Array.isArray(response.data)) {
+        datalist.innerHTML = ""; 
+
+        response.data.forEach(kode => {
+          const option = document.createElement("option");
+          option.value = kode;
+          datalist.appendChild(option);
+        });
+      } else {
+        console.warn("Gagal memuat daftar kode soal:", response.message);
+      }
+    } catch (err) {
+      console.error("Gagal memuat kode soal:", err);
+    }
   }
 
   function bukaModalGenAI() {
@@ -1866,49 +1885,54 @@
 
     try {
       const result = await apiPost({ action: "getDaftarSemuaKodeSoal" });
+
       if (result.status === "success" && Array.isArray(result.data)) {
         if (result.data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Belum ada daftar kode soal tersimpan.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Belum ada kode soal yang dibuat.</td></tr>';
           return;
         }
 
         tbody.innerHTML = "";
-        result.data.forEach((item, idx) => {
-          tbody.innerHTML += `
+        result.data.forEach((item, index) => {
+          const totalSoal = (item.jumlah_pg || 0) + (item.jumlah_essai || 0);
+          const row = `
             <tr>
-              <td class="text-center fw-bold">${idx + 1}</td>
+              <td class="text-center fw-bold">${index + 1}</td>
               <td><strong class="text-primary">${item.kode_soal}</strong></td>
               <td>${item.mapel || '-'}</td>
               <td>${item.kelas || '-'}</td>
-              <td class="text-center"><span class="badge bg-primary fs-6">${item.jumlah_pg || 0}</span></td>
-              <td class="text-center"><span class="badge bg-info text-dark fs-6">${item.jumlah_essai || 0}</span></td>
-              <td class="text-center"><span class="badge bg-success fs-6">${(item.jumlah_pg || 0) + (item.jumlah_essai || 0)}</span></td>
+              <td class="text-center"><span class="badge bg-primary">${item.jumlah_pg || 0}</span></td>
+              <td class="text-center"><span class="badge bg-info text-dark">${item.jumlah_essai || 0}</span></td>
+              <td class="text-center"><span class="badge bg-success">${totalSoal}</span></td>
               <td class="text-center">
-                <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" onclick="tinjauDanCetakSoal('${item.kode_soal}')" title="Lihat / Cetak Soal">
-                  👁️ Lihat
-                </button>
-                <button class="btn btn-sm btn-outline-primary fw-bold me-1" onclick="pilihKodeSoalDaftar('${item.kode_soal}')" title="Pilih Kode Soal Ini">
+                <button class="btn btn-sm btn-outline-primary fw-bold me-1" onclick="pilihKodeSoalDaftar('${item.kode_soal}')" title="Pilih & Kelola Kode Ini">
                   📌 Pilih
                 </button>
-                <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusBankSoal('${item.kode_soal}')" title="Hapus Bank Soal Ini">
+                <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" onclick="tinjauDanCetakSoal('${item.kode_soal}')" title="Pratinjau Soal">
+                  🔍 Cetak
+                </button>
+                <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusBankSoal('${item.kode_soal}')" title="Hapus Paket Soal Ini">
                   🗑️
                 </button>
               </td>
             </tr>
           `;
+          tbody.innerHTML += row;
         });
       } else {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Gagal memuat: ${result.message || 'Terjadi kesalahan'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Gagal memuat daftar: ${result.message || 'Terjadi kesalahan'}</td></tr>`;
       }
     } catch (err) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Gagal terhubung ke server.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Gagal terhubung ke server. Silakan coba lagi.</td></tr>';
     }
   }
+
 
   function pilihKodeSoalDaftar(kodeSoal) {
     document.getElementById("kodeSoalInput").value = kodeSoal;
     document.getElementById("cfgKodeUjian").value = kodeSoal;
     localStorage.setItem("guru_last_kode_soal", kodeSoal);
+    alert(`Kode soal '${kodeSoal}' dipilih! Anda bisa memuat pengaturan atau hasil ujian untuk kode ini.`);
   }
 
   async function hapusBankSoal(kodeSoal) {
