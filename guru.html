@@ -219,7 +219,7 @@
   <!-- TAB NAVIGASI UTAMA -->
   <ul class="nav nav-tabs mb-4 no-print" id="guruTab" role="tablist">
     <li class="nav-item">
-      <button class="nav-link active" id="pengaturan-tab" data-bs-toggle="tab" data-bs-target="#tab-pengaturan">⚙️ Pengaturan Ujian</button>
+      <button class="nav-link active" id="pengaturan-tab" data-bs-toggle="tab" data-bs-target="#tab-pengaturan">⚙️️ Pengaturan Ujian</button>
     </li>
     <li class="nav-item">
       <button class="nav-link" id="import-tab" data-bs-toggle="tab" data-bs-target="#tab-import">📝 Pengelolaan Soal</button>
@@ -396,6 +396,7 @@
             </tbody>
           </table>
         </div>
+        <div id="paginationKodeSoalContainer" class="d-flex justify-content-end mt-3"></div>
       </div>
 
       <div class="card card-custom p-4">
@@ -467,7 +468,7 @@
       <div class="card card-custom p-4" id="areaCetak">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <div>
-            <h5 class="fw-bold mb-0 text-dark">Rekap Hasil Ujian Siswa</h5>
+            <h5 class="fw-bold mb-0 text-dark" id="titleHasilLaporan">Rekap Hasil Ujian Siswa</h5>
             <small class="text-muted" id="subTitleHasil">Kode Soal: - | Mapel: -</small>
           </div>
           <div class="no-print d-flex flex-wrap gap-1">
@@ -518,7 +519,7 @@
     <div class="tab-pane fade" id="tab-analisis" role="tabpanel">
       <div class="card card-custom p-4" id="areaCetakAnalisis">
         <div class="mb-3 border-bottom pb-3">
-          <h4 class="fw-bold mb-1 text-uppercase text-center text-md-start text-dark">Laporan Analisis Butir Soal</h4>
+          <h4 class="fw-bold mb-1 text-uppercase text-center text-md-start text-dark" id="titleAnalisisLaporan">Laporan Analisis Butir Soal</h4>
           <div class="d-flex justify-content-between align-items-center">
             <small class="text-muted fw-semibold" id="subTitleAnalisis">Kode Soal: - | Mapel: -</small>
             <small class="text-muted fw-semibold" id="infoTotalSiswaAnalisis">Total Responden: -</small>
@@ -756,7 +757,7 @@
       </div>
       <div class="modal-body p-4" id="areaCetakSoal">
         <div class="text-center mb-4 border-bottom pb-3">
-          <h4 class="fw-bold mb-1 text-dark">LEMBAR BANK SOAL UJIAN</h4>
+          <h4 class="fw-bold mb-1 text-dark" id="previewTitleSoal">NASKAH SOAL UJIAN</h4>
           <h6 class="mb-1">Mata Pelajaran: <span id="previewMapelSoal" class="fw-bold text-primary">-</span></h6>
           <small class="text-muted">Kode Ujian: <span id="previewKodeSoal" class="fw-bold">-</span></small>
         </div>
@@ -1250,8 +1251,9 @@
         }
 
         document.getElementById("cfgKodeUjian").value = kode;
-        const mapelValue = cfg.mata_pelajaran || cfg.mapel || "";
+        const mapelValue = cfg.mata_pelajaran || "";
         selectDropdownValue("cfgMapel", mapelValue);
+        document.getElementById("cfgMapel").value = cfg.mata_pelajaran || "";
         document.getElementById("cfgDurasi").value = cfg.durasi || 90;
         document.getElementById("cfgPenyusun").value = cfg.penyusun || cfg.nama_ujian || "";
         document.getElementById("cfgPengawas").value = cfg.pengawas || "";
@@ -2362,57 +2364,150 @@ Sajikan hasil balasan dalam format text UNICODE dan HANYA dalam bentuk TABEL Exc
     alert("✅ Prompt Soal AI berhasil disalin!\n\nSilakan tekan Ctrl + V (Paste) pada kolom chat Gemini yang terbuka.");
   }
 
-  // --- FUNGSI DAFTAR KODE SOAL & DUPLIKASI ---
-  async function muatTabelDaftarKodeSoal() {
+// --- FUNGSI DAFTAR KODE SOAL & DUPLIKASI ---
+let rawDaftarKodeSoal = [];
+let currentPageKodeSoal = 1;
+let itemsPerPageKodeSoal = 10;
+
+async function muatTabelDaftarKodeSoal() {
     const tbody = document.getElementById("tabelDaftarKodeBody");
+    const paginationContainer = document.getElementById("paginationKodeSoalContainer");
     if (!tbody) return;
 
     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat daftar kode soal...</td></tr>';
+    
+    // Periksa dulu apakah elemen ada sebelum mengubah style
+    if (paginationContainer) {
+        paginationContainer.style.setProperty('display', 'none', 'important');
+    }
 
     try {
       const result = await apiPost({ action: "getDaftarSemuaKodeSoal" });
 
       if (result.status === "success" && Array.isArray(result.data)) {
-        if (result.data.length === 0) {
+        rawDaftarKodeSoal = result.data;
+        
+        if (rawDaftarKodeSoal.length === 0) {
           tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Belum ada kode soal yang dibuat.</td></tr>';
           return;
         }
 
-        tbody.innerHTML = "";
-        result.data.forEach((item, index) => {
-          const totalSoal = (item.jumlah_pg || 0) + (item.jumlah_essai || 0);
-          const row = `
-            <tr>
-              <td class="text-center fw-bold">${index + 1}</td>
-              <td><strong class="text-primary">${item.kode_soal}</strong></td>
-              <td>${item.mapel || '-'}</td>
-              <td>${item.kelas || '-'}</td>
-              <td class="text-center"><span class="badge bg-primary">${item.jumlah_pg || 0}</span></td>
-              <td class="text-center"><span class="badge bg-info text-dark">${item.jumlah_essai || 0}</span></td>
-              <td class="text-center"><span class="badge bg-success">${totalSoal}</span></td>
-              <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary fw-bold me-1" onclick="pilihKodeSoalDaftar('${item.kode_soal}')" title="Pilih & Kelola Kode Ini">
-                  📌 Pilih
-                </button>
-                <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" onclick="tinjauDanCetakSoal('${item.kode_soal}')" title="Pratinjau Soal">
-                  🔍 Cetak
-                </button>
-                <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusBankSoal('${item.kode_soal}')" title="Hapus Paket Soal Ini">
-                  🗑️
-                </button>
-              </td>
-            </tr>
-          `;
-          tbody.innerHTML += row;
-        });
+        currentPageKodeSoal = 1;
+
+        // Pastikan fungsi paginasi dipanggil dengan aman
+        if (typeof renderTabelKodeSoalPaginasi === "function") {
+          renderTabelKodeSoalPaginasi();
+        } else {
+          console.error("Fungsi renderTabelKodeSoalPaginasi tidak ditemukan!");
+        }
+
       } else {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Gagal memuat daftar: ${result.message || 'Terjadi kesalahan'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Gagal memuat: ${result.message || 'Terjadi kesalahan'}</td></tr>`;
       }
     } catch (err) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Gagal terhubung ke server. Silakan coba lagi.</td></tr>';
+      // Tampilkan error asli di Console Browser (F12)
+      console.error("Detail Error JS Frontend:", err); 
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Gagal memproses data: ${err.message}</td></tr>`;
+    }
+}
+
+function renderTabelKodeSoalPaginasi() {
+  const tbody = document.getElementById("tabelDaftarKodeBody");
+  const paginationContainer = document.getElementById("paginationKodeSoalContainer");
+  if (!tbody) return;
+
+  // 1. Hitung pembagian halaman
+  const totalItems = rawDaftarKodeSoal.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPageKodeSoal) || 1;
+
+  // Mencegah currentPage melebihi total halaman
+  if (currentPageKodeSoal > totalPages) currentPageKodeSoal = totalPages;
+  if (currentPageKodeSoal < 1) currentPageKodeSoal = 1;
+
+  // 2. Potong data sesuai halaman yang aktif (Slice)
+  const startIndex = (currentPageKodeSoal - 1) * itemsPerPageKodeSoal;
+  const endIndex = startIndex + itemsPerPageKodeSoal;
+  const paginatedData = rawDaftarKodeSoal.slice(startIndex, endIndex);
+
+  // 3. Render Baris Tabel
+  tbody.innerHTML = "";
+  paginatedData.forEach((item, index) => {
+    const nomorUrut = startIndex + index + 1; // Nomor urut berlanjut antar halaman
+    const totalSoal = (item.jumlah_pg || 0) + (item.jumlah_essai || 0);
+    
+    const row = `
+      <tr>
+        <td class="text-center fw-bold">${nomorUrut}</td>
+        <td><strong class="text-primary">${item.kode_soal}</strong></td>
+        <td>${item.mapel || '-'}</td>
+        <td>${item.kelas || '-'}</td>
+        <td class="text-center"><span class="badge bg-primary">${item.jumlah_pg || 0}</span></td>
+        <td class="text-center"><span class="badge bg-info text-dark">${item.jumlah_essai || 0}</span></td>
+        <td class="text-center"><span class="badge bg-success">${totalSoal}</span></td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-primary fw-bold me-1" onclick="pilihKodeSoalDaftar('${item.kode_soal}')" title="Pilih & Kelola Kode Ini">
+            📌 Pilih
+          </button>
+          <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" onclick="tinjauDanCetakSoal('${item.kode_soal}')" title="Pratinjau Soal">
+            🔍 Cetak
+          </button>
+          <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusBankSoal('${item.kode_soal}')" title="Hapus Paket Soal Ini">
+            🗑️
+          </button>
+        </td>
+      </tr>
+    `;
+    tbody.innerHTML += row;
+  });
+
+  // 4. Render Tombol Paginasi
+  if (paginationContainer) {
+    if (totalPages <= 1) {
+      paginationContainer.style.display = "none";
+    } else {
+      paginationContainer.style.display = "flex";
+      renderTombolPaginasiKodeSoal(paginationContainer, totalPages);
     }
   }
+}
 
+// Fungsi pembantu untuk menggambar tombol 1, 2, 3, Next, Prev
+function renderTombolPaginasiKodeSoal(container, totalPages) {
+  let navHtml = `<ul class="pagination pagination-sm m-0">`;
+
+  // Tombol Previous
+  navHtml += `
+    <li class="page-item ${currentPageKodeSoal === 1 ? 'disabled' : ''}">
+      <button class="page-link" onclick="gantiHalamanKodeSoal(${currentPageKodeSoal - 1})">Prev</button>
+    </li>
+  `;
+
+  // Tombol Angka Halaman
+  for (let i = 1; i <= totalPages; i++) {
+    navHtml += `
+      <li class="page-item ${i === currentPageKodeSoal ? 'active' : ''}">
+        <button class="page-link" onclick="gantiHalamanKodeSoal(${i})">${i}</button>
+      </li>
+    `;
+  }
+
+  // Tombol Next
+  navHtml += `
+    <li class="page-item ${currentPageKodeSoal === totalPages ? 'disabled' : ''}">
+      <button class="page-link" onclick="gantiHalamanKodeSoal(${currentPageKodeSoal + 1})">Next</button>
+    </li>
+  `;
+
+  navHtml += `</ul>`;
+  container.innerHTML = navHtml;
+}
+
+// Fungsi perpindahan halaman saat tombol diklik
+function gantiHalamanKodeSoal(halamanBaru) {
+  currentPageKodeSoal = halamanBaru;
+  renderTabelKodeSoalPaginasi();
+}
+  
   function pilihKodeSoalDaftar(kodeSoal) {
     document.getElementById("kodeSoalInput").value = kodeSoal;
     document.getElementById("cfgKodeUjian").value = kodeSoal;
