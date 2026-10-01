@@ -1843,10 +1843,10 @@ Aturan Pengisian Tabel Excel:
    - Untuk Tipe ESSAI: Harus dikosongkan (TIDAK BOLEH ADA OPSI JAWABAN).
 6. "Kunci":
    - Untuk Tipe PG: Isi huruf kapital kunci jawaban ('A', 'B', 'C', atau 'D').
-   - Untuk Tipe ESSAI: Isi tanda strip '-'.
-7. "Skor": Untuk PG berikan nilai 2, untuk ESSAI berikan nilai 10.
+   - Untuk Tipe ESSAI: tambahkan kunci jawaban saja, tanpa dijelaskan.
+7. "Skor": hitung secara otomatis berdasarkan jumlan soal PG dan jumlah soal Essai, hingga total 100.
 
-Sajikan hasil balasan dalam format text UNICODE dan HANYA dalam bentuk TABEL Excel, agar bisa langsung saya unduh.`;
+Sajikan hasil balasan dalam format text UNICODE dan HANYA dalam bentuk TABEL Excel, agar bisa langsung diunduh.`;
 
     document.getElementById("aiGeneratedPrompt").value = promptText;
   }
