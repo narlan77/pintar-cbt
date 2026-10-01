@@ -1690,51 +1690,66 @@
     }
   }
 
-  function renderTabelHasil(dataList) {
-    const tbody = document.getElementById("tabelHasilBody");
-    tbody.innerHTML = "";
+function renderTabelHasil(dataList) {
+  const tbody = document.getElementById("tabelHasilBody");
+  tbody.innerHTML = "";
 
-    if (!dataList || dataList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Data tidak ditemukan.</td></tr>';
-      return;
+  if (!dataList || dataList.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Data tidak ditemukan.</td></tr>';
+    return;
+  }
+
+  dataList.forEach((item, index) => {
+    const nilaiPG = parseFloat(item.skor_pg || 0);
+    const nilaiEssai = parseFloat(item.nilai_essai || 0);
+    const totalNilai = nilaiPG + nilaiEssai;
+
+    let detailNilaiObj = {};
+    try {
+      detailNilaiObj = JSON.parse(item.detail_nilai || '{}');
+    } catch (e) {
+      detailNilaiObj = {};
     }
 
-    dataList.forEach((item, index) => {
-      const nilaiPG = parseFloat(item.skor_pg || 0);
-      const nilaiEssai = parseFloat(item.nilai_essai || 0);
-      const totalNilai = nilaiPG + nilaiEssai;
+    const origIndex = rawDataHasil.indexOf(item);
+    let btnText = "Isi Nilai";
+    let btnClass = "btn-warning text-dark";
 
-      let detailNilaiObj = {};
-      try {
-        detailNilaiObj = typeof item.detail_nilai_essai === 'string' 
-          ? JSON.parse(item.detail_nilai_essai) 
-          : (item.detail_nilai_essai || {});
-      } catch(e) {}
+    if (nilaiEssai > 0 || detailNilaiObj.nilai_essai > 0) {
+      btnText = "Edit Nilai";
+      btnClass = "btn-success";
+    }
 
-      const sudahDikoreksi = Object.keys(detailNilaiObj).length > 0 || nilaiEssai > 0;
-      const btnClass = sudahDikoreksi ? "btn-success text-white" : "btn-warning text-dark";
-      const btnText = sudahDikoreksi ? "✓ Koreksi" : "✏️ Koreksi";
-      const origIndex = rawDataHasil.indexOf(item);
-
-      const row = `
-        <tr>
-          <td>${new Date(item.timestamp).toLocaleString("id-ID")}</td>
-          <td>${item.no_peserta || item.noPeserta || '-'}</td>
-          <td class="fw-bold">${item.nama}</td>
-          <td>${item.kelas}</td>
-          <td class="text-center"><span class="badge bg-primary fs-6">${nilaiPG}</span></td>
-          <td class="text-center"><span class="badge bg-info text-dark fs-6">${nilaiEssai}</span></td>
-          <td class="text-center"><span class="badge bg-success fs-6">${totalNilai}</span></td>
-          <td class="text-center no-print">
-            <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" title="Lihat Jawaban Siswa" onclick="bukaModalLihatJawaban(${origIndex})">📄 Jawaban</button>
-            <button class="btn btn-sm ${btnClass} fw-bold me-1" onclick="bukaModalEssai(${origIndex})">${btnText}</button>
-            <button class="btn btn-sm btn-outline-danger fw-bold" title="Hapus Data Peserta" onclick="hapusHasilSiswa('${item.no_peserta || item.noPeserta}', this)">🗑️</button>
-          </td>
-        </tr>
-      `;
-      tbody.innerHTML += row;
-    });
-  }
+    const row = `
+      <tr>
+        <td>${item.waktu_selesai || "-"}</td>
+        <td><strong>${item.no_peserta || "-"}</strong></td>
+        <td>${item.nama || "-"}</td>
+        <td>${item.kelas || "-"}</td>
+        <td class="text-center"><span class="badge bg-info text-dark fs-6">${nilaiPG}</span></td>
+        <td class="text-center"><span class="badge bg-info text-dark fs-6">${nilaiEssai}</span></td>
+        <td class="text-center"><span class="badge bg-success fs-6">${totalNilai}</span></td>
+        <td class="text-center no-print">
+          <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" 
+            title="Lihat Jawaban Siswa" 
+            onclick="bukaModalLihatJawaban(${origIndex})">
+            📄 Jawaban
+          </button>
+          <button class="btn btn-sm ${btnClass} fw-bold me-1" 
+            onclick="bukaModalEssai(${origIndex})">
+            ${btnText}
+          </button>
+          <button class="btn btn-sm btn-outline-danger fw-bold" 
+            title="Hapus Data Peserta" 
+            onclick="hapusHasilSiswa('${item.no_peserta}')">
+            🗑️ Hapus
+          </button>
+        </td>
+      </tr>
+    `;
+    tbody.innerHTML += row;
+  });
+}
   
   async function bukaModalLihatJawaban(index) {
     const item = rawDataHasil[index];
@@ -1931,52 +1946,259 @@
     document.getElementById("statMax").innerText = Math.max(...totals);
     document.getElementById("statMin").innerText = Math.min(...totals);
   }
+/*
+async function hapusHasilSiswa(index) {
+  try {
+    // Validasi index
+    if (index === undefined || index === null || index < 0) {
+      alert("❌ Index baris tidak valid!");
+      console.error("[hapusHasilSiswa] Invalid index:", index);
+      return false;
+    }
 
-  async function hapusHasilSiswa(noPeserta) {
-    const kode = getKodeSoal();
-    if (!kode || !confirm(`Hapus hasil ujian No/NIS: ${noPeserta}?`)) return;
-    try {
-      const result = await apiPost({ action: "hapusHasilUjian", kode_soal: kode, no_peserta: String(noPeserta).trim() });
-      if (result.status === "success") { alert(result.message); muatHasilUjian(); }
-      else alert("Gagal: " + result.message);
-    } catch (e) { alert("Kesalahan koneksi saat menghapus."); }
+    // Cari data siswa di rawDataHasil berdasarkan index
+    const siswaData = rawDataHasil[index];
+
+    if (!siswaData) {
+      alert("❌ Data siswa pada baris ini tidak ditemukan!");
+      console.error("[hapusHasilSiswa] Siswa data not found at index:", index);
+      return false;
+    }
+
+    // Ambil nilai yang dibutuhkan dari data siswa
+    const noPeserta = String(siswaData.no_peserta || siswaData.noPeserta || "").trim();
+    const namaSiswa = siswaData.nama || siswaData.name || "-";
+    const kelasSync = siswaData.kelas || siswaData.class || "-";
+    const kodeSoal = document.getElementById("kodeSoalInput")?.value || "-";
+
+    // Validasi no_peserta
+    if (!noPeserta) {
+      alert("❌ Nomor peserta tidak ditemukan di data siswa!");
+      console.error("[hapusHasilSiswa] No peserta kosong:", siswaData);
+      return false;
+    }
+
+    // Konfirmasi double-check
+    const confirmDelete = confirm(
+      `⚠️ PERHATIAN! DATA AKAN DIHAPUS PERMANEN!\n\n` +
+      `📋 Kode Soal: ${kodeSoal}\n` +
+      `🆔 No Peserta: ${noPeserta}\n` +
+      `👤 Nama: ${namaSiswa}\n` +
+      `🏫 Kelas: ${kelasSync}\n\n` +
+      `Data hasil ujian siswa ini akan DIHAPUS dan TIDAK BISA DIKEMBALIKAN.\n\n` +
+      `Apakah Anda YAKIN ingin melanjutkan?`
+    );
+
+    if (!confirmDelete) {
+      console.log("[hapusHasilSiswa] User membatalkan penghapusan");
+      return false;
+    }
+
+    console.log("[hapusHasilSiswa] Mengirim permintaan hapus dengan data:", {
+      action: "hapusHasilUjian",
+      kode_soal: kodeSoal,
+      no_peserta: noPeserta
+    });
+
+    // Panggil API backend dengan kedua parameter yang diperlukan
+    const response = await apiPost({
+      action: "hapusHasilUjian",
+      kode_soal: kodeSoal,
+      no_peserta: noPeserta
+    });
+
+    console.log("[hapusHasilSiswa] Response dari backend:", response);
+
+    // Proses response
+    if (response && response.status === "success") {
+      alert(`✅ ${response.message}`);
+      
+      // Refresh tabel hasil ujian
+      if (typeof muatHasilUjian === 'function') {
+        console.log("[hapusHasilSiswa] Merefresh tabel hasil ujian...");
+        await muatHasilUjian();
+      } else {
+        console.warn("[hapusHasilSiswa] Fungsi muatHasilUjian tidak ditemukan");
+      }
+      
+      return true;
+    } else {
+      const errorMsg = response?.message || "Gagal menghapus data (Alasan tidak diketahui)";
+      alert(`❌ ${errorMsg}`);
+      console.error("[hapusHasilSiswa] Error response:", response);
+      return false;
+    }
+
+  } catch (err) {
+    console.error("[hapusHasilSiswa] Exception caught:", err);
+    alert(`❌ Terjadi kesalahan: ${err.message}`);
+    return false;
+  }
+}
+*/
+async function hapusHasilSiswa(noPeserta) {
+  const kode = getKodeSoal();
+  
+  if (!kode) {
+    alert("❌ Kode soal belum dipilih!");
+    return;
+  }
+
+  if (!noPeserta) {
+    alert("❌ No peserta tidak valid!");
+    return;
+  }
+
+  if (!confirm(`Hapus hasil ujian No/NIS: ${noPeserta}?`)) {
+    return;
+  }
+
+  try {
+    console.log("[hapusHasilSiswa] Mengirim request:", {
+      action: "hapusHasilUjian",
+      kode_soal: kode,
+      no_peserta: String(noPeserta).trim()
+    });
+
+    const result = await apiPost({ 
+      action: "hapusHasilUjian", 
+      kode_soal: kode, 
+      no_peserta: String(noPeserta).trim() 
+    });
+
+    console.log("[hapusHasilSiswa] Response:", result);
+
+    if (!result) {
+      alert("⚠️ Respon server kosong!");
+      return;
+    }
+
+    if (result.status === "success") {
+      alert("✅ " + (result.message || "Data berhasil dihapus!"));
+      muatHasilUjian();
+    } else {
+      alert("❌ " + (result.message || "Gagal menghapus data!"));
+    }
+  } 
+  catch (err) {
+    console.error("[hapusHasilSiswa] Error:", err);
+    alert("❌ Kesalahan koneksi: " + err.message);
+  }
+}
+
+  function renderTabelHasil(dataList) {
+    const tbody = document.getElementById("tabelHasilBody");
+    tbody.innerHTML = "";
+
+    if (!dataList || dataList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Data tidak ditemukan.</td></tr>';
+      return;
+    }
+
+    dataList.forEach((item, index) => {
+      const nilaiPG = parseFloat(item.skor_pg || 0);
+      const nilaiEssai = parseFloat(item.nilai_essai || 0);
+      const totalNilai = nilaiPG + nilaiEssai;
+
+      let detailNilaiObj = {};
+      try {
+        detailNilaiObj = typeof item.detail_nilai_essai === 'string' 
+          ? JSON.parse(item.detail_nilai_essai) 
+          : (item.detail_nilai_essai || {});
+      } catch(e) {}
+
+      const sudahDikoreksi = Object.keys(detailNilaiObj).length > 0 || nilaiEssai > 0;
+      const btnClass = sudahDikoreksi ? "btn-success text-white" : "btn-warning text-dark";
+      const btnText = sudahDikoreksi ? "✓ Koreksi" : "✏️ Koreksi";
+      const origIndex = rawDataHasil.indexOf(item);
+
+      const row = `
+        <tr>
+          <td>${new Date(item.timestamp).toLocaleString("id-ID")}</td>
+          <td>${item.no_peserta || item.noPeserta || '-'}</td>
+          <td class="fw-bold">${item.nama}</td>
+          <td>${item.kelas}</td>
+          <td class="text-center"><span class="badge bg-primary fs-6">${nilaiPG}</span></td>
+          <td class="text-center"><span class="badge bg-info text-dark fs-6">${nilaiEssai}</span></td>
+          <td class="text-center"><span class="badge bg-success fs-6">${totalNilai}</span></td>
+          <td class="text-center no-print">
+            <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" title="Lihat Jawaban Siswa" onclick="bukaModalLihatJawaban(${origIndex})">📄 Jawaban</button>
+            <button class="btn btn-sm ${btnClass} fw-bold me-1" onclick="bukaModalEssai(${origIndex})">${btnText}</button>
+            <button class="btn btn-sm btn-outline-danger fw-bold" title="Hapus Data Peserta" onclick="hapusHasilSiswa('${item.no_peserta || item.noPeserta}', this)">🗑️</button>
+          </td>
+        </tr>
+      `;
+      tbody.innerHTML += row;
+    });
   }
 
   function bukaModalEssai(index) {
     selectedIndexHasil = index;
     const item = rawDataHasil[index];
+
     document.getElementById("modalNamaSiswa").innerText = item.nama;
     document.getElementById("modalKelasSiswa").innerText = item.kelas;
 
     let detailJawaban = {};
     try { detailJawaban = typeof item.detail_jawaban === 'string' ? JSON.parse(item.detail_jawaban) : item.detail_jawaban; } catch(e){}
+
     let detailNilaiEssai = {};
     try { detailNilaiEssai = typeof item.detail_nilai_essai === 'string' ? JSON.parse(item.detail_nilai_essai) : (item.detail_nilai_essai || {}); } catch(e){}
 
     const container = document.getElementById("containerJawabanEssai");
     container.innerHTML = "";
 
+    let countEssai = 0;
     rawDataBankSoal.forEach((soal, idx) => {
-      if (soal.tipe === "ESSAI" || soal.tipe === "ESSAY") {
+      const tipe = String(soal.tipe || "PG").trim().toUpperCase();
+      if (tipe === "ESSAI" || tipe === "ESSAY" || tipe === "ES") {
+        countEssai++;
         const keyUnik = idx + 1;
-        const jw = detailJawaban[keyUnik] || "(Tidak dijawab)";
-        const nilai = detailNilaiEssai[keyUnik] !== undefined ? detailNilaiEssai[keyUnik] : 0;
+        const jawabanSiswaText = detailJawaban[keyUnik] || detailJawaban[soal.no_soal] || "<i class='text-muted'>(Tidak dijawab)</i>";
+        const nilaiExisting = detailNilaiEssai[keyUnik] !== undefined ? detailNilaiEssai[keyUnik] : 0;
 
-        container.innerHTML += `
-          <div class="card mb-2">
+        const boxHtml = `
+          <div class="card mb-3 border">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center fw-bold">
+              <span>Soal Essai No. ${countEssai} (Urutan No. ${keyUnik})</span>
+              <span class="badge bg-secondary">Maks: ${soal.skor || 10}</span>
+            </div>
             <div class="card-body">
-              <p><b>Soal:</b> ${soal.pertanyaan}</p>
-              <p><b>Jawaban:</b> ${jw}</p>
-              <input type="number" class="form-control form-control-sm input-nilai-per-soal" data-key="${keyUnik}" value="${nilai}" oninput="hitungTotalNilaiEssaiModal()">
+              <p class="mb-2"><strong>Pertanyaan:</strong> ${soal.pertanyaan}</p>
+              <div class="p-3 bg-white rounded border text-dark mb-3">
+                <strong>Jawaban Siswa:</strong><br>
+                <div class="mt-1">${jawabanSiswaText}</div>
+              </div>
+              
+              <div class="row align-items-center g-2 bg-light p-2 rounded">
+                <div class="col-auto">
+                  <label class="fw-bold text-primary mb-0">Nilai Soal Ini:</label>
+                </div>
+                <div class="col-auto">
+                  <input type="number" class="form-control form-control-sm fw-bold input-nilai-per-soal" 
+                    data-key="${keyUnik}" 
+                    value="${nilaiExisting}" 
+                    min="0" 
+                    max="${soal.skor || 100}" 
+                    oninput="hitungTotalNilaiEssaiModal()" 
+                    style="width: 100px;">
+                </div>
+              </div>
             </div>
           </div>
         `;
+        container.innerHTML += boxHtml;
       }
     });
+
+    if (countEssai === 0) {
+      container.innerHTML = `<div class="alert alert-warning">Tidak ditemukan soal bertipe Essai pada bank soal kode ini.</div>`;
+    }
+
     hitungTotalNilaiEssaiModal();
     modalEssaiInstance.show();
   }
-
+  
   function hitungTotalNilaiEssaiModal() {
     let total = 0;
     document.querySelectorAll(".input-nilai-per-soal").forEach(input => { total += parseFloat(input.value) || 0; });
