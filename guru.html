@@ -1803,23 +1803,28 @@ function gantiHalamanKodeSoal(halamanBaru) {
   // ====================================================================
   // MODUL 6: AI GENERATOR SOAL (GEMINI)
   // ====================================================================
-  function bukaModalGenAI() {
-    const kode = document.getElementById("kodeSoalInput").value.trim().toUpperCase();
-    const mapel = document.getElementById("cfgMapel").value || currentMapel || "";
-    
-    document.getElementById("aiKodeSoal").value = kode || "OTOMATIS";
+    function bukaModalGenAI() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+
+    const mapel = document.getElementById("cfgMapel")?.value || currentMapel || "-";
+    const kelas = document.getElementById("cfgDaftarKelas")?.value || "";
+
+    document.getElementById("aiKodeSoal").value = kode;
     document.getElementById("aiMapel").value = mapel;
+    document.getElementById("aiKelas").value = kelas;
+
     generatePromptText();
     modalGenAIInstance.show();
   }
 
   function generatePromptText() {
-    const kode = document.getElementById("aiKodeSoal").value || "-";
-    const mapel = document.getElementById("aiMapel").value || "-";
-    const kelas = document.getElementById("aiKelas").value || "Umum";
-    const pg = document.getElementById("aiJumlahPG").value || 10;
-    const essai = document.getElementById("aiJumlahEssai").value || 2;
-    const topik = document.getElementById("aiTopik").value || "-";
+    const kode = document.getElementById("aiKodeSoal")?.value || document.getElementById("kodeSoalInput")?.value || "";
+    const mapel = document.getElementById("aiMapel")?.value || document.getElementById("cfgMapel")?.value || "";
+    const kelas = document.getElementById("aiKelas")?.value || document.getElementById("cfgDaftarKelas")?.value || "";
+    const jmlPG = document.getElementById("aiJumlahPG")?.value || "10";
+    const jmlEssai = document.getElementById("aiJumlahEssai")?.value || "5";
+    const topik = document.getElementById("aiTopik")?.value || "";
 
     const promptText = `Buatkan bank soal untuk ujian sekolah dengan ketentuan sebagai berikut:
 - Mata Pelajaran: ${mapel}
@@ -1848,7 +1853,10 @@ Aturan Pengisian Tabel Excel:
 
 Sajikan hasil balasan dalam format text UNICODE dan HANYA dalam bentuk TABEL Excel, agar bisa langsung diunduh.`;
 
-    document.getElementById("aiGeneratedPrompt").value = promptText;
+    const inputPrompt = document.getElementById("aiGeneratedPrompt");
+    if (inputPrompt) {
+      inputPrompt.value = promptText;
+    }
   }
 
   function salinPromptSaja(e) {
