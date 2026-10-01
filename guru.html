@@ -1690,66 +1690,51 @@
     }
   }
 
-function renderTabelHasil(dataList) {
-  const tbody = document.getElementById("tabelHasilBody");
-  tbody.innerHTML = "";
+  function renderTabelHasil(dataList) {
+    const tbody = document.getElementById("tabelHasilBody");
+    tbody.innerHTML = "";
 
-  if (!dataList || dataList.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Data tidak ditemukan.</td></tr>';
-    return;
+    if (!dataList || dataList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Data tidak ditemukan.</td></tr>';
+      return;
+    }
+
+    dataList.forEach((item, index) => {
+      const nilaiPG = parseFloat(item.skor_pg || 0);
+      const nilaiEssai = parseFloat(item.nilai_essai || 0);
+      const totalNilai = nilaiPG + nilaiEssai;
+
+      let detailNilaiObj = {};
+      try {
+        detailNilaiObj = typeof item.detail_nilai_essai === 'string' 
+          ? JSON.parse(item.detail_nilai_essai) 
+          : (item.detail_nilai_essai || {});
+      } catch(e) {}
+
+      const sudahDikoreksi = Object.keys(detailNilaiObj).length > 0 || nilaiEssai > 0;
+      const btnClass = sudahDikoreksi ? "btn-success text-white" : "btn-warning text-dark";
+      const btnText = sudahDikoreksi ? "✓ Koreksi" : "✏️ Koreksi";
+      const origIndex = rawDataHasil.indexOf(item);
+
+      const row = `
+        <tr>
+          <td>${new Date(item.timestamp).toLocaleString("id-ID")}</td>
+          <td>${item.no_peserta || item.noPeserta || '-'}</td>
+          <td class="fw-bold">${item.nama}</td>
+          <td>${item.kelas}</td>
+          <td class="text-center"><span class="badge bg-primary fs-6">${nilaiPG}</span></td>
+          <td class="text-center"><span class="badge bg-info text-dark fs-6">${nilaiEssai}</span></td>
+          <td class="text-center"><span class="badge bg-success fs-6">${totalNilai}</span></td>
+          <td class="text-center no-print">
+            <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" title="Lihat Jawaban Siswa" onclick="bukaModalLihatJawaban(${origIndex})">📄 Jawaban</button>
+            <button class="btn btn-sm ${btnClass} fw-bold me-1" onclick="bukaModalEssai(${origIndex})">${btnText}</button>
+            <button class="btn btn-sm btn-outline-danger fw-bold" title="Hapus Data Peserta" onclick="hapusHasilSiswa('${item.no_peserta || item.noPeserta}', this)">🗑️</button>
+          </td>
+        </tr>
+      `;
+      tbody.innerHTML += row;
+    });
   }
-
-  dataList.forEach((item, index) => {
-    const nilaiPG = parseFloat(item.skor_pg || 0);
-    const nilaiEssai = parseFloat(item.nilai_essai || 0);
-    const totalNilai = nilaiPG + nilaiEssai;
-
-    let detailNilaiObj = {};
-    try {
-      detailNilaiObj = JSON.parse(item.detail_nilai || '{}');
-    } catch (e) {
-      detailNilaiObj = {};
-    }
-
-    const origIndex = rawDataHasil.indexOf(item);
-    let btnText = "Isi Nilai";
-    let btnClass = "btn-warning text-dark";
-
-    if (nilaiEssai > 0 || detailNilaiObj.nilai_essai > 0) {
-      btnText = "Edit Nilai";
-      btnClass = "btn-success";
-    }
-
-    const row = `
-      <tr>
-        <td>${item.waktu_selesai || "-"}</td>
-        <td><strong>${item.no_peserta || "-"}</strong></td>
-        <td>${item.nama || "-"}</td>
-        <td>${item.kelas || "-"}</td>
-        <td class="text-center"><span class="badge bg-info text-dark fs-6">${nilaiPG}</span></td>
-        <td class="text-center"><span class="badge bg-info text-dark fs-6">${nilaiEssai}</span></td>
-        <td class="text-center"><span class="badge bg-success fs-6">${totalNilai}</span></td>
-        <td class="text-center no-print">
-          <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" 
-            title="Lihat Jawaban Siswa" 
-            onclick="bukaModalLihatJawaban(${origIndex})">
-            📄 Jawaban
-          </button>
-          <button class="btn btn-sm ${btnClass} fw-bold me-1" 
-            onclick="bukaModalEssai(${origIndex})">
-            ${btnText}
-          </button>
-          <button class="btn btn-sm btn-outline-danger fw-bold" 
-            title="Hapus Data Peserta" 
-            onclick="hapusHasilSiswa('${item.no_peserta}')">
-            🗑️ Hapus
-          </button>
-        </td>
-      </tr>
-    `;
-    tbody.innerHTML += row;
-  });
-}
   
   async function bukaModalLihatJawaban(index) {
     const item = rawDataHasil[index];
