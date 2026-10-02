@@ -10,7 +10,15 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    body { background-color: #f0f2f5; user-select: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    /* PROTEKSI SELEKSI TEKS DAN DRAG */
+    body { 
+      background-color: #f0f2f5; 
+      user-select: none; 
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    }
     
     /* STYLE CARD LOGIN ELEGAN */
     .card-login-elegan {
@@ -110,12 +118,43 @@
       font-size: 0.85rem;
       font-weight: 600;
     }
+
+    /* PROTEKSI MEDIA PRINT (PENCEGAHAN CETAK/PDF SCREENSHOT) */
+    @media print {
+      body { display: none !important; }
+    }
+
+    /* OVERLAY PERINGATAN SCREENSHOT / TINGGALKAN TAB */
+    #antiScreenshotOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.96);
+      color: #ffffff;
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      backdrop-filter: blur(15px);
+    }
   </style>
   <script src="config.js"></script>
 </head>
-<body>
+<body oncontextmenu="return false;" ondragstart="return false;">
 
-<div class="container py-4">
+<!-- OVERLAY ANTI SCREENSHOT / FOKUS HILANG -->
+<div id="antiScreenshotOverlay" class="d-none">
+  <i class="fa-solid fa-triangle-exclamation text-warning display-1 mb-3"></i>
+  <h2 class="fw-bold">Layar Terkunci!</h2>
+  <p class="lead px-4">Terdeteksi perpindahan fokus layar atau percobaan screenshot.<br>Kembali fokus ke jendela ujian untuk melanjutkan.</p>
+  <button class="btn btn-light fw-bold px-4 py-2 mt-2" onclick="pulihkanFokusLayar()">Kembali ke Ujian</button>
+</div>
+
+<div class="container py-4" id="mainExamContent">
 
   <!-- TAHAP 1: FORM VERIFIKASI / MASUK UJIAN (ELEGAN) -->
   <div id="sectionLoginUjian" class="row justify-content-center my-4">
@@ -276,11 +315,85 @@
     return (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : (typeof API_URL !== 'undefined' ? API_URL : "");
   }
 
+  // ==========================================
+  // FITUR PENCEGAHAN SCREENSHOT & KECURANGAN
+  // ==========================================
+  function inisialisasiProteksiKecurangan() {
+    // 1. Blokir Kombinasi Tombol Keyboard (PrintScreen, F12, DevTools, Ctrl+P, Ctrl+S, Dll)
+    document.addEventListener("keydown", function (e) {
+      // Tombol PrintScreen
+      if (e.key === "PrintScreen" || e.keyCode === 44) {
+        bersihkanClipboard();
+        tampilkanOverlayKunci();
+        e.preventDefault();
+        return false;
+      }
+      
+      // Shortcut Ctrl + P, S, U, Shift+I/J/C, F12
+      if (
+        (e.ctrlKey && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S' || e.key === 'u' || e.key === 'U')) ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
+        (e.key === 'F12' || e.keyCode === 123)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        alert("Aksi ini dilarang selama ujian!");
+        return false;
+      }
+    });
+
+    // 2. Kosongkan Clipboard bila menekan PrintScreen / Copy
+    document.addEventListener("keyup", function (e) {
+      if (e.key === "PrintScreen" || e.keyCode === 44) {
+        bersihkanClipboard();
+      }
+    });
+
+    // 3. Deteksi saat Browser Hilang Fokus (Alt+Tab, Buka Snipping Tool, dll)
+    window.addEventListener("blur", function () {
+      if (statusUjianAktif) {
+        tampilkanOverlayKunci();
+      }
+    });
+  }
+
+  function bersihkanClipboard() {
+    try {
+      navigator.clipboard.writeText("");
+    } catch (err) {}
+  }
+
+  function tampilkanOverlayKunci() {
+    const overlay = document.getElementById("antiScreenshotOverlay");
+    if (overlay) overlay.classList.remove("d-none");
+  }
+
+  function pulihkanFokusLayar() {
+    const overlay = document.getElementById("antiScreenshotOverlay");
+    if (overlay) overlay.classList.add("d-none");
+  }
+
   // PEMERIKSAAN OTOMATIS SAAT HALAMAN DI-REFRESH / LOADED
   document.addEventListener("DOMContentLoaded", function() {
-    const sesiSaved = localStorage.getItem("sesi_ujian_aktif");
+    // -------------------------------------------------------------
+    // PROTEKSI AKSE LANGSUNG: Cek Sesi Login Siswa
+    // -------------------------------------------------------------
+    const akunSiswaSaved = localStorage.getItem("akun_siswa_login");
     
+    if (!akunSiswaSaved) {
+      alert("Akses ditolak! Anda harus login terlebih dahulu melalui Portal Siswa.");
+      window.location.href = "siswa.html";
+      return;
+    }
+
+    // Inisialisasi Fitur Keamanan Screenshot/Fokus
+    inisialisasiProteksiKecurangan();
+
+    // Parse Data Login Siswa
+    const akunSiswa = JSON.parse(akunSiswaSaved);
+
     // Cek apakah ada data direct dari portal siswa.html
+    const sesiSaved = localStorage.getItem("sesi_ujian_aktif");
     if (sesiSaved) {
       try {
         const parsed = JSON.parse(sesiSaved);
@@ -293,10 +406,25 @@
       } catch (e) {}
     }
 
+    // Jalankan pemeriksaan jika ujian sedang berjalan (setelah refresh)
     cekSesiUjianAktif();
 
-    // Event Listener pada Input No. Peserta / NIS
+    // Autofill & Kunci No. Peserta / Nama berdasarkan Akun Siswa yang Login
     const inputNis = document.getElementById("inputNisSiswa");
+    const inputNama = document.getElementById("inputNamaSiswa");
+
+    if (inputNis && akunSiswa.nis) {
+      inputNis.value = akunSiswa.nis;
+      inputNis.readOnly = true; // Kunci input agar tidak bisa diubah manual
+      prosesVerifikasiDanMuatKode(akunSiswa.nis);
+    }
+
+    if (inputNama && akunSiswa.nama) {
+      inputNama.value = akunSiswa.nama;
+      inputNama.readOnly = true; // Kunci nama siswa
+    }
+
+    // Event Listener pada Input No. Peserta / NIS
     if (inputNis) {
       inputNis.addEventListener("blur", function() {
         prosesVerifikasiDanMuatKode(this.value);
