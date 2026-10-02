@@ -5,7 +5,7 @@ const CONFIG = {
   SPREADSHEET_ID: "14EMXDBsryWPzcCE8pAvsii7LMLmRewTcEJ97m3QKxVU",
   
   // URL Web App Deployment Apps Script
-  API_URL: "https://script.google.com/macros/s/AKfycbzldhWj66AHCA7b4VUPj2xnMQhmq0-qLX4B8Qnmal7Jy3iKbkO40NaKV5Scq7D_IZ3rlA/exec",
+  API_URL: "https://script.google.com/macros/s/AKfycbwScHlBZcPgsC54iWSaMJ2DuySl3sN8jTSRrB6MYA4-9Vvn7swUdAjKvHqmsCymZ9l8jA/exec",
   
   // Daftar Sheet Resmi
   SHEET_NAME: {
