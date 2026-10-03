@@ -133,7 +133,7 @@
 
         <!-- BODY FORM -->
         <div class="card-body p-4 p-md-4">
-          <form id="formMasukUjian" onsubmit="mulaiKonfirmasiUjian(event)">
+          <form id="formMasukUjian" onSubmit="mulaiKonfirmasiUjian(event)">
             
             <!-- 1. Input NIS / NISN -->
             <div class="mb-3">
@@ -150,10 +150,10 @@
               <label for="inputKodeSoal" class="form-label fw-semibold small text-muted">KODE SOAL / UJIAN</label>
               <div class="input-group">
                 <span class="input-group-text input-group-text-elegan"><i class="fa-solid fa-key"></i></span>
-                <select id="inputKodeSoal" class="form-select form-select-elegan" onchange="muatPengaturanSiswa()" disabled required>
+                <select id="inputKodeSoal" class="form-select form-select-elegan" onChange="muatPengaturanSiswa()" disabled required>
                   <option value="">-- Masukkan No. Peserta Terlebih Dahulu --</option>
                 </select>
-                <button class="btn btn-outline-secondary" type="button" id="btnRefreshKode" onclick="refreshKodeSoal()" title="Muat ulang daftar kode soal" disabled>
+                <button class="btn btn-outline-secondary" type="button" id="btnRefreshKode" onClick="refreshKodeSoal()" title="Muat ulang daftar kode soal" disabled>
                   🔄
                 </button>
               </div>
@@ -232,8 +232,8 @@
 
           <!-- NAVIGASI BAWAH SOAL -->
           <div class="d-flex justify-content-between pt-3 border-top mt-4">
-            <button class="btn btn-outline-secondary fw-bold" id="btnPrev" onclick="soalSebelumnya()">← Sebelumnya</button>
-            <button class="btn btn-primary fw-bold" id="btnNext" onclick="soalBerikutnya()">Berikutnya →</button>
+            <button class="btn btn-outline-secondary fw-bold" id="btnPrev" onClick="soalSebelumnya()">← Sebelumnya</button>
+            <button class="btn btn-primary fw-bold" id="btnNext" onClick="soalBerikutnya()">Berikutnya →</button>
           </div>
         </div>
       </div>
@@ -246,7 +246,7 @@
             <!-- Grid tombol nomor soal -->
           </div>
 
-          <button class="btn btn-success w-100 fw-bold py-2" onclick="konfirmasiKirim()">
+          <button class="btn btn-success w-100 fw-bold py-2" onClick="konfirmasiKirim()">
             Selesaikan & Kirim Jawaban
           </button>
         </div>
@@ -530,98 +530,76 @@
   }
 
   // 1. VERIFIKASI & AMBIL SOAL DARI SERVER
-async function mulaiKonfirmasiUjian(event) {
-  if (event) event.preventDefault();
+  async function mulaiKonfirmasiUjian(event) {
+    if (event) event.preventDefault();
 
-  const elKode = document.getElementById("inputKodeSoal");
-  const elNama = document.getElementById("inputNamaSiswa");
-  const elKelas = document.getElementById("inputKelasSiswa");
-  const elNis = document.getElementById("inputNisSiswa");
+    const elKode = document.getElementById("inputKodeSoal");
+    const elNama = document.getElementById("inputNamaSiswa");
+    const elKelas = document.getElementById("inputKelasSiswa");
+    const elNis = document.getElementById("inputNisSiswa");
 
-  const kode = elKode ? elKode.value.trim().toUpperCase() : "";
-  const nama = elNama ? elNama.value.trim() : "";
-  const kelas = elKelas ? elKelas.value.trim() : "";
-  const noPeserta = elNis ? elNis.value.trim() : "";
+    const kode = elKode ? elKode.value.trim().toUpperCase() : "";
+    const nama = elNama ? elNama.value.trim() : "";
+    const kelas = elKelas ? elKelas.value.trim() : "";
+    const noPeserta = elNis ? elNis.value.trim() : "";
 
-  if (!kode || !nama || !kelas || !noPeserta) {
-    alert("Harap lengkapi semua data!");
-    return;
-  }
-
-  const btnMasuk = document.getElementById("btnMasuk");
-  btnMasuk.disabled = true;
-  btnMasuk.innerText = "Memeriksa Status Ujian...";
-
-  dataPeserta = { kode, noPeserta, nama, kelas };
-
-  try {
-    const targetUrl = getApiUrl();
-
-    // 1. CEK DAHULU KE SERVER APABILA PESERTA SUDAH PERNAH MENGERJAKAN
-    const resCek = await fetch(targetUrl, {
-      method: "POST",
-      redirect: "follow",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "cekSoalSiswa", no_peserta: noPeserta })
-    });
-    const dataCek = await resCek.json();
-
-    if (dataCek && Array.isArray(dataCek.soal_selesai)) {
-      const isSelesai = dataCek.soal_selesai.map(s => String(s).trim().toUpperCase()).includes(kode);
-      if (isSelesai) {
-        alert(`Gagal Buka Ujian!\n\nNomor Peserta ${noPeserta} sudah pernah menyelesaikan ujian untuk Kode Soal (${kode}).`);
-        btnMasuk.disabled = false;
-        btnMasuk.innerText = "Verifikasi & Buka Soal";
-        return;
-      }
+    if (!kode || !nama || !kelas || !noPeserta) {
+      alert("Harap lengkapi semua data!");
+      return;
     }
 
-    // 2. JIKA BELUM MENGERJAKAN, BARU AMBIL SOAL
+    const btnMasuk = document.getElementById("btnMasuk");
+    btnMasuk.disabled = true;
     btnMasuk.innerText = "Memeriksa Soal & Durasi...";
-    const res = await fetch(targetUrl, {
-      method: "POST",
-      redirect: "follow",      
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "getsoalsiswa", kode: kode })
-    });
 
-    const result = await res.json();
+    dataPeserta = { kode, noPeserta, nama, kelas };
 
-    if (result.status === "success" || result.status === "ok") {
-      listSoal = result.soal || result.data || [];
-      
-      if (listSoal.length === 0) {
-        throw new Error("Bank soal untuk kode ini masih kosong.");
+    try {
+      const targetUrl = getApiUrl();
+      const res = await fetch(targetUrl, {
+        method: "POST",
+        redirect: "follow",      
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "getsoalsiswa", kode: kode })
+      });
+
+      const result = await res.json();
+
+      if (result.status === "success" || result.status === "ok") {
+        listSoal = result.soal || result.data || [];
+        
+        if (listSoal.length === 0) {
+          throw new Error("Bank soal untuk kode ini masih kosong.");
+        }
+
+        const durasiMenit = parseInt(result.durasi) || 60;
+        sisaDetik = durasiMenit * 60;
+        
+        localStorage.setItem("waktu_mulai_ujian", Date.now());
+        localStorage.setItem("durasi_total_detik", sisaDetik);
+
+        document.getElementById("infoSiswa").innerText = `${nama} (${kelas})`;
+        document.getElementById("infoKode").innerText = kode;
+        document.getElementById("labelMataPelajaran").innerText = `Ujian: ${kode}`;
+
+        document.getElementById("sectionLoginUjian").classList.add("d-none");
+        document.getElementById("sectionLembarUjian").classList.remove("d-none");
+
+        aktifkanProteksiNavigasi();
+        simpanSesiLokal();
+        renderGridNomor();
+        tampilkanSoal(0);
+        jalankanTimer();
+      } else {
+        alert(result.message || "Kode Ujian tidak ditemukan.");
       }
-
-      const durasiMenit = parseInt(result.durasi) || 60;
-      sisaDetik = durasiMenit * 60;
-      
-      localStorage.setItem("waktu_mulai_ujian", Date.now());
-      localStorage.setItem("durasi_total_detik", sisaDetik);
-
-      document.getElementById("infoSiswa").innerText = `${nama} (${kelas})`;
-      document.getElementById("infoKode").innerText = kode;
-      document.getElementById("labelMataPelajaran").innerText = `Ujian: ${kode}`;
-
-      document.getElementById("sectionLoginUjian").classList.add("d-none");
-      document.getElementById("sectionLembarUjian").classList.remove("d-none");
-
-      aktifkanProteksiNavigasi();
-      simpanSesiLokal();
-      renderGridNomor();
-      tampilkanSoal(0);
-      jalankanTimer();
-    } else {
-      alert(result.message || "Kode Ujian tidak ditemukan.");
+    } catch (err) {
+      alert("Gagal memuat ujian: " + err.message);
+    } finally {
+      btnMasuk.disabled = false;
+      btnMasuk.innerText = "Verifikasi & Buka Soal";
     }
-  } catch (err) {
-    alert("Gagal memuat ujian: " + err.message);
-  } finally {
-    btnMasuk.disabled = false;
-    btnMasuk.innerText = "Verifikasi & Buka Soal";
   }
-}
  
   // 2. TAMPILKAN SOAL BERDASARKAN INDEX
   function tampilkanSoal(index) {
@@ -690,9 +668,9 @@ async function mulaiKonfirmasiUjian(event) {
     }
     simpanSesiLokal();
     updateGridNomorUI();
-    //autoSaveJawabanKeServer(keyUnik, isiJawaban);
+    autoSaveJawabanKeServer(keyUnik, isiJawaban);
   }
-/*
+
   function handleInputEssai(keyUnik, isiJawaban) {
     pilihJawaban(keyUnik, isiJawaban);
     if (timerAutoSaveEssai) clearTimeout(timerAutoSaveEssai);
@@ -741,7 +719,7 @@ async function mulaiKonfirmasiUjian(event) {
       tampilkanStatusAutoSave("Offline (Lokal ✓)");
     }
   }
-*/
+
   // 4. RENDER TOMBOL GRID NOMOR SOAL
   function renderGridNomor() {
     const grid = document.getElementById("gridNomorSoal");
