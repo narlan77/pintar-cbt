@@ -277,10 +277,26 @@
   }
 
   // PEMERIKSAAN OTOMATIS SAAT HALAMAN DI-REFRESH / LOADED
-  document.addEventListener("DOMContentLoaded", function() {
-    const sesiSaved = localStorage.getItem("sesi_ujian_aktif");
+document.addEventListener("DOMContentLoaded", function() {
+    // -------------------------------------------------------------
+    // PROTEKSI AKSE LANGSUNG: Cek Sesi Login Siswa
+    // -------------------------------------------------------------
+    const akunSiswaSaved = localStorage.getItem("akun_siswa_login");
     
+    if (!akunSiswaSaved) {
+      alert("Akses ditolak! Anda harus login terlebih dahulu melalui Portal Siswa.");
+      window.location.href = "siswa.html";
+      return;
+    }
+
+    // Inisialisasi Fitur Keamanan Screenshot/Fokus
+    inisialisasiProteksiKecurangan();
+
+    // Parse Data Login Siswa
+    const akunSiswa = JSON.parse(akunSiswaSaved);
+
     // Cek apakah ada data direct dari portal siswa.html
+    const sesiSaved = localStorage.getItem("sesi_ujian_aktif");
     if (sesiSaved) {
       try {
         const parsed = JSON.parse(sesiSaved);
@@ -293,10 +309,25 @@
       } catch (e) {}
     }
 
+    // Jalankan pemeriksaan jika ujian sedang berjalan (setelah refresh)
     cekSesiUjianAktif();
 
-    // Event Listener pada Input No. Peserta / NIS
+    // Autofill & Kunci No. Peserta / Nama berdasarkan Akun Siswa yang Login
     const inputNis = document.getElementById("inputNisSiswa");
+    const inputNama = document.getElementById("inputNamaSiswa");
+
+    if (inputNis && akunSiswa.nis) {
+      inputNis.value = akunSiswa.nis;
+      inputNis.readOnly = true; // Kunci input agar tidak bisa diubah manual
+      prosesVerifikasiDanMuatKode(akunSiswa.nis);
+    }
+
+    if (inputNama && akunSiswa.nama) {
+      inputNama.value = akunSiswa.nama;
+      inputNama.readOnly = true; // Kunci nama siswa
+    }
+
+    // Event Listener pada Input No. Peserta / NIS
     if (inputNis) {
       inputNis.addEventListener("blur", function() {
         prosesVerifikasiDanMuatKode(this.value);
