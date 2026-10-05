@@ -923,9 +923,6 @@
 </script>
 
 <script>
-  // ====================================================================
-  // MODUL 2: STATE & INISIALISASI APLIKASI
-  // ====================================================================
   let rawDataAnalisis = [];
   let rawDataHasil = [];
   let filteredHasil = [];
@@ -941,99 +938,6 @@
   let modalLihatJawabanInstance = null;
   let modalGenAIInstance = null;
 
-  document.addEventListener("DOMContentLoaded", function() {
-    const nama = sessionStorage.getItem("namaGuru") || "Guru";
-    const role = sessionStorage.getItem("roleGuru") || "Guru";
-
-    // 1. Tampilkan nama dan role pada header/badge
-    document.getElementById("labelNamaGuru").innerText = nama;
-    
-    const badgeRole = document.getElementById("badgeRole");
-    badgeRole.innerText = role;
-
-    // 2. OTOMATIS ISI NAMA PENYUSUN DENGAN NAMA USER LOGIN
-    const inputPenyusun = document.getElementById("cfgPenyusun");
-    if (inputPenyusun) {
-        inputPenyusun.value = nama;
-    }
-
-    if (role === "Super Admin") {
-      badgeRole.className = "badge bg-warning text-dark ms-1";
-      document.getElementById("tabMenuGuru").style.display = "block";
-    } else {
-      badgeRole.className = "badge bg-secondary ms-1";
-      document.getElementById("tabMenuGuru").style.display = "none";
-    }
-
-    modalEssaiInstance = new bootstrap.Modal(document.getElementById('modalEssai'));
-    modalTambahGuruInstance = new bootstrap.Modal(document.getElementById('modalTambahGuru'));
-    modalInputSoalInstance = new bootstrap.Modal(document.getElementById('modalInputSoal'));
-    modalTinjauSoalInstance = new bootstrap.Modal(document.getElementById('modalTinjauSoal'));
-    modalLihatJawabanInstance = new bootstrap.Modal(document.getElementById('modalLihatJawaban'));
-    modalGenAIInstance = new bootstrap.Modal(document.getElementById('modalGenAI'));
-
-    const tabGuruEl = document.getElementById("guru-admin-tab");
-    if (tabGuruEl) tabGuruEl.addEventListener("click", muatTabelGuru);
-
-    const aiInputs = ['aiJumlahPG', 'aiJumlahEssai', 'aiTopik', 'aiKelas'];
-    aiInputs.forEach(id => {
-      document.getElementById(id)?.addEventListener('input', generatePromptText);
-    });
-
-    const importTabEl = document.getElementById("import-tab");
-    if (importTabEl) importTabEl.addEventListener("click", muatTabelDaftarKodeSoal);
-
-    const lastKode = localStorage.getItem("guru_last_kode_soal");
-    if (lastKode) {
-      document.getElementById("kodeSoalInput").value = lastKode;
-      document.getElementById("cfgKodeUjian").value = lastKode;
-    }
-
-    document.getElementById("kodeSoalInput").addEventListener("input", function(e) {
-      const val = e.target.value.trim().toUpperCase();
-      localStorage.setItem("guru_last_kode_soal", val);
-      document.getElementById("cfgKodeUjian").value = val;
-    });
-
-    // Inisialisasi daftar kode soal awal
-    muatDaftarKodeSoal();
-
-    const lastTab = localStorage.getItem("guru_active_tab");
-    if (lastTab) {
-      const tabTrigger = document.querySelector(`#guruTab button[data-bs-target="${lastTab}"]`);
-      if (tabTrigger) {
-        const tab = new bootstrap.Tab(tabTrigger);
-        tab.show();
-        if (lastTab === "#tab-hasil" && lastKode) muatHasilUjian();
-        else if (lastTab === "#tab-analisis" && lastKode) muatAnalisisSoal();
-        else if (lastTab === "#tab-import") muatTabelDaftarKodeSoal();
-        else if (lastTab === "#tab-kelola-guru" && role === "Super Admin") muatTabelGuru();
-      }
-    }
-
-    const tabEls = document.querySelectorAll('#guruTab button[data-bs-toggle="tab"]');
-    tabEls.forEach(tabEl => {
-      tabEl.addEventListener('shown.bs.tab', function (event) {
-        const target = event.target.getAttribute('data-bs-target');
-        localStorage.setItem("guru_active_tab", target);
-      });
-    });
-  });
-
-  function logoutGuru() {
-    if (confirm("Apakah Anda yakin ingin keluar dari Panel Guru?")) {
-      sessionStorage.removeItem("isGuruLoggedIn");
-      sessionStorage.removeItem("namaGuru");
-      sessionStorage.removeItem("roleGuru");
-      localStorage.removeItem("guru_last_kode_soal");
-      localStorage.removeItem("guru_active_tab");
-      window.location.href = "index.html";
-    }
-  }
-
-  // ====================================================================
-  // MODUL 3: LAYANAN API & UTILITAS
-  // ====================================================================
   async function apiPost(payload) {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -1044,16 +948,6 @@
       throw new Error("Respon jaringan tidak OK (Status: " + res.status + ")");
     }
     return await res.json();
-  }
-
-  function getKodeSoal() {
-    const kode = document.getElementById("kodeSoalInput").value.trim().toUpperCase();
-    if (!kode) {
-      alert("Masukkan Kode Soal terlebih dahulu di bagian atas!");
-      return null;
-    }
-    document.getElementById("cfgKodeUjian").value = kode;
-    return kode;
   }
 
   function selectDropdownValue(selectId, targetVal) {
@@ -1078,25 +972,316 @@
     }
   }
 
-  // ====================================================================
-  // MODUL 4: MANAJEMEN PENGATURAN UJIAN & DAFTAR KODE SOAL
-  // ====================================================================
-  async function muatDataSoal(kodePilihan) {
-    const kode = kodePilihan || getKodeSoal();
+  document.addEventListener("DOMContentLoaded", function() {
+    const nama = sessionStorage.getItem("namaGuru") || "Guru";
+    const role = sessionStorage.getItem("roleGuru") || "Guru";
+
+    document.getElementById("labelNamaGuru").innerText = nama;
+    
+    const badgeRole = document.getElementById("badgeRole");
+    badgeRole.innerText = role;
+
+    if (role === "Super Admin") {
+      badgeRole.className = "badge bg-warning text-dark ms-1";
+      document.getElementById("tabMenuGuru").style.display = "block";
+    } else {
+      badgeRole.className = "badge bg-secondary ms-1";
+      document.getElementById("tabMenuGuru").style.display = "none";
+    }
+
+    modalEssaiInstance = new bootstrap.Modal(document.getElementById('modalEssai'));
+    modalTambahGuruInstance = new bootstrap.Modal(document.getElementById('modalTambahGuru'));
+    modalInputSoalInstance = new bootstrap.Modal(document.getElementById('modalInputSoal'));
+    modalTinjauSoalInstance = new bootstrap.Modal(document.getElementById('modalTinjauSoal'));
+    modalLihatJawabanInstance = new bootstrap.Modal(document.getElementById('modalLihatJawaban'));
+    modalGenAIInstance = new bootstrap.Modal(document.getElementById('modalGenAI'));
+
+    // Event Listener saat Tab Kelola Guru diklik
+    const tabGuruEl = document.getElementById("guru-admin-tab");
+    if (tabGuruEl) {
+      tabGuruEl.addEventListener("click", muatTabelGuru);
+    }
+
+    const aiInputs = ['aiJumlahPG', 'aiJumlahEssai', 'aiTopik', 'aiKelas'];
+    aiInputs.forEach(id => {
+      document.getElementById(id)?.addEventListener('input', generatePromptText);
+    });
+
+    const importTabEl = document.getElementById("import-tab");
+    if (importTabEl) {
+      importTabEl.addEventListener("click", muatTabelDaftarKodeSoal);
+    }
+
+    const lastKode = localStorage.getItem("guru_last_kode_soal");
+    if (lastKode) {
+      document.getElementById("kodeSoalInput").value = lastKode;
+      document.getElementById("cfgKodeUjian").value = lastKode;
+    }
+
+    document.getElementById("kodeSoalInput").addEventListener("input", function(e) {
+      const val = e.target.value.trim().toUpperCase();
+      localStorage.setItem("guru_last_kode_soal", val);
+      document.getElementById("cfgKodeUjian").value = val;
+    });
+
+    const lastTab = localStorage.getItem("guru_active_tab");
+    if (lastTab) {
+      const tabTrigger = document.querySelector(`#guruTab button[data-bs-target="${lastTab}"]`);
+      if (tabTrigger) {
+        const tab = new bootstrap.Tab(tabTrigger);
+        tab.show();
+        if (lastTab === "#tab-hasil" && lastKode) {
+          muatHasilUjian();
+        } else if (lastTab === "#tab-analisis" && lastKode) {
+          muatAnalisisSoal();
+        } else if (lastTab === "#tab-import") {
+          muatTabelDaftarKodeSoal();
+        } else if (lastTab === "#tab-kelola-guru" && role === "Super Admin") {
+          muatTabelGuru();
+        }
+      }
+    }
+
+    const tabEls = document.querySelectorAll('#guruTab button[data-bs-toggle="tab"]');
+    tabEls.forEach(tabEl => {
+      tabEl.addEventListener('shown.bs.tab', function (event) {
+        const target = event.target.getAttribute('data-bs-target');
+        localStorage.setItem("guru_active_tab", target);
+      });
+    });
+  });
+
+  function logoutGuru() {
+    if (confirm("Apakah Anda yakin ingin keluar dari Panel Guru?")) {
+      sessionStorage.removeItem("isGuruLoggedIn");
+      sessionStorage.removeItem("namaGuru");
+      sessionStorage.removeItem("roleGuru");
+      localStorage.removeItem("guru_last_kode_soal");
+      localStorage.removeItem("guru_active_tab");
+      window.location.href = "index.html";
+    }
+  }
+
+  function getKodeSoal() {
+    const kode = document.getElementById("kodeSoalInput").value.trim().toUpperCase();
+    if (!kode) {
+      alert("Masukkan Kode Soal terlebih dahulu di bagian atas!");
+      return null;
+    }
+    document.getElementById("cfgKodeUjian").value = kode;
+    return kode;
+  }
+
+  // --- FUNGSI TOGGLE FORM USER ROLE ---
+  function toggleFormRoleSiswa() {
+    const role = document.getElementById("addRoleGuru").value;
+    const containerKelas = document.getElementById("containerAddKelasSiswa");
+    const lblUsername = document.getElementById("lblUsernameInput");
+
+    if (role === "Siswa") {
+      containerKelas.style.display = "block";
+      lblUsername.innerText = "NIS / No. Peserta / Username";
+    } else {
+      containerKelas.style.display = "none";
+      lblUsername.innerText = "Username / NIP";
+    }
+  }
+
+  // --- FUNGSI KELOLA AKUN (GURU & SISWA) ---
+  async function muatTabelGuru() {
+    const tbody = document.getElementById("tabelGuruBody");
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning me-2"></div>Memuat data akun pengguna...</td></tr>';
+
+    try {
+      const result = await apiPost({ action: "getPengguna" });
+
+      if (result.status === "success" && Array.isArray(result.data)) {
+        rawDataUserAkun = result.data;
+        filterTabelAkun();
+      } else {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Gagal memuat: ${result.message || 'Terjadi kesalahan'}</td></tr>`;
+      }
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">Gagal terhubung ke server. Silakan coba lagi.</td></tr>';
+    }
+  }
+
+  function filterTabelAkun() {
+    const tbody = document.getElementById("tabelGuruBody");
+    const filterRole = document.getElementById("filterRoleUser").value.trim().toLowerCase();
+    const searchVal = document.getElementById("searchUserAkun").value.trim().toLowerCase();
+
+    const filtered = rawDataUserAkun.filter(item => {
+      const roleItem = String(item.role || "Siswa").toLowerCase();
+      const userItem = String(item.username || "").toLowerCase();
+      const namaItem = String(item.nama || "").toLowerCase();
+
+      const matchRole = filterRole === "" || roleItem === filterRole || (filterRole === "guru" && roleItem === "super admin");
+      const matchSearch = searchVal === "" || userItem.includes(searchVal) || namaItem.includes(searchVal);
+
+      return matchRole && matchSearch;
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Tidak ada data akun yang sesuai.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = "";
+    filtered.forEach((item, index) => {
+      const roleStr = item.role || "Siswa";
+      let badgeClass = "bg-info text-dark";
+
+      if (roleStr === "Super Admin") badgeClass = "bg-danger text-white";
+      else if (roleStr === "Guru") badgeClass = "bg-primary text-white";
+
+      const row = `
+        <tr>
+          <td class="text-center fw-bold">${index + 1}</td>
+          <td><strong class="text-primary">${item.username}</strong></td>
+          <td>${item.nama}</td>
+          <td class="text-center"><span class="badge bg-light text-dark border">${item.kelas || '-'}</span></td>
+          <td><code class="fs-6 text-dark">${item.password}</code></td>
+          <td class="text-center"><span class="badge ${badgeClass}">${roleStr}</span></td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-warning text-dark fw-bold me-1" onclick="bukaModalEditUser('${item.username}', '${item.nama}', '${item.password}', '${roleStr}', '${item.kelas || ''}')" title="Edit Akun Ini">
+              ✏️ Edit
+            </button>
+            <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusGuru('${item.username}')" title="Hapus User Ini">
+              🗑️
+            </button>
+          </td>
+        </tr>
+      `;
+      tbody.innerHTML += row;
+    });
+  }
+
+  function bukaModalTambahUser() {
+    document.getElementById("modalUserTitle").innerText = "➕ Tambah Akun Pengguna Baru";
+    document.getElementById("editUserMode").value = "add";
+    document.getElementById("formTambahGuru").reset();
+    document.getElementById("addUsernameGuru").readOnly = false;
+    document.getElementById("addRoleGuru").value = "Siswa";
+    toggleFormRoleSiswa();
+    modalTambahGuruInstance.show();
+  }
+
+  function bukaModalEditUser(username, nama, password, role, kelas) {
+    document.getElementById("modalUserTitle").innerText = "✏️ Ubah Data Akun Pengguna";
+    document.getElementById("editUserMode").value = "edit";
+    document.getElementById("origUsername").value = username;
+
+    document.getElementById("addUsernameGuru").value = username;
+    document.getElementById("addUsernameGuru").readOnly = true; // NIS/Username tidak diubah
+    document.getElementById("addNamaGuru").value = nama;
+    document.getElementById("addPasswordGuru").value = password;
+    document.getElementById("addRoleGuru").value = role;
+    document.getElementById("addKelasSiswa").value = kelas;
+
+    toggleFormRoleSiswa();
+    modalTambahGuruInstance.show();
+  }
+
+  async function prosesSimpanUser() {
+    const mode = document.getElementById("editUserMode").value;
+    const username = document.getElementById("addUsernameGuru").value.trim();
+    const nama = document.getElementById("addNamaGuru").value.trim();
+    const password = document.getElementById("addPasswordGuru").value.trim();
+    const role = document.getElementById("addRoleGuru").value;
+    const kelas = document.getElementById("addKelasSiswa").value.trim();
+
+    if (!username || !nama || !password) {
+      alert("Username/NIS, Nama Lengkap, dan Password wajib diisi!");
+      return;
+    }
+
+    const payload = {
+      action: mode === "edit" ? "editUser" : "tambahGuru",
+      username: username,
+      nama: nama,
+      password: password,
+      role: role,
+      kelas: role === "Siswa" ? kelas : ""
+    };
+
+    try {
+      const result = await apiPost(payload);
+      if (result.status === "success") {
+        alert(result.message || "Berhasil menyimpan data akun!");
+        document.getElementById("formTambahGuru").reset();
+        modalTambahGuruInstance.hide();
+        muatTabelGuru();
+      } else {
+        alert("Gagal: " + result.message);
+      }
+    } catch (e) {
+      alert("Terjadi kesalahan sistem saat menyimpan akun: " + e.message);
+    }
+  }
+
+  async function hapusGuru(username) {
+    if (!confirm(`⚠️ PERINGATAN: Apakah Anda yakin ingin menghapus akun '${username}'?`)) {
+      return;
+    }
+
+    try {
+      const result = await apiPost({
+        action: "hapusGuru",
+        username: username
+      });
+
+      if (result.status === "success") {
+        alert(result.message || "Akun berhasil dihapus!");
+        muatTabelGuru();
+      } else {
+        alert("Gagal menghapus: " + result.message);
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan koneksi saat menghapus user.");
+    }
+  }
+
+  // --- FUNGSI LAINNYA ---
+  function downloadTemplateExcel() {
+    const kode = document.getElementById("kodeSoalInput").value.trim().toUpperCase() || "ATS-MTK7";
+    const dataTemplate = [
+      {
+        "Kode Soal": kode, "No Soal": 1, "Tipe": "PG", "Pertanyaan": "Hasil dari 1/2 + 3/4 adalah...",
+        "Opsi A": "1 1/4", "Opsi B": "5/4", "Opsi C": "2/4", "Opsi D": "3/2", "Kunci": "A", "Skor": 2
+      },
+      {
+        "Kode Soal": kode, "No Soal": 2, "Tipe": "ESSAI", "Pertanyaan": "Jelaskan langkah-langkah penjumlahan pecahan!",
+        "Opsi A": "", "Opsi B": "", "Opsi C": "", "Opsi D": "", "Kunci": "-", "Skor": 10
+      }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(dataTemplate);
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cell_address = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!worksheet[cell_address]) continue;
+        worksheet[cell_address].t = 's';
+        worksheet[cell_address].z = '@';
+      }
+    }
+    worksheet['!cols'] = [{ wch: 15 }, { wch: 8 }, { wch: 10 }, { wch: 50 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 8 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bank Soal");
+    XLSX.writeFile(workbook, `Template_Import_Soal_${kode}.xlsx`);
+  }
+
+  async function muatDataSoal() {
+    const kode = getKodeSoal();
     if (!kode) return;
 
-    if (kodePilihan) {
-      document.getElementById("kodeSoalInput").value = kode;
-      document.getElementById("cfgKodeUjian").value = kode;
-      localStorage.setItem("guru_last_kode_soal", kode);
-    }
-
     const btn = document.getElementById("btnMuatPengaturan");
-    const teksAsli = btn ? btn.innerHTML : "";
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Memuat Data...`;
-    }
+    const teksAsli = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Memuat Data...`;
 
     try {
       const data = await apiPost({ action: "getPengaturan", kode: kode });
@@ -1108,19 +1293,13 @@
         }
 
         document.getElementById("cfgKodeUjian").value = kode;
-        const mapelValue = cfg.mata_pelajaran || cfg.mapel || "";
+        const mapelValue = cfg.mata_pelajaran || "";
         selectDropdownValue("cfgMapel", mapelValue);
-        document.getElementById("cfgMapel").value = mapelValue;
+        document.getElementById("cfgMapel").value = cfg.mata_pelajaran || "";
         document.getElementById("cfgDurasi").value = cfg.durasi || 90;
-        document.getElementById("cfgPenyusun").value = cfg.penyusun || cfg.nama_ujian || sessionStorage.getItem("namaGuru") || "";
+        document.getElementById("cfgPenyusun").value = cfg.penyusun || cfg.nama_ujian || "";
         document.getElementById("cfgPengawas").value = cfg.pengawas || "";
-        
-        if ($('#cfgDaftarKelas').length && cfg.kelas) {
-          const arrKelas = typeof cfg.kelas === 'string' ? cfg.kelas.split(',').map(s => s.trim()) : cfg.kelas;
-          $('#cfgDaftarKelas').val(arrKelas).trigger('change');
-        } else if (document.getElementById("cfgDaftarKelas")) {
-          document.getElementById("cfgDaftarKelas").value = cfg.daftar_kelas || cfg.kelas || "";
-        }
+        document.getElementById("cfgDaftarKelas").value = cfg.daftar_kelas || cfg.kelas || "";
 
         currentMapel = mapelValue || "-";
         selectDropdownValue("cfgJenisUjian", cfg.jenis_ujian || "");
@@ -1135,100 +1314,1309 @@
     } catch (e) {
       alert("Gagal memuat pengaturan: " + e.message);
     } finally {
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = teksAsli;
-      }
+      btn.disabled = false;
+      btn.innerHTML = teksAsli;
     }
   }
 
-  // memuat daftar kode soal dan memfilter sesuai hak akses (Guru vs Super Admin)
-  async function muatDaftarKodeSoal() {
-    const datalist = document.getElementById("listKodeSoal");
-    const tbody = document.getElementById("tabelDaftarKodeBody");
-    const roleGuru = sessionStorage.getItem("roleGuru") || "Guru";
-    const namaGuru = sessionStorage.getItem("namaGuru") || "";
+  async function simpanPengaturan() {
+    const kode = getKodeSoal();
+    if (!kode) return;
 
-    if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat daftar kode soal...</td></tr>';
+    const btn = document.querySelector("#formPengaturan button[onClick='simpanPengaturan()']") || event.currentTarget;
+    const teksAsli = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
+
+    const payload = {
+      action: "savePengaturan",
+      kode_soal: kode,
+      mata_pelajaran: document.getElementById("cfgMapel") ? document.getElementById("cfgMapel").value.trim() : "",
+      jenis_ujian: document.getElementById("cfgJenisUjian") ? document.getElementById("cfgJenisUjian").value : "",
+      durasi: document.getElementById("cfgDurasi") ? (parseInt(document.getElementById("cfgDurasi").value) || 90) : 90,
+      penyusun: document.getElementById("cfgPenyusun") ? document.getElementById("cfgPenyusun").value : "",
+      pengawas: document.getElementById("cfgPengawas") ? document.getElementById("cfgPengawas").value : "",
+      status_ujian: document.getElementById("cfgStatus") ? document.getElementById("cfgStatus").value : "Aktif",
+      acak_soal: document.getElementById("cfgAcak") ? document.getElementById("cfgAcak").value : "Tidak",
+      kelas: document.getElementById("cfgDaftarKelas") ? document.getElementById("cfgDaftarKelas").value.trim() : "",
+      tampil_skor: document.getElementById("cfgTampilSkor") ? document.getElementById("cfgTampilSkor").value : "Ya"
+    };
+
+    try {
+      const result = await apiPost(payload);
+      currentMapel = payload.mata_pelajaran || "-";
+      alert(result.message || "Pengaturan berhasil disimpan!");
+    } catch (e) {
+      alert("Gagal menyimpan pengaturan: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = teksAsli;
+    }
+  }
+
+  function toggleFormTipeSoal() {
+    const tipe = document.getElementById("mTipeSoal").value;
+    const containerPG = document.getElementById("containerOpsiPG");
+    if (tipe === "ESSAI") {
+      containerPG.style.display = "none";
+      document.getElementById("mSkorSoal").value = "10";
+    } else {
+      containerPG.style.display = "block";
+      document.getElementById("mSkorSoal").value = "2";
+    }
+  }
+
+  function bukaModalBuatSoalManual() {
+    let listSoalEx = [];
+    try {
+      const txt = document.getElementById("jsonSoalInput").value.trim();
+      if (txt) listSoalEx = JSON.parse(txt);
+    } catch(e){}
+
+    document.getElementById("mNoSoal").value = listSoalEx.length + 1;
+    document.getElementById("mPertanyaan").value = "";
+    document.getElementById("mOpA").value = "";
+    document.getElementById("mOpB").value = "";
+    document.getElementById("mOpC").value = "";
+    document.getElementById("mOpD").value = "";
+    document.getElementById("mTipeSoal").value = "PG";
+    toggleFormTipeSoal();
+    modalInputSoalInstance.show();
+  }
+
+  function tambahkanSoalManual() {
+    const noSoal = parseInt(document.getElementById("mNoSoal").value) || 1;
+    const tipe = document.getElementById("mTipeSoal").value;
+    const skor = parseInt(document.getElementById("mSkorSoal").value) || 2;
+    const pertanyaan = document.getElementById("mPertanyaan").value.trim();
+
+    if (!pertanyaan) { alert("Pertanyaan soal wajib diisi!"); return; }
+
+    let itemSoal = { no_soal: noSoal, tipe: tipe, pertanyaan: pertanyaan, skor: skor };
+    if (tipe === "PG") {
+      itemSoal.opA = document.getElementById("mOpA").value.trim();
+      itemSoal.opB = document.getElementById("mOpB").value.trim();
+      itemSoal.opC = document.getElementById("mOpC").value.trim();
+      itemSoal.opD = document.getElementById("mOpD").value.trim();
+      itemSoal.kunci = document.getElementById("mKunciPG").value;
+    } else {
+      itemSoal.opA = ""; itemSoal.opB = ""; itemSoal.opC = ""; itemSoal.opD = ""; itemSoal.kunci = "-";
+    }
+
+    let currentList = [];
+    try {
+      const currentTxt = document.getElementById("jsonSoalInput").value.trim();
+      if (currentTxt) currentList = JSON.parse(currentTxt);
+    } catch(e){}
+
+    currentList.push(itemSoal);
+    tampilkanHasilKonversi(currentList);
+    modalInputSoalInstance.hide();
+  }
+
+ async function tinjauDanCetakSoal(kodeSoal) {
+    if (!kodeSoal || typeof kodeSoal !== "string") {
+      kodeSoal = typeof getKodeSoal === "function" ? getKodeSoal() : document.getElementById("kodeSoalInput")?.value.trim().toUpperCase();
+    }
+
+    if (!kodeSoal) {
+      alert("Kode soal tidak boleh kosong! Silakan isi atau pilih Kode Soal terlebih dahulu.");
+      return;
     }
 
     try {
-      const response = await apiPost({ action: "getdaftarkodesoal" });
+      const targetUrl = typeof API_URL !== "undefined" ? API_URL : (typeof SCRIPT_URL !== "undefined" ? SCRIPT_URL : "");
 
-      if (response.status === "success" && Array.isArray(response.data)) {
-        let listData = response.data;
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          action: "getSoalByKode",
+          kode_soal: kodeSoal
+        })
+      });
 
-        // Populate Datalist Autocomplete untuk input
-        if (datalist) {
-          datalist.innerHTML = "";
-          listData.forEach(item => {
-            const kode = typeof item === 'object' ? item.kode_soal : item;
-            if (kode) {
-              const opt = document.createElement("option");
-              opt.value = kode;
-              datalist.appendChild(opt);
+      const result = await response.json();
+
+      if (result.status !== "success" || !result.data || result.data.length === 0) {
+        alert(result.message || "Data soal tidak ditemukan untuk kode: " + kodeSoal);
+        return;
+      }
+
+      const listSoal = result.data;
+
+      const resPengaturan = await fetch(targetUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          action: "getPengaturan",
+          kode: kodeSoal,
+          kode_soal: kodeSoal
+        })
+      });
+      
+      const dataCfg = await resPengaturan.json();
+      const config = (dataCfg.status === "success" && dataCfg.data) 
+        ? (Array.isArray(dataCfg.data) ? dataCfg.data[0] : dataCfg.data) 
+        : {};
+
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        alert("Pop-up diblokir oleh browser! Harap izinkan pop-up untuk mencetak.");
+        return;
+      }
+
+      let htmlContent = `
+        <!DOCTYPE html>
+        <html lang="id">
+        <head>
+          <meta charset="UTF-8">
+          <title>Naskah Soal - ${kodeSoal}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; color: #000; line-height: 1.4; }
+            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+            .header h2, .header h3 { margin: 2px 0; text-transform: uppercase; }
+            .meta-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
+            .meta-table td { padding: 4px; font-size: 14px; }
+            .soal-item { margin-bottom: 15px; page-break-inside: avoid; }
+            .soal-text { font-weight: bold; margin-bottom: 5px; }
+            .opsi-list { list-style-type: none; padding-left: 20px; margin: 5px 0; }
+            .opsi-list li { margin-bottom: 3px; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
             }
-          });
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+            <button onclick="window.print()" style="padding: 8px 16px; font-weight: bold; cursor: pointer;">🖨️ Cetak Dokumen</button>
+          </div>
+
+          <div class="header">
+            <h2>NASKAH SOAL UJIAN</h2>
+            <h3>${config.jenis_ujian || "PENILAIAN UJIAN"}</h3>
+          </div>
+
+          <table class="meta-table">
+            <tr>
+              <td width="15%"><strong>Mata Pelajaran</strong></td>
+              <td width="35%">: ${config.mata_pelajaran || config.mapel || "-"}</td>
+              <td width="15%"><strong>Kelas/Tingkat</strong></td>
+              <td width="35%">: ${config.kelas || config.daftar_kelas || "-"}</td>
+            </tr>
+            <tr>
+              <td><strong>Kode Soal</strong></td>
+              <td>: ${kodeSoal}</td>
+              <td><strong>Waktu / Durasi</strong></td>
+              <td>: ${config.durasi || 90} Menit</td>
+            </tr>
+          </table>
+          <hr style="border: 1px solid #000; margin-bottom: 20px;">
+          <div class="soal-container">
+      `;
+
+      listSoal.forEach((item, index) => {
+        const no = item.no_soal || item["No Soal"] || (index + 1);
+        const tipe = String(item.tipe || item["Tipe"] || "PG").trim().toUpperCase();
+        const pertanyaan = item.pertanyaan || item["Pertanyaan"] || "";
+        const opA = item.opA || item["Opsi A"] || "";
+        const opB = item.opB || item["Opsi B"] || "";
+        const opC = item.opC || item["Opsi C"] || "";
+        const opD = item.opD || item["Opsi D"] || "";
+
+        const isPG = tipe === "PG" || tipe === "PILGAN";
+
+        htmlContent += `
+          <div class="soal-item">
+            <div class="soal-text">${no}. ${pertanyaan}</div>
+        `;
+
+        if (isPG) {
+          htmlContent += `
+            <ul class="opsi-list">
+              ${opA ? `<li>A. ${opA}</li>` : ''}
+              ${opB ? `<li>B. ${opB}</li>` : ''}
+              ${opC ? `<li>C. ${opC}</li>` : ''}
+              ${opD ? `<li>D. ${opD}</li>` : ''}
+            </ul>
+          `;
         }
 
-        // Render ke Tabel jika elemen tabel ada
-        if (tbody) {
-          // Filter hak akses: Super Admin melihat semua, Guru hanya melihat yang dibuatnya
-          let filteredData = listData;
-          if (roleGuru !== "Super Admin" && namaGuru) {
-            filteredData = listData.filter(item => {
-              if (typeof item === 'string') return true; // fallback jika hanya array string
-              const penyusun = (item.penyusun || item.nama_ujian || "").toLowerCase().trim();
-              return penyusun === namaGuru.toLowerCase().trim() || penyusun.includes(namaGuru.toLowerCase().trim());
-            });
-          }
+        htmlContent += `
+          </div>
+        `;
+      });
 
-          if (filteredData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada paket soal yang dibuat.</td></tr>';
-            return;
-          }
+      htmlContent += `
+          </div>
+        </body>
+        </html>
+      `;
 
-          tbody.innerHTML = "";
-          filteredData.forEach((item, idx) => {
-            const kode = typeof item === 'object' ? (item.kode_soal || item.kode) : item;
-            const mapel = typeof item === 'object' ? (item.mata_pelajaran || item.mapel || '-') : '-';
-            const kelas = typeof item === 'object' ? (item.kelas || item.daftar_kelas || '-') : '-';
-            const jumlahPG = typeof item === 'object' ? (item.jumlah_pg ?? '-') : '-';
-            const jumlahEssai = typeof item === 'object' ? (item.jumlah_essai ?? '-') : '-';
-            const totalSoal = typeof item === 'object' ? (item.total_soal ?? '-') : '-';
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
 
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td class="text-center fw-bold">${idx + 1}</td>
-              <td><span class="badge bg-primary fs-6">${kode}</span></td>
-              <td>${mapel}</td>
-              <td>${kelas}</td>
-              <td class="text-center">${jumlahPG}</td>
-              <td class="text-center">${jumlahEssai}</td>
-              <td class="text-center fw-bold">${totalSoal}</td>
-              <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary fw-bold me-1" onclick="muatDataSoal('${kode}')" title="Pilih & Edit Pengaturan">⚙ Edit</button>
-                <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" onclick="tinjauDanCetakSoal('${kode}')" title="Cetak Naskah Soal">🖨️ Naskah</button>
-                <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusKodeSoal('${kode}')" title="Hapus Paket Soal Ini">🗑️</button>
-              </td>
-            `;
-            tbody.appendChild(tr);
-          });
+      printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+      };
+
+    } catch (error) {
+      console.error("Gagal mencetak soal:", error);
+      alert("Terjadi kesalahan teknis saat mengambil data naskah soal.");
+    }
+  }
+
+
+  function prosesUploadFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const statusBox = document.getElementById("statusKonversi");
+    statusBox.className = "alert alert-info";
+    statusBox.innerText = `Memproses file "${file.name}"...`;
+    statusBox.classList.remove("d-none");
+
+    const fileName = file.name.toLowerCase();
+    if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) parseExcel(file);
+    else if (fileName.endsWith(".docx")) parseWord(file);
+    else if (fileName.endsWith(".json") || fileName.endsWith(".txt")) parseTextOrJson(file);
+    else showErrorKonversi("Format file tidak didukung!");
+  }
+
+  function parseExcel(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rawJson = XLSX.utils.sheet_to_json(sheet);
+
+        const listSoal = rawJson.map((row, index) => ({
+          no_soal: parseInt(row.no_soal || row["No Soal"] || (index + 1)),
+          tipe: String(row.tipe || row["Tipe"] || "PG").trim().toUpperCase(),
+          pertanyaan: String(row.pertanyaan || row["Pertanyaan"] || ""),
+          opA: String(row.opA || row["Opsi A"] || ""),
+          opB: String(row.opB || row["Opsi B"] || ""),
+          opC: String(row.opC || row["Opsi C"] || ""),
+          opD: String(row.opD || row["Opsi D"] || ""),
+          kunci: String(row.kunci || row["Kunci"] || "").trim().toUpperCase(),
+          skor: parseInt(row.skor || row["Skor"] || 2)
+        }));
+        tampilkanHasilKonversi(listSoal);
+      } catch (err) { showErrorKonversi("Gagal membaca Excel: " + err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function parseWord(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      mammoth.extractRawText({ arrayBuffer: e.target.result })
+        .then(function(result) { parseTextFormat(result.value); })
+        .catch(function(err) { showErrorKonversi("Gagal membaca Word: " + err.message); });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function parseTextOrJson(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try { tampilkanHasilKonversi(JSON.parse(e.target.result)); }
+      catch (err) { parseTextFormat(e.target.result); }
+    };
+    reader.readAsText(file);
+  }
+
+  function parseTextFormat(text) {
+    try {
+      const blocks = text.split(/(?=^\s*\d+[\.\)])/m);
+      const listSoal = [];
+      blocks.forEach((block) => {
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length < 2) return;
+        let pertanyaan = lines[0].replace(/^\d+[\.\)]\s*/, '');
+        let opA = "", opB = "", opC = "", opD = "", kunci = "A", tipe = "PG";
+
+        lines.forEach(line => {
+          if (/^[A|a][\.\)]/.test(line)) opA = line.replace(/^[A|a][\.\)]\s*/, '');
+          else if (/^[B|b][\.\)]/.test(line)) opB = line.replace(/^[B|b][\.\)]\s*/, '');
+          else if (/^[C|c][\.\)]/.test(line)) opC = line.replace(/^[C|c][\.\)]\s*/, '');
+          else if (/^[D|d][\.\)]/.test(line)) opD = line.replace(/^[D|d][\.\)]\s*/, '');
+          else if (/^(Kunci|Jawaban):/i.test(line)) kunci = line.split(':')[1].trim().toUpperCase();
+          else if (/^(Tipe):/i.test(line)) tipe = line.split(':')[1].trim().toUpperCase();
+        });
+
+        if (pertanyaan) {
+          listSoal.push({ no_soal: listSoal.length + 1, tipe: tipe || "PG", pertanyaan: pertanyaan, opA: opA, opB: opB, opC: opC, opD: opD, kunci: kunci || "A", skor: 2 });
+        }
+      });
+      if (listSoal.length === 0) throw new Error("Format teks tidak dikenali.");
+      tampilkanHasilKonversi(listSoal);
+    } catch (err) { showErrorKonversi(err.message); }
+  }
+
+  function tampilkanHasilKonversi(listSoal) {
+    document.getElementById("jsonSoalInput").value = JSON.stringify(listSoal, null, 2);
+    const statusBox = document.getElementById("statusKonversi");
+    statusBox.className = "alert alert-success";
+    statusBox.innerText = `Berhasil! Terkonversi ${listSoal.length} soal dalam draft.`;
+    statusBox.classList.remove("d-none");
+  }
+
+  function showErrorKonversi(msg) {
+    const statusBox = document.getElementById("statusKonversi");
+    statusBox.className = "alert alert-danger";
+    statusBox.innerText = msg;
+    statusBox.classList.remove("d-none");
+  }
+
+  async function prosesImportSoal() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+
+    const jsonText = document.getElementById("jsonSoalInput").value.trim();
+    if (!jsonText) { alert("Area JSON Soal kosong!"); return; }
+
+    let listSoal = [];
+    try { listSoal = JSON.parse(jsonText); }
+    catch (e) { alert("Format JSON Soal tidak valid!"); return; }
+
+    const btnSimpan = document.getElementById("btnSimpanSoal");
+    btnSimpan.disabled = true;
+    btnSimpan.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
+
+    try {
+      const result = await apiPost({ action: "importSoal", kode_soal: kode, list_soal: listSoal });
+      alert(result.message || "Soal berhasil disimpan!");
+      muatTabelDaftarKodeSoal();
+    } catch (e) { alert("Gagal mengimport soal: " + e.message); }
+    finally { btnSimpan.disabled = false; btnSimpan.innerHTML = "💾 Simpan Semua Soal ke Database"; }
+  }
+
+  async function muatHasilUjian() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+
+    const mapel = document.getElementById("cfgMapel").value || currentMapel || "-";
+    document.getElementById("subTitleHasil").innerText = `Kode Soal: ${kode} | Mapel: ${mapel}`;
+
+    const tbody = document.getElementById("tabelHasilBody");
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat data rekap hasil...</td></tr>';
+
+    try {
+      const payload = { action: "getHasilUjian", kode_soal: kode };
+      const result = await apiPost(payload);
+
+      if (result.status === "success") {
+        rawDataBankSoal = result.bank_soal || [];
+        rawDataHasil = result.data || [];
+        filteredHasil = [...rawDataHasil];
+
+        populasiFilterKelas();
+        updateStatistikUjian();
+
+        if (rawDataHasil.length > 0) {
+          renderTabelHasil(filteredHasil);
+        } else {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Belum ada hasil ujian untuk kode ini.</td></tr>';
         }
       } else {
-        if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">${response.message || 'Gagal memuat data.'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Gagal: ${result.message}</td></tr>`;
+      }
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Terjadi kesalahan koneksi saat memuat rekap. Silakan coba lagi.</td></tr>';
+    }
+  }
+
+  function renderTabelHasil(dataList) {
+    const tbody = document.getElementById("tabelHasilBody");
+    tbody.innerHTML = "";
+
+    if (!dataList || dataList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Data tidak ditemukan.</td></tr>';
+      return;
+    }
+
+    dataList.forEach((item, index) => {
+      const nilaiPG = parseFloat(item.skor_pg || 0);
+      const nilaiEssai = parseFloat(item.nilai_essai || 0);
+      const totalNilai = nilaiPG + nilaiEssai;
+
+      let detailNilaiObj = {};
+      try {
+        detailNilaiObj = typeof item.detail_nilai_essai === 'string' 
+          ? JSON.parse(item.detail_nilai_essai) 
+          : (item.detail_nilai_essai || {});
+      } catch(e) {}
+
+      const sudahDikoreksi = Object.keys(detailNilaiObj).length > 0 || nilaiEssai > 0;
+      const btnClass = sudahDikoreksi ? "btn-success text-white" : "btn-warning text-dark";
+      const btnText = sudahDikoreksi ? "✓ Koreksi" : "✏️ Koreksi";
+      const origIndex = rawDataHasil.indexOf(item);
+
+      const row = `
+        <tr>
+          <td>${new Date(item.timestamp).toLocaleString("id-ID")}</td>
+          <td>${item.no_peserta || item.noPeserta || '-'}</td>
+          <td class="fw-bold">${item.nama}</td>
+          <td>${item.kelas}</td>
+          <td class="text-center"><span class="badge bg-primary fs-6">${nilaiPG}</span></td>
+          <td class="text-center"><span class="badge bg-info text-dark fs-6">${nilaiEssai}</span></td>
+          <td class="text-center"><span class="badge bg-success fs-6">${totalNilai}</span></td>
+          <td class="text-center no-print">
+            <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" title="Lihat Jawaban Siswa" onclick="bukaModalLihatJawaban(${origIndex})">📄 Jawaban</button>
+            <button class="btn btn-sm ${btnClass} fw-bold me-1" onclick="bukaModalEssai(${origIndex})">${btnText}</button>
+            <button class="btn btn-sm btn-outline-danger fw-bold" title="Hapus Data Peserta" onclick="hapusHasilSiswa('${item.no_peserta || item.noPeserta}', this)">🗑️</button>
+          </td>
+        </tr>
+      `;
+      tbody.innerHTML += row;
+    });
+  }
+  
+  async function bukaModalLihatJawaban(index) {
+    const item = rawDataHasil[index];
+    if (!item) return;
+
+    const kode = typeof getKodeSoal === 'function' ? getKodeSoal() : "";
+
+    const btnCetak = document.getElementById("btnCetakLJ");
+    if (btnCetak) {
+      btnCetak.onclick = function() {
+        cetakAreaModalJawaban();
+      };
+    }
+
+    if ((!window.rawDataAnalisis || window.rawDataAnalisis.length === 0) && kode) {
+      try {
+        const payload = { action: "analisisSoal", kode_soal: kode };
+        const result = await apiPost(payload);
+        if (result.status === "success") {
+          window.rawDataAnalisis = result.analisis || result.data || [];
+        }
+      } catch (e) {
+        console.error("Gagal mengambil kunci dari analisis:", e);
+      }
+    }
+
+    const mapKunciAnalisis = {};
+    if (window.rawDataAnalisis && Array.isArray(window.rawDataAnalisis)) {
+      window.rawDataAnalisis.forEach(a => {
+        if (a.no_soal !== undefined) {
+          mapKunciAnalisis[a.no_soal] = a.kunci;
+        }
+      });
+    }
+
+    document.getElementById("ljNamaSiswa").innerText = item.nama;
+    document.getElementById("ljNoPeserta").innerText = item.no_peserta || item.noPeserta || '-';
+    document.getElementById("ljKelasSiswa").innerText = item.kelas;
+    document.getElementById("ljMapel").innerText = document.getElementById("cfgMapel").value || currentMapel || "-";
+
+    const pg = parseFloat(item.skor_pg || 0);
+    const es = parseFloat(item.nilai_essai || 0);
+    document.getElementById("ljTotalNilai").innerText = pg + es;
+
+    let detailJawaban = {};
+    try { detailJawaban = typeof item.detail_jawaban === 'string' ? JSON.parse(item.detail_jawaban) : item.detail_jawaban; } catch(e){}
+
+    let detailNilaiEssai = {};
+    try { detailNilaiEssai = typeof item.detail_nilai_essai === 'string' ? JSON.parse(item.detail_nilai_essai) : (item.detail_nilai_essai || {}); } catch(e){}
+
+    const container = document.getElementById("containerLembarJawabanLengkap");
+    container.innerHTML = "";
+
+    if (!rawDataBankSoal || rawDataBankSoal.length === 0) {
+      container.innerHTML = `<div class="alert alert-warning">Data bank soal tidak ditemukan untuk perbandingan.</div>`;
+      modalLihatJawabanInstance.show();
+      return;
+    }
+
+    rawDataBankSoal.forEach((soal, idx) => {
+      const noSoalKey = idx + 1;
+      const noSoal = soal.no_soal || noSoalKey;
+      const tipe = String(soal.tipe || "PG").trim().toUpperCase();
+      const isPG = tipe === "PG" || tipe === "PILGAN";
+
+      const meJawabRaw = detailJawaban[noSoalKey] ?? 
+                         detailJawaban[String(noSoalKey)] ?? 
+                         detailJawaban[noSoal] ?? 
+                         detailJawaban[String(noSoal)] ?? "-";
+
+      let statusBadge = "";
+      let detailHtml = "";
+
+      if (isPG) {
+        const kunciRaw = soal.kunci || soal.kunci_jawaban || mapKunciAnalisis[noSoal] || mapKunciAnalisis[noSoalKey] || "";
+        const kunci = String(kunciRaw).trim().toUpperCase();
+        const meUpper = String(meJawabRaw).trim().toUpperCase();
+
+        const isBenar = meUpper !== "" && meUpper !== "-" && meUpper === kunci;
+
+        statusBadge = isBenar 
+          ? `<span class="badge bg-success">BENAR (+${soal.skor || 2})</span>` 
+          : `<span class="badge bg-danger">SALAH (0)</span>`;
+
+        detailHtml = `
+          <div class="row mt-2">
+            <div class="col-6">Jawaban Siswa: <strong class="${isBenar ? 'text-success' : 'text-danger'}">${meJawabRaw}</strong></div>
+            <div class="col-6">Kunci Jawaban: <strong class="text-primary">${kunci || "-"}</strong></div>
+          </div>
+        `;
+      } else {
+        const nilaiEss = detailNilaiEssai[noSoalKey] ?? detailNilaiEssai[String(noSoalKey)] ?? 0;
+        statusBadge = `<span class="badge bg-info text-dark">Skor Essai: ${nilaiEss} / ${soal.skor || 10}</span>`;
+        detailHtml = `
+          <div class="p-2 bg-light rounded border mt-2">
+            <strong>Jawaban Essai Siswa:</strong>
+            <div>${meJawabRaw}</div>
+          </div>
+        `;
+      }
+
+      container.innerHTML += `
+        <div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>No. ${noSoal} (${tipe})</span>
+            ${statusBadge}
+          </div>
+          <div class="card-body">
+            <p class="mb-1"><strong>Soal:</strong> ${soal.pertanyaan || '-'}</p>
+            ${detailHtml}
+          </div>
+        </div>
+      `;
+    });
+
+    modalLihatJawabanInstance.show();
+  }
+
+  function cetakAreaModalJawaban() {
+    const isiModal = document.getElementById("areaCetakModal").innerHTML;
+    const printWindow = window.open("", "_blank");
+    
+    if (!printWindow) {
+      alert("Pop-up diblokir browser! Izinkan pop-up untuk mencetak.");
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="UTF-8">
+        <title>Cetak Lembar Jawaban Siswa</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+          body { padding: 20px; font-family: Arial, sans-serif; background: #fff; }
+          @media print {
+            .no-print { display: none !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <h3 class="text-center mb-4 fw-bold">HASIL & LEMBAR JAWABAN SISWA</h3>
+        ${isiModal}
+      </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+  }
+
+
+  function populasiFilterKelas() {
+    const select = document.getElementById("filterKelasSelect");
+    select.innerHTML = '<option value="">-- Semua Kelas --</option>';
+    const daftarKelas = [...new Set(rawDataHasil.map(i => i.kelas).filter(Boolean))];
+    daftarKelas.forEach(k => select.innerHTML += `<option value="${k}">${k}</option>`);
+  }
+
+  function filterHasilUjian() {
+    const search = document.getElementById("searchSiswaInput").value.toLowerCase().trim();
+    const filterKelas = document.getElementById("filterKelasSelect").value.trim();
+
+    filteredHasil = rawDataHasil.filter(item => {
+      const matchSearch = search === "" || String(item.nama).toLowerCase().includes(search) || String(item.no_peserta).toLowerCase().includes(search);
+      const matchKelas = filterKelas === "" || String(item.kelas) === filterKelas;
+      return matchSearch && matchKelas;
+    });
+    renderTabelHasil(filteredHasil);
+    updateStatistikUjian(filteredHasil);
+  }
+
+  function resetFilterHasil() {
+    document.getElementById("searchSiswaInput").value = "";
+    document.getElementById("filterKelasSelect").value = "";
+    filteredHasil = [...rawDataHasil];
+    renderTabelHasil(filteredHasil);
+    updateStatistikUjian(filteredHasil);
+  }
+
+  function updateStatistikUjian(dataList = rawDataHasil) {
+    if (!dataList || dataList.length === 0) {
+      document.getElementById("statRataRata").innerText = "0";
+      document.getElementById("statMax").innerText = "0";
+      document.getElementById("statMin").innerText = "0";
+      return;
+    }
+    const totals = dataList.map(item => parseFloat(item.skor_pg || 0) + parseFloat(item.nilai_essai || 0));
+    document.getElementById("statRataRata").innerText = (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1);
+    document.getElementById("statMax").innerText = Math.max(...totals);
+    document.getElementById("statMin").innerText = Math.min(...totals);
+  }
+/*
+async function hapusHasilSiswa(index) {
+  try {
+    // Validasi index
+    if (index === undefined || index === null || index < 0) {
+      alert("❌ Index baris tidak valid!");
+      console.error("[hapusHasilSiswa] Invalid index:", index);
+      return false;
+    }
+
+    // Cari data siswa di rawDataHasil berdasarkan index
+    const siswaData = rawDataHasil[index];
+
+    if (!siswaData) {
+      alert("❌ Data siswa pada baris ini tidak ditemukan!");
+      console.error("[hapusHasilSiswa] Siswa data not found at index:", index);
+      return false;
+    }
+
+    // Ambil nilai yang dibutuhkan dari data siswa
+    const noPeserta = String(siswaData.no_peserta || siswaData.noPeserta || "").trim();
+    const namaSiswa = siswaData.nama || siswaData.name || "-";
+    const kelasSync = siswaData.kelas || siswaData.class || "-";
+    const kodeSoal = document.getElementById("kodeSoalInput")?.value || "-";
+
+    // Validasi no_peserta
+    if (!noPeserta) {
+      alert("❌ Nomor peserta tidak ditemukan di data siswa!");
+      console.error("[hapusHasilSiswa] No peserta kosong:", siswaData);
+      return false;
+    }
+
+    // Konfirmasi double-check
+    const confirmDelete = confirm(
+      `⚠️ PERHATIAN! DATA AKAN DIHAPUS PERMANEN!\n\n` +
+      `📋 Kode Soal: ${kodeSoal}\n` +
+      `🆔 No Peserta: ${noPeserta}\n` +
+      `👤 Nama: ${namaSiswa}\n` +
+      `🏫 Kelas: ${kelasSync}\n\n` +
+      `Data hasil ujian siswa ini akan DIHAPUS dan TIDAK BISA DIKEMBALIKAN.\n\n` +
+      `Apakah Anda YAKIN ingin melanjutkan?`
+    );
+
+    if (!confirmDelete) {
+      console.log("[hapusHasilSiswa] User membatalkan penghapusan");
+      return false;
+    }
+
+    console.log("[hapusHasilSiswa] Mengirim permintaan hapus dengan data:", {
+      action: "hapusHasilUjian",
+      kode_soal: kodeSoal,
+      no_peserta: noPeserta
+    });
+
+    // Panggil API backend dengan kedua parameter yang diperlukan
+    const response = await apiPost({
+      action: "hapusHasilUjian",
+      kode_soal: kodeSoal,
+      no_peserta: noPeserta
+    });
+
+    console.log("[hapusHasilSiswa] Response dari backend:", response);
+
+    // Proses response
+    if (response && response.status === "success") {
+      alert(`✅ ${response.message}`);
+      
+      // Refresh tabel hasil ujian
+      if (typeof muatHasilUjian === 'function') {
+        console.log("[hapusHasilSiswa] Merefresh tabel hasil ujian...");
+        await muatHasilUjian();
+      } else {
+        console.warn("[hapusHasilSiswa] Fungsi muatHasilUjian tidak ditemukan");
+      }
+      
+      return true;
+    } else {
+      const errorMsg = response?.message || "Gagal menghapus data (Alasan tidak diketahui)";
+      alert(`❌ ${errorMsg}`);
+      console.error("[hapusHasilSiswa] Error response:", response);
+      return false;
+    }
+
+  } catch (err) {
+    console.error("[hapusHasilSiswa] Exception caught:", err);
+    alert(`❌ Terjadi kesalahan: ${err.message}`);
+    return false;
+  }
+}
+*/
+async function hapusHasilSiswa(noPeserta) {
+  const kode = getKodeSoal();
+  
+  if (!kode) {
+    alert("❌ Kode soal belum dipilih!");
+    return;
+  }
+
+  if (!noPeserta) {
+    alert("❌ No peserta tidak valid!");
+    return;
+  }
+
+  if (!confirm(`Hapus hasil ujian No/NIS: ${noPeserta}?`)) {
+    return;
+  }
+
+  try {
+    console.log("[hapusHasilSiswa] Mengirim request:", {
+      action: "hapusHasilUjian",
+      kode_soal: kode,
+      no_peserta: String(noPeserta).trim()
+    });
+
+    const result = await apiPost({ 
+      action: "hapusHasilUjian", 
+      kode_soal: kode, 
+      no_peserta: String(noPeserta).trim() 
+    });
+
+    console.log("[hapusHasilSiswa] Response:", result);
+
+    if (!result) {
+      alert("⚠️ Respon server kosong!");
+      return;
+    }
+
+    if (result.status === "success") {
+      alert("✅ " + (result.message || "Data berhasil dihapus!"));
+      muatHasilUjian();
+    } else {
+      alert("❌ " + (result.message || "Gagal menghapus data!"));
+    }
+  } 
+  catch (err) {
+    console.error("[hapusHasilSiswa] Error:", err);
+    alert("❌ Kesalahan koneksi: " + err.message);
+  }
+}
+
+  function renderTabelHasil(dataList) {
+    const tbody = document.getElementById("tabelHasilBody");
+    tbody.innerHTML = "";
+
+    if (!dataList || dataList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Data tidak ditemukan.</td></tr>';
+      return;
+    }
+
+    dataList.forEach((item, index) => {
+      const nilaiPG = parseFloat(item.skor_pg || 0);
+      const nilaiEssai = parseFloat(item.nilai_essai || 0);
+      const totalNilai = nilaiPG + nilaiEssai;
+
+      let detailNilaiObj = {};
+      try {
+        detailNilaiObj = typeof item.detail_nilai_essai === 'string' 
+          ? JSON.parse(item.detail_nilai_essai) 
+          : (item.detail_nilai_essai || {});
+      } catch(e) {}
+
+      const sudahDikoreksi = Object.keys(detailNilaiObj).length > 0 || nilaiEssai > 0;
+      const btnClass = sudahDikoreksi ? "btn-success text-white" : "btn-warning text-dark";
+      const btnText = sudahDikoreksi ? "✓ Koreksi" : "✏️ Koreksi";
+      const origIndex = rawDataHasil.indexOf(item);
+
+      const row = `
+        <tr>
+          <td>${new Date(item.timestamp).toLocaleString("id-ID")}</td>
+          <td>${item.no_peserta || item.noPeserta || '-'}</td>
+          <td class="fw-bold">${item.nama}</td>
+          <td>${item.kelas}</td>
+          <td class="text-center"><span class="badge bg-primary fs-6">${nilaiPG}</span></td>
+          <td class="text-center"><span class="badge bg-info text-dark fs-6">${nilaiEssai}</span></td>
+          <td class="text-center"><span class="badge bg-success fs-6">${totalNilai}</span></td>
+          <td class="text-center no-print">
+            <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" title="Lihat Jawaban Siswa" onclick="bukaModalLihatJawaban(${origIndex})">📄 Jawaban</button>
+            <button class="btn btn-sm ${btnClass} fw-bold me-1" onclick="bukaModalEssai(${origIndex})">${btnText}</button>
+            <button class="btn btn-sm btn-outline-danger fw-bold" title="Hapus Data Peserta" onclick="hapusHasilSiswa('${item.no_peserta || item.noPeserta}', this)">🗑️</button>
+          </td>
+        </tr>
+      `;
+      tbody.innerHTML += row;
+    });
+  }
+
+  function bukaModalEssai(index) {
+    selectedIndexHasil = index;
+    const item = rawDataHasil[index];
+
+    document.getElementById("modalNamaSiswa").innerText = item.nama;
+    document.getElementById("modalKelasSiswa").innerText = item.kelas;
+
+    let detailJawaban = {};
+    try { detailJawaban = typeof item.detail_jawaban === 'string' ? JSON.parse(item.detail_jawaban) : item.detail_jawaban; } catch(e){}
+
+    let detailNilaiEssai = {};
+    try { detailNilaiEssai = typeof item.detail_nilai_essai === 'string' ? JSON.parse(item.detail_nilai_essai) : (item.detail_nilai_essai || {}); } catch(e){}
+
+    const container = document.getElementById("containerJawabanEssai");
+    container.innerHTML = "";
+
+    let countEssai = 0;
+    rawDataBankSoal.forEach((soal, idx) => {
+      const tipe = String(soal.tipe || "PG").trim().toUpperCase();
+      if (tipe === "ESSAI" || tipe === "ESSAY" || tipe === "ES") {
+        countEssai++;
+        const keyUnik = idx + 1;
+        const jawabanSiswaText = detailJawaban[keyUnik] || detailJawaban[soal.no_soal] || "<i class='text-muted'>(Tidak dijawab)</i>";
+        const nilaiExisting = detailNilaiEssai[keyUnik] !== undefined ? detailNilaiEssai[keyUnik] : 0;
+
+        const boxHtml = `
+          <div class="card mb-3 border">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center fw-bold">
+              <span>Soal Essai No. ${countEssai} (Urutan No. ${keyUnik})</span>
+              <span class="badge bg-secondary">Maks: ${soal.skor || 10}</span>
+            </div>
+            <div class="card-body">
+              <p class="mb-2"><strong>Pertanyaan:</strong> ${soal.pertanyaan}</p>
+              <div class="p-3 bg-white rounded border text-dark mb-3">
+                <strong>Jawaban Siswa:</strong><br>
+                <div class="mt-1">${jawabanSiswaText}</div>
+              </div>
+              
+              <div class="row align-items-center g-2 bg-light p-2 rounded">
+                <div class="col-auto">
+                  <label class="fw-bold text-primary mb-0">Nilai Soal Ini:</label>
+                </div>
+                <div class="col-auto">
+                  <input type="number" class="form-control form-control-sm fw-bold input-nilai-per-soal" 
+                    data-key="${keyUnik}" 
+                    value="${nilaiExisting}" 
+                    min="0" 
+                    max="${soal.skor || 100}" 
+                    oninput="hitungTotalNilaiEssaiModal()" 
+                    style="width: 100px;">
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        container.innerHTML += boxHtml;
+      }
+    });
+
+    if (countEssai === 0) {
+      container.innerHTML = `<div class="alert alert-warning">Tidak ditemukan soal bertipe Essai pada bank soal kode ini.</div>`;
+    }
+
+    hitungTotalNilaiEssaiModal();
+    modalEssaiInstance.show();
+  }
+  
+  function hitungTotalNilaiEssaiModal() {
+    let total = 0;
+    document.querySelectorAll(".input-nilai-per-soal").forEach(input => { total += parseFloat(input.value) || 0; });
+    document.getElementById("inputNilaiEssaiModal").value = total;
+  }
+
+  async function simpanNilaiEssai() {
+    if (selectedIndexHasil < 0) return;
+
+    const btn = document.querySelector("#modalEssai .modal-footer button[onClick='simpanNilaiEssai()']") || event.currentTarget;
+    const teksAsli = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Menyimpan Nilai...`;
+
+    const item = rawDataHasil[selectedIndexHasil];
+    const detailNilaiPerNomor = {};
+    let totalNilaiEssai = 0;
+
+    const inputs = document.querySelectorAll(".input-nilai-per-soal");
+    inputs.forEach(input => {
+      const key = input.getAttribute("data-key");
+      const val = parseFloat(input.value) || 0;
+      detailNilaiPerNomor[key] = val;
+      totalNilaiEssai += val;
+    });
+
+    const payload = {
+      action: "simpanNilaiEssai",
+      kode_soal: getKodeSoal(),
+      no_peserta: item.no_peserta || item.noPeserta,
+      nilai_essai: totalNilaiEssai,
+      detail_nilai_essai: detailNilaiPerNomor
+    };
+
+    try {
+      const result = await apiPost(payload);
+      if (result.status === "success") {
+        rawDataHasil[selectedIndexHasil].nilai_essai = totalNilaiEssai;
+        rawDataHasil[selectedIndexHasil].detail_nilai_essai = detailNilaiPerNomor;
+        filterHasilUjian();
+        modalEssaiInstance.hide();
+        alert("Rincian Nilai Essai per nomor berhasil disimpan!");
+      } else {
+        alert("Gagal menyimpan nilai: " + result.message);
+      }
+    } catch (e) {
+      alert("Terjadi kesalahan koneksi saat menyimpan nilai: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = teksAsli;
+    }
+  }
+  
+  async function muatAnalisisSoal() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+
+    const tbody = document.getElementById("tabelAnalisisBody");
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Menganalisis butir soal & mengambil data mapel...</td></tr>';
+
+    // 1. Cek Mapel dari Form atau Variabel Global
+    let mapel = document.getElementById("cfgMapel")?.value || currentMapel || "";
+
+    // 2. Jika Mapel masih kosong, ambil langsung ke Server (getPengaturan)
+    if (!mapel || mapel === "-") {
+      try {
+        const resPengaturan = await apiPost({ action: "getPengaturan", kode: kode, kode_soal: kode });
+        if (resPengaturan.status === "success" && resPengaturan.data) {
+          const cfg = Array.isArray(resPengaturan.data) ? resPengaturan.data[0] : resPengaturan.data;
+          mapel = cfg.mata_pelajaran || cfg.mapel || "-";
+          currentMapel = mapel;
+          
+          if (document.getElementById("cfgMapel")) {
+            selectDropdownValue("cfgMapel", mapel);
+          }
+        }
+      } catch (err) {
+        console.warn("Gagal mengambil mapel dari server:", err);
+      }
+    }
+
+    if (!mapel) mapel = "-";
+
+    // 3. Update Teks Subtitle Laporan Analisis
+    const subTitleEl = document.getElementById("subTitleAnalisis");
+    if (subTitleEl) {
+      subTitleEl.innerText = `Kode Soal: ${kode} | Mapel: ${mapel}`;
+    }
+
+    // 4. Ambil Data Analisis Soal dari Server
+    try {
+      const payload = { action: "analisisSoal", kode_soal: kode };
+      const result = await apiPost(payload);
+
+      if (result.status === "success") {
+        rawDataAnalisis = result.analisis || result.data || [];
+        document.getElementById("infoTotalSiswaAnalisis").innerText = `Total Responden/Siswa: ${result.total_siswa || 0} orang`;
+        
+        if (rawDataAnalisis.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Belum ada data siswa untuk dianalisis.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = "";
+        rawDataAnalisis.forEach(item => {
+          let badgeKategori = "bg-success";
+          if (item.kategori === "Mudah") badgeKategori = "bg-info text-dark";
+          if (item.kategori === "Sukar") badgeKategori = "bg-danger";
+
+          const isPG = item.tipe === "PG" || item.tipe === "PILGAN";
+          const seb = item.sebaran || { A:0, B:0, C:0, D:0 };
+          const sebaranText = isPG 
+            ? `A: <b>${seb.A || 0}</b> | B: <b>${seb.B || 0}</b> | C: <b>${seb.C || 0}</b> | D: <b>${seb.D || 0}</b>`
+            : `<i class="text-muted">Soal Essai (Manual)</i>`;
+
+          const row = `
+            <tr>
+              <td class="text-center fw-bold">${item.no_soal}</td>
+              <td class="text-center"><span class="badge bg-secondary">${item.tipe}</span></td>
+              <td class="text-center fw-bold text-primary">${item.kunci || "-"}</td>
+              <td>${sebaranText}</td>
+              <td class="text-center text-success fw-bold">${item.benar}</td>
+              <td class="text-center text-danger fw-bold">${item.salah}</td>
+              <td class="text-center fw-bold">${item.tingkat_kesukaran}</td>
+              <td class="text-center"><span class="badge ${badgeKategori}">${item.kategori}</span></td>
+            </tr>
+          `;
+          tbody.innerHTML += row;
+        });
+      } else {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Gagal: ${result.message}</td></tr>`;
+      }
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Terjadi kesalahan koneksi saat memuat analisis. Silakan coba lagi.</td></tr>';
+    }
+  }
+
+    // CETAK ANALISIS SOAL DENGAN NAMA FILE DINAMIS
+  function cetakAnalisisPDF() {
+    const kode = getKodeSoal();
+    if (!kode || rawDataAnalisis.length === 0) {
+      alert("Tidak ada data analisis soal untuk dicetak!");
+      return;
+    }
+
+    const mapel = document.getElementById("cfgMapel")?.value || currentMapel || "";
+    const originalTitle = document.title;
+
+    document.title = `Laporan_Analisis_Soal_${kode}_${mapel}`.replace(/\s+/g, '_');
+
+    window.print();
+
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
+  }
+
+  // CETAK REKAP HASIL UJIAN DENGAN NAMA FILE DINAMIS
+  function cetakPDF() {
+    const kode = getKodeSoal();
+    if (!kode || rawDataHasil.length === 0) {
+      alert("Tidak ada data rekap nilai untuk dicetak!");
+      return;
+    }
+
+    const mapel = document.getElementById("cfgMapel")?.value || currentMapel || "";
+    const originalTitle = document.title;
+
+    document.title = `Laporan_Rekap_Nilai_${kode}_${mapel}`.replace(/\s+/g, '_');
+
+    window.print();
+
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
+  }
+  
+  function exportAnalisisToExcel() {
+    const kode = getKodeSoal();
+    if (!kode || rawDataAnalisis.length === 0) {
+      alert("Tidak ada data analisis soal untuk di-export!");
+      return;
+    }
+
+    const dataExcel = rawDataAnalisis.map((item) => {
+      const seb = item.sebaran || {};
+      return {
+        "No Soal": item.no_soal,
+        "Tipe": item.tipe,
+        "Kunci Jawaban": item.kunci || "-",
+        "Jumlah Benar": item.benar,
+        "Jumlah Salah": item.salah,
+        "Opsi A": seb.A || 0,
+        "Opsi B": seb.B || 0,
+        "Opsi C": seb.C || 0,
+        "Opsi D": seb.D || 0,
+        "% Kesukaran": item.tingkat_kesukaran,
+        "Kategori": item.kategori
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(dataExcel);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Analisis Soal");
+    XLSX.writeFile(workbook, `Analisis_Soal_${kode}.xlsx`);
+  }
+
+  function exportToExcel() {
+    const kode = getKodeSoal();
+    const dataYangDiExport = filteredHasil.length > 0 ? filteredHasil : rawDataHasil;
+
+    if (!kode || dataYangDiExport.length === 0) {
+      alert("Tidak ada data rekap nilai untuk di-export!");
+      return;
+    }
+
+    const mapel = document.getElementById("cfgMapel").value || currentMapel || "-";
+
+    const dataExcel = dataYangDiExport.map((item, idx) => {
+      const pg = parseFloat(item.skor_pg || 0);
+      const es = parseFloat(item.nilai_essai || 0);
+      return {
+        "No": idx + 1,
+        "Waktu Selesai": new Date(item.timestamp).toLocaleString("id-ID"),
+        "No Peserta": item.no_peserta || item.noPeserta || '-',
+        "Nama Siswa": item.nama,
+        "Kelas": item.kelas,
+        "Mata Pelajaran": mapel,
+        "Nilai PG": pg,
+        "Nilai Essai": es,
+        "Total Nilai": pg + es
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(dataExcel);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Nilai");
+    XLSX.writeFile(workbook, `Rekap_Nilai_${kode}.xlsx`);
+  }
+  
+  async function prosesHitungUlangNilai() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+
+    if (!confirm(`Apakah Anda yakin ingin menghitung ulang seluruh nilai PG untuk Kode Soal '${kode}'?`)) return;
+
+    const tbody = document.getElementById("tabelHasilBody");
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning me-2"></div>Sedang menghitung ulang nilai seluruh siswa...</td></tr>';
+
+    try {
+      const payload = { action: "hitungUlangSkor", kode_soal: kode };
+      const result = await apiPost(payload);
+
+      if (result.status === "success") {
+        alert(result.message);
+        muatHasilUjian();
+      } else {
+        alert("Gagal: " + result.message);
+        muatHasilUjian();
+      }
+    } catch (e) {
+      alert("Terjadi kesalahan koneksi saat menghitung ulang nilai: " + e.message);
+      muatHasilUjian();
+    }
+  }
+  
+  async function muatDaftarKodeSoal() {
+    const datalist = document.getElementById("listKodeSoal");
+    if (!datalist) return;
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        mode: "cors",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "getdaftarkodesoal" })
+      });
+
+      if (!res.ok) {
+        throw new Error("HTTP Status: " + res.status);
+      }
+
+      const response = await res.json();
+
+      if (response.status === "success" && Array.isArray(response.data)) {
+        datalist.innerHTML = ""; 
+
+        response.data.forEach(kode => {
+          const option = document.createElement("option");
+          option.value = kode;
+          datalist.appendChild(option);
+        });
+      } else {
+        console.warn("Gagal memuat daftar kode soal:", response.message);
       }
     } catch (err) {
       console.error("Gagal memuat kode soal:", err);
-      if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Terjadi kesalahan koneksi saat memuat kode soal.</td></tr>';
     }
+  }
+
+    // --- FUNGSI GENERATOR SOAL AI (GEMINI) ---
+  function bukaModalGenAI() {
+    const kode = getKodeSoal();
+    if (!kode) return;
+
+    const mapel = document.getElementById("cfgMapel")?.value || currentMapel || "-";
+    const kelas = document.getElementById("cfgDaftarKelas")?.value || "";
+
+    document.getElementById("aiKodeSoal").value = kode;
+    document.getElementById("aiMapel").value = mapel;
+    document.getElementById("aiKelas").value = kelas;
+
+    generatePromptText();
+    modalGenAIInstance.show();
+  }
+
+  function generatePromptText() {
+    const kode = document.getElementById("aiKodeSoal")?.value || document.getElementById("kodeSoalInput")?.value || "";
+    const mapel = document.getElementById("aiMapel")?.value || document.getElementById("cfgMapel")?.value || "";
+    const kelas = document.getElementById("aiKelas")?.value || document.getElementById("cfgDaftarKelas")?.value || "";
+    const jmlPG = document.getElementById("aiJumlahPG")?.value || "10";
+    const jmlEssai = document.getElementById("aiJumlahEssai")?.value || "5";
+    const topik = document.getElementById("aiTopik")?.value || "";
+
+    const promptText = `Buatkan bank soal untuk ujian sekolah dengan ketentuan sebagai berikut:
+- Mata Pelajaran: ${mapel}
+- Tingkat/Kelas: ${kelas}
+- Topik/Materi: ${topik}
+- Jumlah Soal Pilihan Ganda (PG): ${jmlPG}
+- Jumlah Soal Essai: ${jmlEssai}
+- Kode Soal: ${kode}
+
+lalu masukkan ke dalam format excel berikut:
+
+| Kode Soal | No Soal | Tipe | Pertanyaan | Opsi A | Opsi B | Opsi C | Opsi D | Kunci | Skor |
+
+Aturan Pengisian Tabel Excel:
+1. "Kode Soal": Isi seluruh baris dengan '${kode}'.
+2. "No Soal": Angka berurutan dari 1 sampai ${parseInt(jmlPG) + parseInt(jmlEssai)}.
+3. "Tipe": Isi 'PG' untuk Pilihan Ganda (nomor 1 sampai ${jmlPG}), dan 'ESSAI' untuk Uraian/Essai (nomor ${parseInt(jmlPG) + 1} sampai ${parseInt(jmlPG) + parseInt(jmlEssai)}).
+4. "Pertanyaan": Teks pertanyaan soal.
+5. "Opsi A", "Opsi B", "Opsi C", "Opsi D":
+   - Untuk Tipe PG: Wajib diisi pilihan jawabannya.
+   - Untuk Tipe ESSAI: Harus dikosongkan (TIDAK BOLEH ADA OPSI JAWABAN).
+6. "Kunci":
+   - Untuk Tipe PG: Isi huruf kapital kunci jawaban ('A', 'B', 'C', atau 'D').
+   - Untuk Tipe ESSAI: Isi tanda strip '-'.
+7. "Skor": Untuk PG berikan nilai 2, untuk ESSAI berikan nilai 10.
+
+Sajikan hasil balasan dalam format text UNICODE dan HANYA dalam bentuk TABEL Excel, agar bisa langsung saya unduh.`;
+
+    const inputPrompt = document.getElementById("aiGeneratedPrompt");
+    if (inputPrompt) {
+      inputPrompt.value = promptText;
+    }
+  }
+
+  function salinPromptSaja(e) {
+    const promptArea = document.getElementById("aiGeneratedPrompt");
+    const promptText = promptArea ? promptArea.value : "";
+
+    if (!promptText.trim()) {
+      alert("Mohon isi topik/materi terlebih dahulu!");
+      if (e) e.preventDefault();
+      return;
+    }
+
+    promptArea.focus();
+    promptArea.select();
+    promptArea.setSelectionRange(0, 99999);
+
+    let suksesSalin = false;
+    try {
+      suksesSalin = document.execCommand("copy");
+    } catch (err) {
+      suksesSalin = false;
+    }
+
+    if (!suksesSalin && navigator.clipboard) {
+      navigator.clipboard.writeText(promptText);
+    }
+
+    alert("✅ Prompt Soal AI berhasil disalin!\n\nSilakan tekan Ctrl + V (Paste) pada kolom chat Gemini yang terbuka.");
   }
 
 // --- FUNGSI DAFTAR KODE SOAL & DUPLIKASI ---
 let rawDaftarKodeSoal = [];
 let currentPageKodeSoal = 1;
-let itemsPerPageKodeSoal = 5;
+let itemsPerPageKodeSoal = 6;
 
 async function muatTabelDaftarKodeSoal() {
     const tbody = document.getElementById("tabelDaftarKodeBody");
@@ -1394,1287 +2782,7 @@ function gantiHalamanKodeSoal(halamanBaru) {
       alert("Terjadi kesalahan koneksi saat menghapus kode soal.");
     }
   }
-
-  async function simpanPengaturan() {
-    const kode = getKodeSoal();
-    if (!kode) return;
-
-    const btn = document.querySelector("#formPengaturan button[onClick='simpanPengaturan()']") || event.currentTarget;
-    const teksAsli = btn ? btn.innerHTML : "";
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
-    }
-
-    let kelasSelected = "";
-    if ($('#cfgDaftarKelas').length) {
-      const valArr = $('#cfgDaftarKelas').val();
-      kelasSelected = Array.isArray(valArr) ? valArr.join(", ") : valArr;
-    } else if (document.getElementById("cfgDaftarKelas")) {
-      kelasSelected = document.getElementById("cfgDaftarKelas").value.trim();
-    }
-
-    const payload = {
-      action: "savePengaturan",
-      kode_soal: kode,
-      mata_pelajaran: document.getElementById("cfgMapel") ? document.getElementById("cfgMapel").value.trim() : "",
-      jenis_ujian: document.getElementById("cfgJenisUjian") ? document.getElementById("cfgJenisUjian").value : "",
-      durasi: document.getElementById("cfgDurasi") ? (parseInt(document.getElementById("cfgDurasi").value) || 90) : 90,
-      penyusun: document.getElementById("cfgPenyusun") ? document.getElementById("cfgPenyusun").value : "",
-      pengawas: document.getElementById("cfgPengawas") ? document.getElementById("cfgPengawas").value : "",
-      status_ujian: document.getElementById("cfgStatus") ? document.getElementById("cfgStatus").value : "Aktif",
-      acak_soal: document.getElementById("cfgAcak") ? document.getElementById("cfgAcak").value : "Tidak",
-      kelas: kelasSelected,
-      tampil_skor: document.getElementById("cfgTampilSkor") ? document.getElementById("cfgTampilSkor").value : "Ya"
-    };
-
-    try {
-      const result = await apiPost(payload);
-      currentMapel = payload.mata_pelajaran || "-";
-      alert(result.message || "Pengaturan berhasil disimpan!");
-      muatDaftarKodeSoal();
-    } catch (e) {
-      alert("Gagal menyimpan pengaturan: " + e.message);
-    } finally {
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = teksAsli;
-      }
-    }
-  }
-
-  // ====================================================================
-  // MODUL 5: MANAJEMEN BANK SOAL (PARSING, MANUAL, PRINT)
-  // ====================================================================
-  function downloadTemplateExcel() {
-    const kode = document.getElementById("kodeSoalInput").value.trim().toUpperCase() || "ATS-MTK7";
-    const dataTemplate = [
-      {
-        "Kode Soal": kode, "No Soal": 1, "Tipe": "PG", "Pertanyaan": "Hasil dari 1/2 + 3/4 adalah...",
-        "Opsi A": "1 1/4", "Opsi B": "5/4", "Opsi C": "2/4", "Opsi D": "3/2", "Kunci": "A", "Skor": 2
-      },
-      {
-        "Kode Soal": kode, "No Soal": 2, "Tipe": "ESSAI", "Pertanyaan": "Jelaskan langkah-langkah penjumlahan pecahan!",
-        "Opsi A": "", "Opsi B": "", "Opsi C": "", "Opsi D": "", "Kunci": "-", "Skor": 10
-      }
-    ];
-
-    const worksheet = XLSX.utils.json_to_sheet(dataTemplate);
-    const range = XLSX.utils.decode_range(worksheet['!ref']);
-    for (let R = range.s.r; R <= range.e.r; ++R) {
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cell_address = XLSX.utils.encode_cell({ r: R, c: C });
-        if (!worksheet[cell_address]) continue;
-        worksheet[cell_address].t = 's';
-        worksheet[cell_address].z = '@';
-      }
-    }
-    worksheet['!cols'] = [{ wch: 15 }, { wch: 8 }, { wch: 10 }, { wch: 50 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 8 }];
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Bank Soal");
-    XLSX.writeFile(workbook, `Template_Import_Soal_${kode}.xlsx`);
-  }
-
-  function toggleFormTipeSoal() {
-    const tipe = document.getElementById("mTipeSoal").value;
-    const containerPG = document.getElementById("containerOpsiPG");
-    if (tipe === "ESSAI") {
-      containerPG.style.display = "none";
-      document.getElementById("mSkorSoal").value = "10";
-    } else {
-      containerPG.style.display = "block";
-      document.getElementById("mSkorSoal").value = "2";
-    }
-  }
-
-  function bukaModalBuatSoalManual() {
-    let listSoalEx = [];
-    try {
-      const txt = document.getElementById("jsonSoalInput").value.trim();
-      if (txt) listSoalEx = JSON.parse(txt);
-    } catch(e){}
-
-    document.getElementById("mNoSoal").value = listSoalEx.length + 1;
-    document.getElementById("mPertanyaan").value = "";
-    document.getElementById("mOpA").value = "";
-    document.getElementById("mOpB").value = "";
-    document.getElementById("mOpC").value = "";
-    document.getElementById("mOpD").value = "";
-    document.getElementById("mTipeSoal").value = "PG";
-    toggleFormTipeSoal();
-    modalInputSoalInstance.show();
-  }
-
-  function tambahkanSoalManual() {
-    const noSoal = parseInt(document.getElementById("mNoSoal").value) || 1;
-    const tipe = document.getElementById("mTipeSoal").value;
-    const skor = parseInt(document.getElementById("mSkorSoal").value) || 2;
-    const pertanyaan = document.getElementById("mPertanyaan").value.trim();
-
-    if (!pertanyaan) { alert("Pertanyaan soal wajib diisi!"); return; }
-
-    let itemSoal = { no_soal: noSoal, tipe: tipe, pertanyaan: pertanyaan, skor: skor };
-    if (tipe === "PG") {
-      itemSoal.opA = document.getElementById("mOpA").value.trim();
-      itemSoal.opB = document.getElementById("mOpB").value.trim();
-      itemSoal.opC = document.getElementById("mOpC").value.trim();
-      itemSoal.opD = document.getElementById("mOpD").value.trim();
-      itemSoal.kunci = document.getElementById("mKunciPG").value;
-    } else {
-      itemSoal.opA = ""; itemSoal.opB = ""; itemSoal.opC = ""; itemSoal.opD = ""; itemSoal.kunci = "-";
-    }
-
-    let currentList = [];
-    try {
-      const currentTxt = document.getElementById("jsonSoalInput").value.trim();
-      if (currentTxt) currentList = JSON.parse(currentTxt);
-    } catch(e){}
-
-    currentList.push(itemSoal);
-    tampilkanHasilKonversi(currentList);
-    modalInputSoalInstance.hide();
-  }
-
-  function prosesUploadFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const statusBox = document.getElementById("statusKonversi");
-    statusBox.className = "alert alert-info";
-    statusBox.innerText = `Memproses file "${file.name}"...`;
-    statusBox.classList.remove("d-none");
-
-    const fileName = file.name.toLowerCase();
-    if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) parseExcel(file);
-    else if (fileName.endsWith(".docx")) parseWord(file);
-    else if (fileName.endsWith(".json") || fileName.endsWith(".txt")) parseTextOrJson(file);
-    else showErrorKonversi("Format file tidak didukung!");
-  }
-
-  function parseExcel(file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rawJson = XLSX.utils.sheet_to_json(sheet);
-
-        const listSoal = rawJson.map((row, index) => ({
-          no_soal: parseInt(row.no_soal || row["No Soal"] || (index + 1)),
-          tipe: String(row.tipe || row["Tipe"] || "PG").trim().toUpperCase(),
-          pertanyaan: String(row.pertanyaan || row["Pertanyaan"] || ""),
-          opA: String(row.opA || row["Opsi A"] || ""),
-          opB: String(row.opB || row["Opsi B"] || ""),
-          opC: String(row.opC || row["Opsi C"] || ""),
-          opD: String(row.opD || row["Opsi D"] || ""),
-          kunci: String(row.kunci || row["Kunci"] || "").trim().toUpperCase(),
-          skor: parseInt(row.skor || row["Skor"] || 2)
-        }));
-        tampilkanHasilKonversi(listSoal);
-      } catch (err) { showErrorKonversi("Gagal membaca Excel: " + err.message); }
-    };
-    reader.readAsArrayBuffer(file);
-  }
-
-  function parseWord(file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      mammoth.extractRawText({ arrayBuffer: e.target.result })
-        .then(function(result) { parseTextFormat(result.value); })
-        .catch(function(err) { showErrorKonversi("Gagal membaca Word: " + err.message); });
-    };
-    reader.readAsArrayBuffer(file);
-  }
-
-  function parseTextOrJson(file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try { tampilkanHasilKonversi(JSON.parse(e.target.result)); }
-      catch (err) { parseTextFormat(e.target.result); }
-    };
-    reader.readAsText(file);
-  }
-
-  function parseTextFormat(text) {
-    try {
-      const blocks = text.split(/(?=^\s*\d+[\.\)])/m);
-      const listSoal = [];
-      blocks.forEach((block) => {
-        const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        if (lines.length < 2) return;
-        let pertanyaan = lines[0].replace(/^\d+[\.\)]\s*/, '');
-        let opA = "", opB = "", opC = "", opD = "", kunci = "A", tipe = "PG";
-
-        lines.forEach(line => {
-          if (/^[A|a][\.\)]/.test(line)) opA = line.replace(/^[A|a][\.\)]\s*/, '');
-          else if (/^[B|b][\.\)]/.test(line)) opB = line.replace(/^[B|b][\.\)]\s*/, '');
-          else if (/^[C|c][\.\)]/.test(line)) opC = line.replace(/^[C|c][\.\)]\s*/, '');
-          else if (/^[D|d][\.\)]/.test(line)) opD = line.replace(/^[D|d][\.\)]\s*/, '');
-          else if (/^(Kunci|Jawaban):/i.test(line)) kunci = line.split(':')[1].trim().toUpperCase();
-          else if (/^(Tipe):/i.test(line)) tipe = line.split(':')[1].trim().toUpperCase();
-        });
-
-        if (pertanyaan) {
-          listSoal.push({ no_soal: listSoal.length + 1, tipe: tipe || "PG", pertanyaan: pertanyaan, opA: opA, opB: opB, opC: opC, opD: opD, kunci: kunci || "A", skor: 2 });
-        }
-      });
-      if (listSoal.length === 0) throw new Error("Format teks tidak dikenali.");
-      tampilkanHasilKonversi(listSoal);
-    } catch (err) { showErrorKonversi(err.message); }
-  }
-
-  function tampilkanHasilKonversi(listSoal) {
-    document.getElementById("jsonSoalInput").value = JSON.stringify(listSoal, null, 2);
-    const statusBox = document.getElementById("statusKonversi");
-    statusBox.className = "alert alert-success";
-    statusBox.innerText = `Berhasil! Terkonversi ${listSoal.length} soal dalam draft.`;
-    statusBox.classList.remove("d-none");
-  }
-
-  function showErrorKonversi(msg) {
-    const statusBox = document.getElementById("statusKonversi");
-    statusBox.className = "alert alert-danger";
-    statusBox.innerText = msg;
-    statusBox.classList.remove("d-none");
-  }
-
-  async function prosesImportSoal() {
-    const kode = getKodeSoal();
-    if (!kode) return;
-
-    const jsonText = document.getElementById("jsonSoalInput").value.trim();
-    if (!jsonText) { alert("Area JSON Soal kosong!"); return; }
-
-    let listSoal = [];
-    try { listSoal = JSON.parse(jsonText); }
-    catch (e) { alert("Format JSON Soal tidak valid!"); return; }
-
-    const btnSimpan = document.getElementById("btnSimpanSoal");
-    btnSimpan.disabled = true;
-    btnSimpan.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
-
-    try {
-      const result = await apiPost({ action: "importSoal", kode_soal: kode, list_soal: listSoal });
-      alert(result.message || "Soal berhasil disimpan!");
-      muatTabelDaftarKodeSoal();
-    } catch (e) { alert("Gagal mengimport soal: " + e.message); }
-    finally { btnSimpan.disabled = false; btnSimpan.innerHTML = "💾 Simpan Semua Soal ke Database"; }
-  }
-
-  async function tinjauDanCetakSoal(kodeSoal) {
-    if (!kodeSoal || typeof kodeSoal !== "string") {
-      kodeSoal = typeof getKodeSoal === "function" ? getKodeSoal() : document.getElementById("kodeSoalInput")?.value.trim().toUpperCase();
-    }
-
-    if (!kodeSoal) {
-      alert("Kode soal tidak boleh kosong! Silakan isi atau pilih Kode Soal terlebih dahulu.");
-      return;
-    }
-
-    try {
-      const targetUrl = typeof API_URL !== "undefined" ? API_URL : (typeof SCRIPT_URL !== "undefined" ? SCRIPT_URL : "");
-
-      const response = await fetch(targetUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "getSoalByKode", kode_soal: kodeSoal })
-      });
-
-      const result = await response.json();
-      if (result.status !== "success" || !result.data || result.data.length === 0) {
-        alert(result.message || "Data soal tidak ditemukan untuk kode: " + kodeSoal);
-        return;
-      }
-
-      const listSoal = result.data;
-      const resPengaturan = await fetch(targetUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "getPengaturan", kode: kodeSoal, kode_soal: kodeSoal })
-      });
-      
-      const dataCfg = await resPengaturan.json();
-      const config = (dataCfg.status === "success" && dataCfg.data) 
-        ? (Array.isArray(dataCfg.data) ? dataCfg.data[0] : dataCfg.data) 
-        : {};
-
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) {
-        alert("Pop-up diblokir oleh browser! Harap izinkan pop-up untuk mencetak.");
-        return;
-      }
-
-      let htmlContent = `
-        <!DOCTYPE html>
-        <html lang="id">
-        <head>
-          <meta charset="UTF-8">
-          <title>Naskah Soal - ${kodeSoal}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; color: #000; line-height: 1.4; }
-            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
-            .header h2, .header h3 { margin: 2px 0; text-transform: uppercase; }
-            .meta-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
-            .meta-table td { padding: 4px; font-size: 14px; }
-            .soal-item { margin-bottom: 15px; page-break-inside: avoid; }
-            .soal-text { font-weight: bold; margin-bottom: 5px; }
-            .opsi-list { list-style-type: none; padding-left: 20px; margin: 5px 0; }
-            .opsi-list li { margin-bottom: 3px; }
-            @media print {
-              body { margin: 0; }
-              .no-print { display: none; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="no-print" style="margin-bottom: 15px; text-align: right;">
-            <button onclick="window.print()" style="padding: 8px 16px; font-weight: bold; cursor: pointer;">🖨️ Cetak Dokumen</button>
-          </div>
-
-          <div class="header">
-            <h2>NASKAH SOAL UJIAN</h2>
-            <h3>${config.jenis_ujian || "PENILAIAN UJIAN"}</h3>
-          </div>
-
-          <table class="meta-table">
-            <tr>
-              <td width="15%"><strong>Mata Pelajaran</strong></td>
-              <td width="35%">: ${config.mata_pelajaran || config.mapel || "-"}</td>
-              <td width="15%"><strong>Kelas/Tingkat</strong></td>
-              <td width="35%">: ${config.kelas || config.daftar_kelas || "-"}</td>
-            </tr>
-            <tr>
-              <td><strong>Kode Soal</strong></td>
-              <td>: ${kodeSoal}</td>
-              <td><strong>Waktu / Durasi</strong></td>
-              <td>: ${config.durasi || 90} Menit</td>
-            </tr>
-          </table>
-          <hr style="border: 1px solid #000; margin-bottom: 20px;">
-          <div class="soal-container">
-      `;
-
-      listSoal.forEach((item, index) => {
-        const no = item.no_soal || item["No Soal"] || (index + 1);
-        const tipe = String(item.tipe || item["Tipe"] || "PG").trim().toUpperCase();
-        const pertanyaan = item.pertanyaan || item["Pertanyaan"] || "";
-        const opA = item.opA || item["Opsi A"] || "";
-        const opB = item.opB || item["Opsi B"] || "";
-        const opC = item.opC || item["Opsi C"] || "";
-        const opD = item.opD || item["Opsi D"] || "";
-        const isPG = tipe === "PG" || tipe === "PILGAN";
-
-        htmlContent += `
-          <div class="soal-item">
-            <div class="soal-text">${no}. ${pertanyaan}</div>
-        `;
-
-        if (isPG) {
-          htmlContent += `
-            <ul class="opsi-list">
-              ${opA ? `<li>A. ${opA}</li>` : ''}
-              ${opB ? `<li>B. ${opB}</li>` : ''}
-              ${opC ? `<li>C. ${opC}</li>` : ''}
-              ${opD ? `<li>D. ${opD}</li>` : ''}
-            </ul>
-          `;
-        }
-
-        htmlContent += `</div>`;
-      });
-
-      htmlContent += `</div></body></html>`;
-
-      printWindow.document.open();
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-
-      printWindow.onload = () => {
-        printWindow.focus();
-        printWindow.print();
-      };
-    } catch (error) {
-      console.error("Gagal mencetak soal:", error);
-      alert("Terjadi kesalahan teknis saat mengambil data naskah soal.");
-    }
-  }
-
-  // ====================================================================
-  // MODUL 6: AI GENERATOR SOAL (GEMINI)
-  // ====================================================================
-    function bukaModalGenAI() {
-    const kode = getKodeSoal();
-    if (!kode) return;
-
-    const mapel = document.getElementById("cfgMapel")?.value || currentMapel || "-";
-    const kelas = document.getElementById("cfgDaftarKelas")?.value || "";
-
-    document.getElementById("aiKodeSoal").value = kode;
-    document.getElementById("aiMapel").value = mapel;
-    document.getElementById("aiKelas").value = kelas;
-
-    generatePromptText();
-    modalGenAIInstance.show();
-  }
-
-  function generatePromptText() {
-    const kode = document.getElementById("aiKodeSoal")?.value || document.getElementById("kodeSoalInput")?.value || "";
-    const mapel = document.getElementById("aiMapel")?.value || document.getElementById("cfgMapel")?.value || "";
-    const kelas = document.getElementById("aiKelas")?.value || document.getElementById("cfgDaftarKelas")?.value || "";
-    const jmlPG = document.getElementById("aiJumlahPG")?.value || "10";
-    const jmlEssai = document.getElementById("aiJumlahEssai")?.value || "5";
-    const topik = document.getElementById("aiTopik")?.value || "";
-
-    const promptText = `Buatkan bank soal untuk ujian sekolah dengan ketentuan sebagai berikut:
-- Mata Pelajaran: ${mapel}
-- Tingkat/Kelas: ${kelas}
-- Topik/Materi: ${topik}
-- Jumlah Soal Pilihan Ganda (PG): ${jmlPG}
-- Jumlah Soal Essai: ${jmlEssai}
-- Kode Soal: ${kode}
-
-lalu masukkan ke dalam format excel berikut:
-
-| Kode Soal | No Soal | Tipe | Pertanyaan | Opsi A | Opsi B | Opsi C | Opsi D | Kunci | Skor |
-
-Aturan Pengisian Tabel Excel:
-1. "Kode Soal": Isi seluruh baris dengan '${kode}'.
-2. "No Soal": Angka berurutan dari 1 sampai ${parseInt(jmlPG) + parseInt(jmlEssai)}.
-3. "Tipe": Isi 'PG' untuk Pilihan Ganda (nomor 1 sampai ${jmlPG}), dan 'ESSAI' untuk Uraian/Essai (nomor ${parseInt(jmlPG) + 1} sampai ${parseInt(jmlPG) + parseInt(jmlEssai)}).
-4. "Pertanyaan": Teks pertanyaan soal.
-5. "Opsi A", "Opsi B", "Opsi C", "Opsi D":
-   - Untuk Tipe PG: Wajib diisi pilihan jawabannya.
-   - Untuk Tipe ESSAI: Harus dikosongkan (TIDAK BOLEH ADA OPSI JAWABAN).
-6. "Kunci":
-   - Untuk Tipe PG: Isi huruf kapital kunci jawaban ('A', 'B', 'C', atau 'D').
-   - Untuk Tipe ESSAI: tambahkan kunci jawaban saja, tanpa dijelaskan.
-7. "Skor": hitung secara otomatis berdasarkan jumlan soal PG dan jumlah soal Essai, hingga total 100.
-
-Sajikan hasil balasan dalam format text UNICODE dan HANYA dalam bentuk TABEL Excel, agar bisa langsung diunduh.`;
-
-    const inputPrompt = document.getElementById("aiGeneratedPrompt");
-    if (inputPrompt) {
-      inputPrompt.value = promptText;
-    }
-  }
-
-  function salinPromptSaja(e) {
-    const promptArea = document.getElementById("aiGeneratedPrompt");
-    const promptText = promptArea ? promptArea.value : "";
-
-    if (!promptText.trim()) {
-      alert("Mohon isi topik/materi terlebih dahulu!");
-      if (e) e.preventDefault();
-      return;
-    }
-
-    promptArea.focus();
-    promptArea.select();
-    promptArea.setSelectionRange(0, 99999);
-
-    let suksesSalin = false;
-    try {
-      suksesSalin = document.execCommand("copy");
-    } catch (err) {
-      suksesSalin = false;
-    }
-
-    if (!suksesSalin && navigator.clipboard) {
-      navigator.clipboard.writeText(promptText);
-    }
-
-    alert("✅ Prompt Soal AI berhasil disalin!\n\nSilakan tekan Ctrl + V (Paste) pada kolom chat Gemini yang terbuka.");
-  }
-
-  // ====================================================================
-  // MODUL 7: REKAP HASIL UJIAN, KOREKSI ESSAI & LEMBAR JAWABAN
-  // ====================================================================
-  async function muatHasilUjian() {
-    const kode = getKodeSoal();
-    if (!kode) return;
-
-    const mapel = document.getElementById("cfgMapel").value || currentMapel || "-";
-    document.getElementById("subTitleHasil").innerText = `Kode Soal: ${kode} | Mapel: ${mapel}`;
-
-    const tbody = document.getElementById("tabelHasilBody");
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat data rekap hasil...</td></tr>';
-
-    try {
-      const payload = { action: "getHasilUjian", kode_soal: kode };
-      const result = await apiPost(payload);
-
-      if (result.status === "success") {
-        rawDataBankSoal = result.bank_soal || [];
-        rawDataHasil = result.data || [];
-        filteredHasil = [...rawDataHasil];
-
-        populasiFilterKelas();
-        updateStatistikUjian();
-
-        if (rawDataHasil.length > 0) {
-          renderTabelHasil(filteredHasil);
-        } else {
-          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Belum ada hasil ujian untuk kode ini.</td></tr>';
-        }
-      } else {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Gagal: ${result.message}</td></tr>`;
-      }
-    } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Terjadi kesalahan koneksi saat memuat rekap. Silakan coba lagi.</td></tr>';
-    }
-  }
-
-  function renderTabelHasil(dataList) {
-    const tbody = document.getElementById("tabelHasilBody");
-    tbody.innerHTML = "";
-
-    if (!dataList || dataList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Data tidak ditemukan.</td></tr>';
-      return;
-    }
-
-    dataList.forEach((item) => {
-      const nilaiPG = parseFloat(item.skor_pg || 0);
-      const nilaiEssai = parseFloat(item.nilai_essai || 0);
-      const totalNilai = nilaiPG + nilaiEssai;
-
-      let detailNilaiObj = {};
-      try {
-        detailNilaiObj = typeof item.detail_nilai_essai === 'string' 
-          ? JSON.parse(item.detail_nilai_essai) 
-          : (item.detail_nilai_essai || {});
-      } catch(e) {}
-
-      const sudahDikoreksi = Object.keys(detailNilaiObj).length > 0 || nilaiEssai > 0;
-      const btnClass = sudahDikoreksi ? "btn-success text-white" : "btn-warning text-dark";
-      const btnText = sudahDikoreksi ? "✓ Koreksi" : "✏️ Koreksi";
-      const origIndex = rawDataHasil.indexOf(item);
-
-      const row = `
-        <tr>
-          <td>${new Date(item.timestamp).toLocaleString("id-ID")}</td>
-          <td>${item.no_peserta || item.noPeserta || '-'}</td>
-          <td class="fw-bold">${item.nama}</td>
-          <td>${item.kelas}</td>
-          <td class="text-center"><span class="badge bg-primary fs-6">${nilaiPG}</span></td>
-          <td class="text-center"><span class="badge bg-info text-dark fs-6">${nilaiEssai}</span></td>
-          <td class="text-center"><span class="badge bg-success fs-6">${totalNilai}</span></td>
-          <td class="text-center no-print">
-            <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" title="Lihat Jawaban Siswa" onclick="bukaModalLihatJawaban(${origIndex})">📄 Jawaban</button>
-            <button class="btn btn-sm ${btnClass} fw-bold me-1" onclick="bukaModalEssai(${origIndex})">${btnText}</button>
-            <button class="btn btn-sm btn-outline-danger fw-bold" title="Hapus Data Peserta" onclick="hapusHasilSiswa('${item.no_peserta || item.noPeserta}')">🗑️</button>
-          </td>
-        </tr>
-      `;
-      tbody.innerHTML += row;
-    });
-  }
-
-  async function bukaModalLihatJawaban(index) {
-    const item = rawDataHasil[index];
-    if (!item) return;
-
-    const kode = typeof getKodeSoal === 'function' ? getKodeSoal() : "";
-
-    const btnCetak = document.getElementById("btnCetakLJ");
-    if (btnCetak) {
-      btnCetak.onclick = function() { cetakAreaModalJawaban(); };
-    }
-
-    if ((!window.rawDataAnalisis || window.rawDataAnalisis.length === 0) && kode) {
-      try {
-        const payload = { action: "analisisSoal", kode_soal: kode };
-        const result = await apiPost(payload);
-        if (result.status === "success") {
-          window.rawDataAnalisis = result.analisis || result.data || [];
-        }
-      } catch (e) { console.error("Gagal mengambil kunci dari analisis:", e); }
-    }
-
-    const mapKunciAnalisis = {};
-    if (window.rawDataAnalisis && Array.isArray(window.rawDataAnalisis)) {
-      window.rawDataAnalisis.forEach(a => {
-        if (a.no_soal !== undefined) mapKunciAnalisis[a.no_soal] = a.kunci;
-      });
-    }
-
-    document.getElementById("ljNamaSiswa").innerText = item.nama;
-    document.getElementById("ljNoPeserta").innerText = item.no_peserta || item.noPeserta || '-';
-    document.getElementById("ljKelasSiswa").innerText = item.kelas;
-    document.getElementById("ljMapel").innerText = document.getElementById("cfgMapel").value || currentMapel || "-";
-
-    const pg = parseFloat(item.skor_pg || 0);
-    const es = parseFloat(item.nilai_essai || 0);
-    document.getElementById("ljTotalNilai").innerText = pg + es;
-
-    let detailJawaban = {};
-    try { detailJawaban = typeof item.detail_jawaban === 'string' ? JSON.parse(item.detail_jawaban) : item.detail_jawaban; } catch(e){}
-
-    let detailNilaiEssai = {};
-    try { detailNilaiEssai = typeof item.detail_nilai_essai === 'string' ? JSON.parse(item.detail_nilai_essai) : (item.detail_nilai_essai || {}); } catch(e){}
-
-    const container = document.getElementById("containerLembarJawabanLengkap");
-    container.innerHTML = "";
-
-    if (!rawDataBankSoal || rawDataBankSoal.length === 0) {
-      container.innerHTML = `<div class="alert alert-warning">Data bank soal tidak ditemukan untuk perbandingan.</div>`;
-      modalLihatJawabanInstance.show();
-      return;
-    }
-
-    rawDataBankSoal.forEach((soal, idx) => {
-      const noSoalKey = idx + 1;
-      const noSoal = soal.no_soal || noSoalKey;
-      const tipe = String(soal.tipe || "PG").trim().toUpperCase();
-      const isPG = tipe === "PG" || tipe === "PILGAN";
-
-      const meJawabRaw = detailJawaban[noSoalKey] ?? detailJawaban[String(noSoalKey)] ?? detailJawaban[noSoal] ?? detailJawaban[String(noSoal)] ?? "-";
-
-      let statusBadge = "";
-      let detailHtml = "";
-
-      if (isPG) {
-        const kunciRaw = soal.kunci || soal.kunci_jawaban || mapKunciAnalisis[noSoal] || mapKunciAnalisis[noSoalKey] || "";
-        const kunci = String(kunciRaw).trim().toUpperCase();
-        const meUpper = String(meJawabRaw).trim().toUpperCase();
-        const isBenar = meUpper !== "" && meUpper !== "-" && meUpper === kunci;
-
-        statusBadge = isBenar 
-          ? `<span class="badge bg-success">BENAR (+${soal.skor || 2})</span>` 
-          : `<span class="badge bg-danger">SALAH (0)</span>`;
-
-        detailHtml = `
-          <div class="row mt-2">
-            <div class="col-6">Jawaban Siswa: <strong class="${isBenar ? 'text-success' : 'text-danger'}">${meJawabRaw}</strong></div>
-            <div class="col-6">Kunci Jawaban: <strong class="text-primary">${kunci || "-"}</strong></div>
-          </div>
-        `;
-      } else {
-        const nilaiEss = detailNilaiEssai[noSoalKey] ?? detailNilaiEssai[String(noSoalKey)] ?? 0;
-        statusBadge = `<span class="badge bg-info text-dark">Skor Essai: ${nilaiEss} / ${soal.skor || 10}</span>`;
-        detailHtml = `
-          <div class="p-2 bg-light rounded border mt-2">
-            <strong>Jawaban Essai Siswa:</strong>
-            <div>${meJawabRaw}</div>
-          </div>
-        `;
-      }
-
-      container.innerHTML += `
-        <div class="card mb-3">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <span>No. ${noSoal} (${tipe})</span>
-            ${statusBadge}
-          </div>
-          <div class="card-body">
-            <p class="mb-1"><strong>Soal:</strong> ${soal.pertanyaan || '-'}</p>
-            ${detailHtml}
-          </div>
-        </div>
-      `;
-    });
-
-    modalLihatJawabanInstance.show();
-  }
-
-  function cetakAreaModalJawaban() {
-    const isiModal = document.getElementById("areaCetakModal").innerHTML;
-    const printWindow = window.open("", "_blank");
-    
-    if (!printWindow) {
-      alert("Pop-up diblokir browser! Izinkan pop-up untuk mencetak.");
-      return;
-    }
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html lang="id">
-      <head>
-        <meta charset="UTF-8">
-        <title>Cetak Lembar Jawaban Siswa</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-        <style>
-          body { padding: 20px; font-family: Arial, sans-serif; background: #fff; }
-          @media print { .no-print { display: none !important; } }
-        </style>
-      </head>
-      <body>
-        <h3 class="text-center mb-4 fw-bold">HASIL & LEMBAR JAWABAN SISWA</h3>
-        ${isiModal}
-      </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.onload = () => {
-      printWindow.focus();
-      printWindow.print();
-    };
-  }
-
-  function populasiFilterKelas() {
-    const select = document.getElementById("filterKelasSelect");
-    select.innerHTML = '<option value="">-- Semua Kelas --</option>';
-    const daftarKelas = [...new Set(rawDataHasil.map(i => i.kelas).filter(Boolean))];
-    daftarKelas.forEach(k => select.innerHTML += `<option value="${k}">${k}</option>`);
-  }
-
-  function filterHasilUjian() {
-    const search = document.getElementById("searchSiswaInput").value.toLowerCase().trim();
-    const filterKelas = document.getElementById("filterKelasSelect").value.trim();
-
-    filteredHasil = rawDataHasil.filter(item => {
-      const matchSearch = search === "" || String(item.nama).toLowerCase().includes(search) || String(item.no_peserta).toLowerCase().includes(search);
-      const matchKelas = filterKelas === "" || String(item.kelas) === filterKelas;
-      return matchSearch && matchKelas;
-    });
-    renderTabelHasil(filteredHasil);
-    updateStatistikUjian(filteredHasil);
-  }
-
-  function resetFilterHasil() {
-    document.getElementById("searchSiswaInput").value = "";
-    document.getElementById("filterKelasSelect").value = "";
-    filteredHasil = [...rawDataHasil];
-    renderTabelHasil(filteredHasil);
-    updateStatistikUjian(filteredHasil);
-  }
-
-  function updateStatistikUjian(dataList = rawDataHasil) {
-    if (!dataList || dataList.length === 0) {
-      document.getElementById("statRataRata").innerText = "0";
-      document.getElementById("statMax").innerText = "0";
-      document.getElementById("statMin").innerText = "0";
-      return;
-    }
-    const totals = dataList.map(item => parseFloat(item.skor_pg || 0) + parseFloat(item.nilai_essai || 0));
-    document.getElementById("statRataRata").innerText = (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1);
-    document.getElementById("statMax").innerText = Math.max(...totals);
-    document.getElementById("statMin").innerText = Math.min(...totals);
-  }
-
-  async function hapusHasilSiswa(noPeserta) {
-    const kode = getKodeSoal();
-    if (!kode) { alert("❌ Kode soal belum dipilih!"); return; }
-    if (!noPeserta) { alert("❌ No peserta tidak valid!"); return; }
-
-    if (!confirm(`Hapus hasil ujian No/NIS: ${noPeserta}?`)) return;
-
-    try {
-      const result = await apiPost({ 
-        action: "hapusHasilUjian", 
-        kode_soal: kode, 
-        no_peserta: String(noPeserta).trim() 
-      });
-
-      if (result && result.status === "success") {
-        alert("✅ " + (result.message || "Data berhasil dihapus!"));
-        muatHasilUjian();
-      } else {
-        alert("❌ " + (result?.message || "Gagal menghapus data!"));
-      }
-    } catch (err) {
-      alert("❌ Kesalahan koneksi: " + err.message);
-    }
-  }
-
-  function bukaModalEssai(index) {
-    selectedIndexHasil = index;
-    const item = rawDataHasil[index];
-
-    document.getElementById("modalNamaSiswa").innerText = item.nama;
-    document.getElementById("modalKelasSiswa").innerText = item.kelas;
-
-    let detailJawaban = {};
-    try { detailJawaban = typeof item.detail_jawaban === 'string' ? JSON.parse(item.detail_jawaban) : item.detail_jawaban; } catch(e){}
-
-    let detailNilaiEssai = {};
-    try { detailNilaiEssai = typeof item.detail_nilai_essai === 'string' ? JSON.parse(item.detail_nilai_essai) : (item.detail_nilai_essai || {}); } catch(e){}
-
-    const container = document.getElementById("containerJawabanEssai");
-    container.innerHTML = "";
-
-    let countEssai = 0;
-    rawDataBankSoal.forEach((soal, idx) => {
-      const tipe = String(soal.tipe || "PG").trim().toUpperCase();
-      if (tipe === "ESSAI" || tipe === "ESSAY" || tipe === "ES") {
-        countEssai++;
-        const keyUnik = idx + 1;
-        const jawabanSiswaText = detailJawaban[keyUnik] || detailJawaban[soal.no_soal] || "<i class='text-muted'>(Tidak dijawab)</i>";
-        const nilaiExisting = detailNilaiEssai[keyUnik] !== undefined ? detailNilaiEssai[keyUnik] : 0;
-
-        const boxHtml = `
-          <div class="card mb-3 border">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center fw-bold">
-              <span>Soal Essai No. ${countEssai} (Urutan No. ${keyUnik})</span>
-              <span class="badge bg-secondary">Maks: ${soal.skor || 10}</span>
-            </div>
-            <div class="card-body">
-              <p class="mb-2"><strong>Pertanyaan:</strong> ${soal.pertanyaan}</p>
-              <div class="p-3 bg-white rounded border text-dark mb-3">
-                <strong>Jawaban Siswa:</strong><br>
-                <div class="mt-1">${jawabanSiswaText}</div>
-              </div>
-              
-              <div class="row align-items-center g-2 bg-light p-2 rounded">
-                <div class="col-auto">
-                  <label class="fw-bold text-primary mb-0">Nilai Soal Ini:</label>
-                </div>
-                <div class="col-auto">
-                  <input type="number" class="form-control form-control-sm fw-bold input-nilai-per-soal" 
-                    data-key="${keyUnik}" 
-                    value="${nilaiExisting}" 
-                    min="0" 
-                    max="${soal.skor || 100}" 
-                    oninput="hitungTotalNilaiEssaiModal()" 
-                    style="width: 100px;">
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-        container.innerHTML += boxHtml;
-      }
-    });
-
-    if (countEssai === 0) {
-      container.innerHTML = `<div class="alert alert-warning">Tidak ditemukan soal bertipe Essai pada bank soal kode ini.</div>`;
-    }
-
-    hitungTotalNilaiEssaiModal();
-    modalEssaiInstance.show();
-  }
-
-  function hitungTotalNilaiEssaiModal() {
-    let total = 0;
-    document.querySelectorAll(".input-nilai-per-soal").forEach(input => {
-      total += parseFloat(input.value) || 0;
-    });
-    document.getElementById("inputNilaiEssaiModal").value = total;
-  }
-
-  async function simpanNilaiEssai() {
-    if (selectedIndexHasil < 0) return;
-    const item = rawDataHasil[selectedIndexHasil];
-    const kode = getKodeSoal();
-
-    let mapNilaiPerSoal = {};
-    document.querySelectorAll(".input-nilai-per-soal").forEach(input => {
-      const key = input.getAttribute("data-key");
-      mapNilaiPerSoal[key] = parseFloat(input.value) || 0;
-    });
-
-    const totalNilaiEssai = parseFloat(document.getElementById("inputNilaiEssaiModal").value) || 0;
-
-    try {
-      const result = await apiPost({
-        action: "simpanNilaiEssai",
-        kode_soal: kode,
-        no_peserta: item.no_peserta || item.noPeserta,
-        nilai_essai: totalNilaiEssai,
-        detail_nilai_essai: JSON.stringify(mapNilaiPerSoal)
-      });
-
-      if (result.status === "success") {
-        alert("Berhasil menyimpan nilai essai!");
-        modalEssaiInstance.hide();
-        muatHasilUjian();
-      } else {
-        alert("Gagal: " + result.message);
-      }
-    } catch (e) {
-      alert("Terjadi kesalahan koneksi saat menyimpan nilai essai.");
-    }
-  }
   
-    function exportToExcel() {
-    const kode = getKodeSoal();
-    const dataYangDiExport = filteredHasil.length > 0 ? filteredHasil : rawDataHasil;
-
-    if (!kode || dataYangDiExport.length === 0) {
-      alert("Tidak ada data rekap nilai untuk di-export!");
-      return;
-    }
-
-    const mapel = document.getElementById("cfgMapel").value || currentMapel || "-";
-
-    const dataExcel = dataYangDiExport.map((item, idx) => {
-      const pg = parseFloat(item.skor_pg || 0);
-      const es = parseFloat(item.nilai_essai || 0);
-      return {
-        "No": idx + 1,
-        "Waktu Selesai": new Date(item.timestamp).toLocaleString("id-ID"),
-        "No Peserta": item.no_peserta || item.noPeserta || '-',
-        "Nama Siswa": item.nama,
-        "Kelas": item.kelas,
-        "Mata Pelajaran": mapel,
-        "Nilai PG": pg,
-        "Nilai Essai": es,
-        "Total Nilai": pg + es
-      };
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(dataExcel);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Nilai");
-    XLSX.writeFile(workbook, `Rekap_Nilai_${kode}.xlsx`);
-  }
-  
-  async function prosesHitungUlangNilai() {
-    const kode = getKodeSoal();
-    if (!kode) return;
-
-    if (!confirm(`Apakah Anda yakin ingin menghitung ulang seluruh nilai PG untuk Kode Soal '${kode}'?`)) return;
-
-    const tbody = document.getElementById("tabelHasilBody");
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning me-2"></div>Sedang menghitung ulang nilai seluruh siswa...</td></tr>';
-
-    try {
-      const payload = { action: "hitungUlangSkor", kode_soal: kode };
-      const result = await apiPost(payload);
-
-      if (result.status === "success") {
-        alert(result.message);
-        muatHasilUjian();
-      } else {
-        alert("Gagal: " + result.message);
-        muatHasilUjian();
-      }
-    } catch (e) {
-      alert("Terjadi kesalahan koneksi saat menghitung ulang nilai: " + e.message);
-      muatHasilUjian();
-    }
-  }
-  
-  // ====================================================================
-  // MODUL 8: LAPORAN ANALISIS HASIL UJIAN
-  // ====================================================================
-  async function muatAnalisisSoal() {
-    const kode = getKodeSoal();
-    if (!kode) return;
-
-    const tbody = document.getElementById("tabelAnalisisBody");
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Menganalisis butir soal & mengambil data mapel...</td></tr>';
-
-    // 1. Cek Mapel dari Form atau Variabel Global
-    let mapel = document.getElementById("cfgMapel")?.value || currentMapel || "";
-
-    // 2. Jika Mapel masih kosong, ambil langsung ke Server (getPengaturan)
-    if (!mapel || mapel === "-") {
-      try {
-        const resPengaturan = await apiPost({ action: "getPengaturan", kode: kode, kode_soal: kode });
-        if (resPengaturan.status === "success" && resPengaturan.data) {
-          const cfg = Array.isArray(resPengaturan.data) ? resPengaturan.data[0] : resPengaturan.data;
-          mapel = cfg.mata_pelajaran || cfg.mapel || "-";
-          currentMapel = mapel;
-          
-          if (document.getElementById("cfgMapel")) {
-            selectDropdownValue("cfgMapel", mapel);
-          }
-        }
-      } catch (err) {
-        console.warn("Gagal mengambil mapel dari server:", err);
-      }
-    }
-
-    if (!mapel) mapel = "-";
-
-    // 3. Update Teks Subtitle Laporan Analisis
-    const subTitleEl = document.getElementById("subTitleAnalisis");
-    if (subTitleEl) {
-      subTitleEl.innerText = `Kode Soal: ${kode} | Mapel: ${mapel}`;
-    }
-
-    // 4. Ambil Data Analisis Soal dari Server
-    try {
-      const payload = { action: "analisisSoal", kode_soal: kode };
-      const result = await apiPost(payload);
-
-      if (result.status === "success") {
-        rawDataAnalisis = result.analisis || result.data || [];
-        document.getElementById("infoTotalSiswaAnalisis").innerText = `Total Responden/Siswa: ${result.total_siswa || 0} orang`;
-        
-        if (rawDataAnalisis.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Belum ada data siswa untuk dianalisis.</td></tr>';
-          return;
-        }
-
-        tbody.innerHTML = "";
-        rawDataAnalisis.forEach(item => {
-          let badgeKategori = "bg-success";
-          if (item.kategori === "Mudah") badgeKategori = "bg-info text-dark";
-          if (item.kategori === "Sukar") badgeKategori = "bg-danger";
-
-          const isPG = item.tipe === "PG" || item.tipe === "PILGAN";
-          const seb = item.sebaran || { A:0, B:0, C:0, D:0 };
-          const sebaranText = isPG 
-            ? `A: <b>${seb.A || 0}</b> | B: <b>${seb.B || 0}</b> | C: <b>${seb.C || 0}</b> | D: <b>${seb.D || 0}</b>`
-            : `<i class="text-muted">Soal Essai (Manual)</i>`;
-
-          const row = `
-            <tr>
-              <td class="text-center fw-bold">${item.no_soal}</td>
-              <td class="text-center"><span class="badge bg-secondary">${item.tipe}</span></td>
-              <td class="text-center fw-bold text-primary">${item.kunci || "-"}</td>
-              <td>${sebaranText}</td>
-              <td class="text-center text-success fw-bold">${item.benar}</td>
-              <td class="text-center text-danger fw-bold">${item.salah}</td>
-              <td class="text-center fw-bold">${item.tingkat_kesukaran}</td>
-              <td class="text-center"><span class="badge ${badgeKategori}">${item.kategori}</span></td>
-            </tr>
-          `;
-          tbody.innerHTML += row;
-        });
-      } else {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Gagal: ${result.message}</td></tr>`;
-      }
-    } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Terjadi kesalahan koneksi saat memuat analisis. Silakan coba lagi.</td></tr>';
-    }
-  }
-
-    // CETAK ANALISIS SOAL DENGAN NAMA FILE DINAMIS
-  function cetakAnalisisPDF() {
-    const kode = getKodeSoal();
-    if (!kode || rawDataAnalisis.length === 0) {
-      alert("Tidak ada data analisis soal untuk dicetak!");
-      return;
-    }
-
-    const mapel = document.getElementById("cfgMapel")?.value || currentMapel || "";
-    const originalTitle = document.title;
-
-    document.title = `Laporan_Analisis_Soal_${kode}_${mapel}`.replace(/\s+/g, '_');
-
-    window.print();
-
-    setTimeout(() => {
-      document.title = originalTitle;
-    }, 1000);
-  }
-  
-    function exportAnalisisToExcel() {
-    const kode = getKodeSoal();
-    if (!kode || rawDataAnalisis.length === 0) {
-      alert("Tidak ada data analisis soal untuk di-export!");
-      return;
-    }
-
-    const dataExcel = rawDataAnalisis.map((item) => {
-      const seb = item.sebaran || {};
-      return {
-        "No Soal": item.no_soal,
-        "Tipe": item.tipe,
-        "Kunci Jawaban": item.kunci || "-",
-        "Jumlah Benar": item.benar,
-        "Jumlah Salah": item.salah,
-        "Opsi A": seb.A || 0,
-        "Opsi B": seb.B || 0,
-        "Opsi C": seb.C || 0,
-        "Opsi D": seb.D || 0,
-        "% Kesukaran": item.tingkat_kesukaran,
-        "Kategori": item.kategori
-      };
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(dataExcel);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Analisis Soal");
-    XLSX.writeFile(workbook, `Analisis_Soal_${kode}.xlsx`);
-  }
-  
-    function cetakPDF() {
-    const kode = getKodeSoal();
-    if (!kode || rawDataHasil.length === 0) {
-      alert("Tidak ada data rekap nilai untuk dicetak!");
-      return;
-    }
-
-    const mapel = document.getElementById("cfgMapel")?.value || currentMapel || "";
-    const originalTitle = document.title;
-
-    document.title = `Laporan_Rekap_Nilai_${kode}_${mapel}`.replace(/\s+/g, '_');
-
-    window.print();
-
-    setTimeout(() => {
-      document.title = originalTitle;
-    }, 1000);
-  }
-  
-  // ====================================================================
-  // MODUL 9: MANAJEMEN AKUN PENGGUNA (GURU & SISWA)
-  // ====================================================================
-  function toggleFormRoleSiswa() {
-    const role = document.getElementById("addRoleGuru").value;
-    const containerKelas = document.getElementById("containerAddKelasSiswa");
-    const lblUsername = document.getElementById("lblUsernameInput");
-
-    if (role === "Siswa") {
-      containerKelas.style.display = "block";
-      lblUsername.innerText = "NIS / No. Peserta / Username";
-    } else {
-      containerKelas.style.display = "none";
-      lblUsername.innerText = "Username / NIP";
-    }
-  }
-
-  async function muatTabelGuru() {
-    const tbody = document.getElementById("tabelGuruBody");
-    if (!tbody) return;
-
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning me-2"></div>Memuat data akun pengguna...</td></tr>';
-
-    try {
-      const result = await apiPost({ action: "getPengguna" });
-
-      if (result.status === "success" && Array.isArray(result.data)) {
-        rawDataUserAkun = result.data;
-        filterTabelAkun();
-      } else {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Gagal memuat: ${result.message || 'Terjadi kesalahan'}</td></tr>`;
-      }
-    } catch (err) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">Gagal terhubung ke server. Silakan coba lagi.</td></tr>';
-    }
-  }
-
-  function filterTabelAkun() {
-    const tbody = document.getElementById("tabelGuruBody");
-    const filterRole = document.getElementById("filterRoleUser").value.trim().toLowerCase();
-    const searchVal = document.getElementById("searchUserAkun").value.trim().toLowerCase();
-
-    const filtered = rawDataUserAkun.filter(item => {
-      const roleItem = String(item.role || "Siswa").toLowerCase();
-      const userItem = String(item.username || "").toLowerCase();
-      const namaItem = String(item.nama || "").toLowerCase();
-
-      const matchRole = filterRole === "" || roleItem === filterRole || (filterRole === "guru" && roleItem === "super admin");
-      const matchSearch = searchVal === "" || userItem.includes(searchVal) || namaItem.includes(searchVal);
-
-      return matchRole && matchSearch;
-    });
-
-    if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Tidak ada data akun yang sesuai.</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = "";
-    filtered.forEach((item, index) => {
-      const roleStr = item.role || "Siswa";
-      let badgeClass = "bg-info text-dark";
-
-      if (roleStr === "Super Admin") badgeClass = "bg-danger text-white";
-      else if (roleStr === "Guru") badgeClass = "bg-primary text-white";
-
-      const row = `
-        <tr>
-          <td class="text-center fw-bold">${index + 1}</td>
-          <td><strong class="text-primary">${item.username}</strong></td>
-          <td>${item.nama}</td>
-          <td class="text-center"><span class="badge bg-light text-dark border">${item.kelas || '-'}</span></td>
-          <td><code class="fs-6 text-dark">${item.password}</code></td>
-          <td class="text-center"><span class="badge ${badgeClass}">${roleStr}</span></td>
-          <td class="text-center">
-            <button class="btn btn-sm btn-outline-warning text-dark fw-bold me-1" onclick="bukaModalEditUser('${item.username}', '${item.nama}', '${item.password}', '${roleStr}', '${item.kelas || ''}')" title="Edit Akun Ini">
-              ✏️ Edit
-            </button>
-            <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusGuru('${item.username}')" title="Hapus User Ini">
-              🗑️
-            </button>
-          </td>
-        </tr>
-      `;
-      tbody.innerHTML += row;
-    });
-  }
-
-  function bukaModalTambahUser() {
-    document.getElementById("modalUserTitle").innerText = "➕ Tambah Akun Pengguna Baru";
-    document.getElementById("editUserMode").value = "add";
-    document.getElementById("formTambahGuru").reset();
-    document.getElementById("addUsernameGuru").readOnly = false;
-    document.getElementById("addRoleGuru").value = "Siswa";
-    toggleFormRoleSiswa();
-    modalTambahGuruInstance.show();
-  }
-
-  function bukaModalEditUser(username, nama, password, role, kelas) {
-    document.getElementById("modalUserTitle").innerText = "✏️ Ubah Data Akun Pengguna";
-    document.getElementById("editUserMode").value = "edit";
-    document.getElementById("origUsername").value = username;
-
-    document.getElementById("addUsernameGuru").value = username;
-    document.getElementById("addUsernameGuru").readOnly = true;
-    document.getElementById("addNamaGuru").value = nama;
-    document.getElementById("addPasswordGuru").value = password;
-    document.getElementById("addRoleGuru").value = role;
-    document.getElementById("addKelasSiswa").value = kelas;
-
-    toggleFormRoleSiswa();
-    modalTambahGuruInstance.show();
-  }
-
-  async function prosesSimpanUser() {
-    const mode = document.getElementById("editUserMode").value;
-    const username = document.getElementById("addUsernameGuru").value.trim();
-    const nama = document.getElementById("addNamaGuru").value.trim();
-    const password = document.getElementById("addPasswordGuru").value.trim();
-    const role = document.getElementById("addRoleGuru").value;
-    const kelas = document.getElementById("addKelasSiswa").value.trim();
-
-    if (!username || !nama || !password) {
-      alert("Username/NIS, Nama Lengkap, dan Password wajib diisi!");
-      return;
-    }
-
-    const payload = {
-      action: mode === "edit" ? "editUser" : "tambahGuru",
-      username: username,
-      nama: nama,
-      password: password,
-      role: role,
-      kelas: role === "Siswa" ? kelas : ""
-    };
-
-    try {
-      const result = await apiPost(payload);
-      if (result.status === "success") {
-        alert(result.message || "Berhasil menyimpan data akun!");
-        document.getElementById("formTambahGuru").reset();
-        modalTambahGuruInstance.hide();
-        muatTabelGuru();
-      } else {
-        alert("Gagal: " + result.message);
-      }
-    } catch (e) {
-      alert("Terjadi kesalahan sistem saat menyimpan akun: " + e.message);
-    }
-  }
-
-  async function hapusGuru(username) {
-    if (!confirm(`⚠️ PERINGATAN: Apakah Anda yakin ingin menghapus akun '${username}'?`)) {
-      return;
-    }
-
-    try {
-      const result = await apiPost({
-        action: "hapusGuru",
-        username: username
-      });
-
-      if (result.status === "success") {
-        alert(result.message || "Akun berhasil dihapus!");
-        muatTabelGuru();
-      } else {
-        alert("Gagal menghapus: " + result.message);
-      }
-    } catch (err) {
-      alert("Terjadi kesalahan koneksi saat menghapus user.");
-    }
-  }
 </script>
 </body>
 </html>
