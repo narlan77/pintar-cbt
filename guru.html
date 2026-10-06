@@ -2228,15 +2228,14 @@ Sajikan hasil balasan dalam format text UNICODE dan HANYA dalam bentuk TABEL Exc
   }
 
   function filterHasilUjian() {
-    const q = document.getElementById("searchSiswaInput").value.toLowerCase().trim();
-    const kls = document.getElementById("filterKelasSelect").value;
+    const search = document.getElementById("searchSiswaInput").value.toLowerCase().trim();
+    const filterKelas = document.getElementById("filterKelasSelect").value.trim();
 
     filteredHasil = rawDataHasil.filter(item => {
-      const matchQ = (item.nama || "").toLowerCase().includes(q) || (item.no_peserta || item.noPeserta || "").toLowerCase().includes(q);
-      const matchKls = !kls || (item.kelas || "").trim() === kls;
-      return matchQ && matchKls;
+      const matchSearch = search === "" || String(item.nama).toLowerCase().includes(search) || String(item.no_peserta).toLowerCase().includes(search);
+      const matchKelas = filterKelas === "" || String(item.kelas) === filterKelas;
+      return matchSearch && matchKelas;
     });
-
     renderTabelHasil(filteredHasil);
     updateStatistikUjian(filteredHasil);
   }
