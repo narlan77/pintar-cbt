@@ -2311,7 +2311,7 @@ Sajikan hasil balasan dalam format text UNICODE dan HANYA dalam bentuk TABEL Exc
     if (!confirm("Apakah Anda yakin ingin menghitung ulang seluruh nilai PG siswa berdasarkan kunci jawaban saat ini?")) return;
 
     try {
-      const res = await apiPost({ action: "hitungUlangNilai", kode_soal: kode });
+      const res = await apiPost({ action: "hitungulangskor", kode_soal: kode });
       alert(res.message || "Hitung ulang nilai berhasil!");
       muatHasilUjian();
     } catch(e) {
