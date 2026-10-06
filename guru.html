@@ -698,19 +698,17 @@
           </div>
 
           <div class="row g-2 mb-3">
-            <div class="col-md-4">
-              <select id="filterRoleUser" class="form-select form-select-sm" onchange="filterTabelAkun()">
-                <option value="">-- Semua Peran (Guru & Siswa) --</option>
-                <option value="Guru">Guru / Admin</option>
-                <option value="Siswa">Siswa</option>
-              </select>
-            </div>
-            <div class="col-md-5">
-              <input type="text" id="searchUserAkun" class="form-control form-control-sm" placeholder="🔍 Cari Username, NIS, atau Nama..." onkeyup="filterTabelAkun()">
-            </div>
+          <div class="col-md-4">
+            <select id="filterRoleUser" class="form-select form-select-sm" onchange="filterTabelAkun()">
+              <option value="">-- Semua Peran (Guru & Siswa) --</option>
+              <option value="Guru">Guru / Admin</option>
+              <option value="Siswa">Siswa</option>
+            </select>
           </div>
-<!-- Input Pencarian (Opsional) -->
-<input type="text" id="inputCariGuru" class="form-control mb-3" placeholder="Cari guru..." onkeyup="filterTabelAkun()">
+          <div class="col-md-5">
+            <input type="text" id="searchUserAkun" class="form-control form-control-sm" placeholder="🔍 Cari Username, NIS, atau Nama..." onkeyup="filterTabelAkun()">
+          </div>
+        </div>
 <!-- Tabel Data -->
 <div class="table-responsive">
   <table class="table table-bordered">
@@ -1249,79 +1247,65 @@ document.addEventListener("DOMContentLoaded", function() {
   // Di JavaScript Frontend saat memuat form pengaturan
 
   async function muatDataSoal(kodePilihan) {
-  const kode = kodePilihan || (typeof getKodeSoal === "function" ? getKodeSoal() : "");
-  if (!kode) return;
+    const kode = kodePilihan || getKodeSoal();
+    if (!kode) return;
 
-  // 1. Ambil identitas login dari sessionStorage
-  const usernameLogin = sessionStorage.getItem("usernameGuru") || sessionStorage.getItem("username") || "";
-  const namaLogin = sessionStorage.getItem("namaGuru") || "";
-
-  // 2. Ambil tombol/elemen pemicu untuk efek loading (opsional)
-  const btn = document.getElementById("btnMuatPengaturan");
-  const teksAsli = btn ? btn.innerHTML : "";
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Memuat...`;
-  }
-
-  try {
-    // Sinkronkan input elemen kode di frontend
-    if (document.getElementById("kodeSoalInput")) document.getElementById("kodeSoalInput").value = kode;
-    if (document.getElementById("cfgKodeUjian")) document.getElementById("cfgKodeUjian").value = kode;
-    localStorage.setItem("guru_last_kode_soal", kode);
-
-    const data = await apiPost({ action: "getPengaturan", kode: kode });
-
-    if (data && data.status === "success" && data.data) {
-      const cfg = Array.isArray(data.data) ? (data.data[0] || {}) : data.data;
-
-      // Set Nilai Input
-      if (document.getElementById("cfgKodeUjian")) document.getElementById("cfgKodeUjian").value = kode;
-      
-      const mapelValue = cfg.mata_pelajaran || cfg.mapel || "";
-      selectDropdownValue("cfgMapel", mapelValue);
-
-      if (document.getElementById("cfgDurasi")) document.getElementById("cfgDurasi").value = cfg.durasi || 90;
-      
-      // UTAMAKAN USERNAME: Prioritaskan nilai dari DB, lalu usernameLogin, atau namaLogin
-      if (document.getElementById("cfgPenyusun")) {
-        document.getElementById("cfgPenyusun").value = cfg.penyusun || usernameLogin || namaLogin;
-      }
-      
-      if (document.getElementById("cfgPengawas")) document.getElementById("cfgPengawas").value = cfg.pengawas || "";
-
-      // Penanganan Dropdown / Input Kelas (Suport Select2 / Input Biasa)
-      const elemKelas = document.getElementById("cfgDaftarKelas");
-      if (elemKelas) {
-        const valKelas = cfg.daftar_kelas || cfg.kelas || "";
-        if (window.jQuery && $(elemKelas).hasClass("select2-hidden-accessible")) {
-          const arrKelas = typeof valKelas === "string" ? valKelas.split(",").map(s => s.trim()) : valKelas;
-          $(elemKelas).val(arrKelas).trigger("change");
-        } else {
-          elemKelas.value = valKelas;
-        }
-      }
-
-      selectDropdownValue("cfgJenisUjian", cfg.jenis_ujian || "");
-      selectDropdownValue("cfgStatus", cfg.status_ujian || cfg.status || "Aktif");
-      selectDropdownValue("cfgAcak", cfg.acak_soal || "Tidak");
-      selectDropdownValue("cfgTampilSkor", cfg.tampil_skor || cfg.tampilkan_skor || "Ya");
-
-    } else {
-      // Jika data pengaturan belum ada di DB (soal baru)
-      if (document.getElementById("cfgPenyusun")) {
-        document.getElementById("cfgPenyusun").value = usernameLogin || namaLogin;
-      }
+    if (kodePilihan) {
+      document.getElementById("kodeSoalInput").value = kode;
+      document.getElementById("cfgKodeUjian").value = kode;
+      localStorage.setItem("guru_last_kode_soal", kode);
     }
-  } catch (e) {
-    console.error("Gagal memuat pengaturan:", e);
-  } finally {
+
+    const btn = document.getElementById("btnMuatPengaturan");
+    const teksAsli = btn ? btn.innerHTML : "";
     if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = teksAsli;
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Memuat Data...`;
+    }
+
+    try {
+      const data = await apiPost({ action: "getPengaturan", kode: kode });
+      if (data.status === "success" && data.data) {
+        const cfg = Array.isArray(data.data) ? (data.data[0] || {}) : data.data;
+        if (!cfg || Object.keys(cfg).length === 0) {
+          alert(`Pengaturan untuk kode '${kode}' belum diset.`);
+          return;
+        }
+
+        document.getElementById("cfgKodeUjian").value = kode;
+        const mapelValue = cfg.mata_pelajaran || cfg.mapel || "";
+        selectDropdownValue("cfgMapel", mapelValue);
+        document.getElementById("cfgMapel").value = mapelValue;
+        document.getElementById("cfgDurasi").value = cfg.durasi || 90;
+        document.getElementById("cfgPenyusun").value = cfg.penyusun || cfg.nama_ujian || sessionStorage.getItem("namaGuru") || "";
+        document.getElementById("cfgPengawas").value = cfg.pengawas || "";
+        
+        if ($('#cfgDaftarKelas').length && cfg.kelas) {
+          const arrKelas = typeof cfg.kelas === 'string' ? cfg.kelas.split(',').map(s => s.trim()) : cfg.kelas;
+          $('#cfgDaftarKelas').val(arrKelas).trigger('change');
+        } else if (document.getElementById("cfgDaftarKelas")) {
+          document.getElementById("cfgDaftarKelas").value = cfg.daftar_kelas || cfg.kelas || "";
+        }
+
+        currentMapel = mapelValue || "-";
+        selectDropdownValue("cfgJenisUjian", cfg.jenis_ujian || "");
+        selectDropdownValue("cfgStatus", cfg.status_ujian || cfg.status || "Aktif");
+        selectDropdownValue("cfgAcak", cfg.acak_soal || "Tidak");
+        selectDropdownValue("cfgTampilSkor", cfg.tampil_skor || cfg.tampilkan_skor || "Ya");
+
+        alert(`Data pengaturan untuk kode '${kode}' berhasil dimuat.`);
+      } else {
+        alert(data.message || `Data pengaturan belum diset.`);
+      }
+    } catch (e) {
+      alert("Gagal memuat pengaturan: " + e.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = teksAsli;
+      }
     }
   }
-}
 
   async function muatDaftarKodeSoal() {
     const datalist = document.getElementById("listKodeSoal");
@@ -2782,15 +2766,48 @@ async function muatTabelPengguna() {
 
 // Fungsi Pencarian / Filter Data
 function filterTabelAkun() {
-  const keyword = document.getElementById("inputCariGuru")?.value.toLowerCase() || "";
-  
-  // Filter berdasarkan pencarian (opsional, sesuaikan field dengan data Anda)
+  // 1. Ambil nilai filter dari HTML
+  const roleSelected = (document.getElementById("filterRoleUser")?.value || "").trim().toLowerCase();
+  const keyword = (document.getElementById("searchUserAkun")?.value || "").trim().toLowerCase();
+
+  // 2. Terapkan filtering pada data mentah
   filteredDataUserAkun = rawDataUserAkun.filter(item => {
-    return (item.nama && item.nama.toLowerCase().includes(keyword)) ||
-           (item.username && item.username.toLowerCase().includes(keyword));
+    if (!item) return false;
+
+    // Ambil properti dan amankan dari null/undefined
+    const username = String(item.username || "").toLowerCase();
+    const nama = String(item.nama || "").toLowerCase();
+    const kelas = String(item.kelas || "").toLowerCase();
+    const roleItem = String(item.role || "Siswa").toLowerCase();
+
+    // Matching 1: Dropdown Role (Semua / Guru / Siswa)
+    let matchRole = true;
+    if (roleSelected !== "") {
+      if (roleSelected === "guru") {
+        // Jika pilih 'Guru', cocokkan dengan Guru, Admin, atau Super Admin
+        matchRole = roleItem.includes("guru") || roleItem.includes("admin");
+      } else if (roleSelected === "siswa") {
+        matchRole = roleItem.includes("siswa") || roleItem === "";
+      } else {
+        matchRole = roleItem === roleSelected;
+      }
+    }
+
+    // Matching 2: Input Pencarian Teks (Cari di Username/NIS, Nama, Kelas, atau Role)
+    let matchKeyword = true;
+    if (keyword !== "") {
+      matchKeyword = username.includes(keyword) || 
+                     nama.includes(keyword) || 
+                     kelas.includes(keyword) || 
+                     roleItem.includes(keyword);
+    }
+
+    // Hanya tampilkan jika kedua kondisi cocok
+    return matchRole && matchKeyword;
   });
 
-  currentPage = 1; // Reset ke halaman 1 setiap kali melakukan filter
+  // 3. Reset ke halaman 1 setiap kali filter berubah & Re-render Tabel
+  currentPage = 1;
   renderTabelDenganPaginasi();
 }
 
