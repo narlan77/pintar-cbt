@@ -73,6 +73,39 @@
       padding: 15px;
       margin-bottom: 15px;
     }
+<!-- STYLE KHUSUS PRINT DAN MODAL DETAIL -->
+    @media print {
+    /* Sembunyikan semua elemen selain area cetak saat mode print */
+    body * {
+      visibility: hidden;
+    }
+    #modalDetailJawaban, #modalDetailJawaban * {
+      visibility: visible;
+    }
+    #modalDetailJawaban {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    .modal-footer, .btn-close {
+      display: none !important;
+    }
+    .modal-dialog {
+      max-width: 100% !important;
+      margin: 0 !important;
+    }
+    .modal-content {
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .modal-body {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+  }
   </style>
   <script src="config.js"></script>
 </head>
@@ -234,14 +267,19 @@
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title fw-bold" id="modalTitleDetail">Detail Lembar Jawaban</h5>
+        <h5 class="modal-title fw-bold" id="modalTitleDetail">
+          <i class="fa-solid fa-file-invoice me-2"></i>Detail Lembar Jawaban
+        </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body" id="modalBodyDetailJawaban">
         <!-- Detail Soal dan Jawaban disuntikkan dinamis -->
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Tutup</button>
+      <div class="modal-footer justify-content-between bg-light">
+        <button type="button" class="btn btn-outline-danger fw-bold rounded-pill" onclick="cetakLembarJawaban()">
+          <i class="fa-solid fa-print me-2"></i>Cetak / Ekspor PDF
+        </button>
+        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
       </div>
     </div>
   </div>
@@ -653,7 +691,7 @@
   }
 }
 
-// Fungsi Render UI
+// Fungsi Render UI Lembar Jawaban Lengkap
 function renderDetailJawaban(result, modalBody, jawabanMap, detailNilaiEssai) {
   const listSoal = Array.isArray(result) ? result : (result && Array.isArray(result.soal) ? result.soal : null);
 
@@ -662,25 +700,89 @@ function renderDetailJawaban(result, modalBody, jawabanMap, detailNilaiEssai) {
     return;
   }
 
-  modalBody.innerHTML = "";
+  // Hitung Total Skor
+  let totalSkorPG = 0;
+  let totalSkorEssai = 0;
 
   listSoal.forEach((soal, idx) => {
     const noKey = idx + 1;
     const noSoal = soal.no_soal || noKey;
     const tipe = String(soal.tipe || "PG").trim().toUpperCase();
     const isPG = tipe === "PG" || tipe === "PILGAN";
+    const kunciJawaban = String(soal.kunci || soal.kunci_jawaban || "").trim().toUpperCase();
+    const bobotSoal = parseFloat(soal.bobot) || 0;
 
     const jawabanSiswa = String(
-      jawabanMap[noKey] ?? 
-      jawabanMap[String(noKey)] ?? 
-      jawabanMap[noSoal] ?? 
-      jawabanMap[String(noSoal)] ?? 
-      ""
+      jawabanMap[noKey] ?? jawabanMap[String(noKey)] ?? jawabanMap[noSoal] ?? jawabanMap[String(noSoal)] ?? ""
+    ).trim().toUpperCase();
+
+    if (isPG) {
+      if (jawabanSiswa !== "" && jawabanSiswa === kunciJawaban) {
+        totalSkorPG += bobotSoal;
+      }
+    } else {
+      const nilaiSoalEssai = parseFloat(detailNilaiEssai[noKey] ?? detailNilaiEssai[String(noKey)] ?? detailNilaiEssai[noSoal] ?? detailNilaiEssai[String(noSoal)] ?? 0);
+      totalSkorEssai += nilaiSoalEssai;
+    }
+  });
+
+  // Ambil Info Akun Siswa dari Sesi
+  let namaSiswa = "Siswa";
+  let nisSiswa = "-";
+  try {
+    const sessionData = JSON.parse(localStorage.getItem("akun_siswa_login") || "{}");
+    if (sessionData.nama) namaSiswa = sessionData.nama;
+    if (sessionData.nis) nisSiswa = sessionData.nis;
+  } catch(e){}
+
+  // Kop Header Laporan Cetak
+  let htmlContent = `
+    <div class="p-3 mb-4 bg-white rounded border border-2">
+      <div class="row align-items-center">
+        <div class="col-8">
+          <h5 class="fw-bold mb-1 text-primary">LEMBAR HASIL UJIAN SISWA</h5>
+          <div class="small text-muted"><strong>Nama:</strong> ${namaSiswa} | <strong>NIS/No:</strong> ${nisSiswa}</div>
+          <div class="small text-muted"><strong>Tanggal Cetak:</strong> ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        </div>
+        <div class="col-4 text-end">
+          <div class="p-2 bg-light rounded border text-center">
+            <span class="d-block text-muted small fw-bold">TOTAL SKOR</span>
+            <span class="fs-4 fw-bold text-success">${totalSkorPG + totalSkorEssai}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Render Per-Soal
+  listSoal.forEach((soal, idx) => {
+    const noKey = idx + 1;
+    const noSoal = soal.no_soal || noKey;
+    const tipe = String(soal.tipe || "PG").trim().toUpperCase();
+    const isPG = tipe === "PG" || tipe === "PILGAN";
+
+    const kunciJawaban = String(soal.kunci || soal.kunci_jawaban || "").trim().toUpperCase();
+    const bobotSoal = parseFloat(soal.bobot) || 0;
+
+    const jawabanSiswa = String(
+      jawabanMap[noKey] ?? jawabanMap[String(noKey)] ?? jawabanMap[noSoal] ?? jawabanMap[String(noSoal)] ?? ""
     ).trim().toUpperCase();
 
     let detailBadgeHtml = "";
+    let badgeStatusSoal = "";
 
     if (isPG) {
+      const isCorrect = (jawabanSiswa !== "" && jawabanSiswa === kunciJawaban);
+      const isAnswered = (jawabanSiswa !== "");
+
+      if (!isAnswered) {
+        badgeStatusSoal = `<span class="badge bg-secondary"><i class="fa-solid fa-minus me-1"></i>Tidak Dijawab (0/${bobotSoal})</span>`;
+      } else if (isCorrect) {
+        badgeStatusSoal = `<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>BENAR (+${bobotSoal})</span>`;
+      } else {
+        badgeStatusSoal = `<span class="badge bg-danger"><i class="fa-solid fa-xmark me-1"></i>SALAH (0/${bobotSoal})</span>`;
+      }
+
       const opsiKeys = ['A', 'B', 'C', 'D', 'E'];
       let htmlOpsi = "";
 
@@ -689,14 +791,9 @@ function renderDetailJawaban(result, modalBody, jawabanMap, detailNilaiEssai) {
         const num = index + 1;
 
         let isiOpsi = 
-          soal[`opsi_${k}`] ?? 
-          soal[`opsi${k}`] ?? 
-          soal[`pilihan_${k}`] ?? 
-          soal[`pilihan${k}`] ?? 
-          soal[`pil_${k}`] ?? 
-          soal[`pil${k}`] ?? 
-          soal[k] ?? 
-          soal[`opsi${num}`] ?? 
+          soal[`op${key}`] ?? soal[`opsi_${k}`] ?? soal[`opsi${k}`] ?? 
+          soal[`pilihan_${k}`] ?? soal[`pilihan${k}`] ?? soal[`pil_${k}`] ?? 
+          soal[`pil${k}`] ?? soal[k] ?? soal[`opsi${num}`] ?? 
           soal[`opsi_${num}`] ?? 
           (soal.opsi && (soal.opsi[key] || soal.opsi[k] || soal.opsi[index])) ?? 
           (soal.pilihan && (soal.pilihan[key] || soal.pilihan[k] || soal.pilihan[index])) ?? 
@@ -704,14 +801,31 @@ function renderDetailJawaban(result, modalBody, jawabanMap, detailNilaiEssai) {
 
         if (isiOpsi !== null && isiOpsi !== undefined && String(isiOpsi).trim() !== "") {
           const isSelected = (jawabanSiswa === key);
-          const bgClass = isSelected ? "bg-primary-subtle border-primary text-primary fw-bold" : "bg-white border-light-subtle text-dark";
-          const badgeClass = isSelected ? "bg-primary text-white" : "bg-secondary-subtle text-dark border";
+          const isKunci = (kunciJawaban === key);
+
+          let bgClass = "bg-white border-light-subtle text-dark";
+          let badgeClass = "bg-secondary-subtle text-dark border";
+          let iconHtml = "";
+
+          if (isSelected && isCorrect) {
+            bgClass = "bg-success-subtle border-success text-success fw-bold";
+            badgeClass = "bg-success text-white";
+            iconHtml = '<i class="fa-solid fa-circle-check text-success ms-2"></i>';
+          } else if (isSelected && !isCorrect) {
+            bgClass = "bg-danger-subtle border-danger text-danger fw-bold";
+            badgeClass = "bg-danger text-white";
+            iconHtml = '<i class="fa-solid fa-circle-xmark text-danger ms-2"></i> (Jawaban Anda)';
+          } else if (isKunci && !isCorrect) {
+            bgClass = "bg-success-subtle border-success text-success fw-semibold";
+            badgeClass = "bg-success text-white";
+            iconHtml = '<i class="fa-solid fa-check text-success ms-2"></i> (Kunci Jawaban)';
+          }
 
           htmlOpsi += `
             <div class="p-2 mb-1 rounded border ${bgClass} d-flex align-items-center">
               <span class="badge ${badgeClass} me-2" style="width: 28px; text-align: center;">${key}</span>
               <span class="flex-grow-1">${isiOpsi}</span>
-              ${isSelected ? '<i class="fa-solid fa-circle-check text-primary ms-2"></i>' : ''}
+              ${iconHtml}
             </div>
           `;
         }
@@ -723,43 +837,54 @@ function renderDetailJawaban(result, modalBody, jawabanMap, detailNilaiEssai) {
             <strong class="text-secondary small d-block mb-2">PILIHAN JAWABAN:</strong>
             ${htmlOpsi || `
               <div class="alert alert-light border text-muted small mb-0">
-                <i class="fa-solid fa-info-circle me-1"></i> Teks pilihan (A/B/C/D) tidak disertakan oleh server. 
+                <i class="fa-solid fa-info-circle me-1"></i> Teks pilihan tidak disertakan. 
               </div>
             `}
           </div>
           <div class="mt-3 pt-2 border-top d-flex align-items-center justify-content-between">
-            <span class="small text-muted">Jawaban Terpilih:</span>
-            <span class="badge ${jawabanSiswa ? 'bg-primary' : 'bg-danger'} fs-6 px-3 py-2">
-              ${jawabanSiswa ? `Pilihan ${jawabanSiswa}` : 'Tidak Dijawab'}
-            </span>
+            <span class="small text-muted">Jawaban Siswa: <strong>${jawabanSiswa || 'Tidak Dijawab'}</strong></span>
+            <span class="small text-muted">Kunci Jawaban: <strong class="text-success">${kunciJawaban || '-'}</strong></span>
           </div>
         </div>
       `;
     } else {
       const nilaiSoalEssai = detailNilaiEssai[noKey] ?? detailNilaiEssai[String(noKey)] ?? detailNilaiEssai[noSoal] ?? detailNilaiEssai[String(noSoal)] ?? 0;
+      
+      badgeStatusSoal = `<span class="badge bg-info text-dark"><i class="fa-solid fa-pen-to-square me-1"></i>Skor Essai: ${nilaiSoalEssai} / ${bobotSoal || 10}</span>`;
+
       detailBadgeHtml = `
         <div class="p-3 bg-white rounded border">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <strong>Jawaban Essai Anda:</strong>
-            <span class="badge bg-info text-dark">Skor Essai: ${nilaiSoalEssai}</span>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="text-secondary small">JAWABAN ESSAI SISWA:</strong>
+            <span class="badge bg-primary fs-6 px-3 py-1">Skor Diperoleh: ${nilaiSoalEssai}</span>
           </div>
-          <div class="text-dark mt-1" style="white-space: pre-line;">${jawabanSiswa || '<em class="text-muted">Tidak dijawab</em>'}</div>
+          <div class="p-2 rounded bg-light border text-dark" style="white-space: pre-line;">${jawabanSiswa || '<em class="text-muted">Tidak ada jawaban yang diisi</em>'}</div>
         </div>
       `;
     }
 
-    let htmlSoal = `
+    htmlContent += `
       <div class="soal-review-box mb-3 p-3 bg-light rounded border">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="fw-bold text-primary">Soal No. ${noKey}</span>
-          <span class="badge bg-secondary">${tipe}</span>
+          <div>
+            <span class="fw-bold text-primary me-2">Soal No. ${noKey}</span>
+            <span class="badge bg-outline-secondary border text-secondary">${tipe}</span>
+          </div>
+          <div>${badgeStatusSoal}</div>
         </div>
-        <div class="mb-3 fw-semibold">${soal.pertanyaan || soal.soal || '-'}</div>
+        <div class="mb-3 fw-semibold text-dark">${soal.pertanyaan || soal.soal || '-'}</div>
         ${detailBadgeHtml}
       </div>
     `;
-    modalBody.innerHTML += htmlSoal;
   });
+
+  modalBody.innerHTML = htmlContent;
+}
+
+// Fungsi untuk memicu dialog Cetak / Simpan PDF
+function cetakLembarJawaban() {
+  // Buka jendela cetak browser (pengguna dapat memilih 'Save as PDF' / 'Simpan sebagai PDF')
+  window.print();
 }
 
 </script>
