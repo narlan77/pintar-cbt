@@ -1054,9 +1054,7 @@ $('#modalAIGenerator').on('shown.bs.modal', function () {
   let rawDataBankSoal = [];
   let selectedIndexHasil = -1;
   let currentMapel = "-";
-  let rawDataUserAkun = [];        // Menyimpan seluruh data mentah dari server
   let modalEssaiInstance = null;
-  let modalTambahGuruInstance = null;
   let modalInputSoalInstance = null;
   let modalTinjauSoalInstance = null;
   let modalLihatJawabanInstance = null;
@@ -1182,6 +1180,14 @@ document.addEventListener("DOMContentLoaded", function() {
     sidebar.classList.toggle("show");
     backdrop.classList.toggle("show");
   }
+
+// Tutup sidebar jika backdrop (area hitam luar) diklik
+document.addEventListener("DOMContentLoaded", () => {
+  const backdrop = document.getElementById("sidebarBackdrop");
+  if (backdrop) {
+    backdrop.addEventListener("click", toggleSidebar);
+  }
+});
 
   function logoutGuru() {
     if (confirm("Apakah Anda yakin ingin keluar dari Panel Guru?")) {
@@ -2736,10 +2742,26 @@ function bukaModalEssai(index) {
 // ====================================================================
 // MODUL 9: KELOLA AKUN USER (SUPER ADMIN ONLY)
 // ====================================================================
-// Pastikan variabel global ini terdefinisi di paling atas JS
+
+let rawDataUserAkun = []; // Deklarasikan variabel data mentah
 let filteredDataUserAkun = [];
 let currentPage = 1;
 const rowsPerPage = 10;
+let modalTambahGuruInstance = null;
+
+// Inisialisasi Modal saat Halaman Selesai Dimuat
+document.addEventListener("DOMContentLoaded", () => {
+  const modalEl = document.getElementById("modalTambahGuru");
+  if (modalEl && typeof bootstrap !== "undefined") {
+    modalTambahGuruInstance = new bootstrap.Modal(modalEl);
+    window.modalTambahGuruInstance = modalTambahGuruInstance;
+  }
+
+  const inputCari = document.getElementById("inputCariGuru") || document.getElementById("inputCariUser");
+  if (inputCari) {
+    inputCari.addEventListener("input", filterTabelAkun);
+  }
+});
 
 async function muatTabelPengguna() {
   const tbody = document.getElementById("TabelPenggunaBody");
@@ -2811,9 +2833,8 @@ function filterTabelAkun() {
   renderTabelDenganPaginasi();
 }
 
-// Fungsi Render Tabel + Kontrol Paginasi
+// 2. FUNGSI RENDER TABEL & PAGINASI
 function renderTabelDenganPaginasi() {
-  // Samakan ID tbody dengan elemen HTML Anda (misal: tabelGuruBody)
   const tbody = document.getElementById("tabelGuruBody") || document.getElementById("TabelPenggunaBody");
   const paginationContainer = document.getElementById("paginationNav");
 
@@ -2825,7 +2846,7 @@ function renderTabelDenganPaginasi() {
     return;
   }
 
-  // Hitung slice data untuk halaman saat ini
+  // Hitung batas halaman
   const totalPages = Math.ceil(filteredDataUserAkun.length / rowsPerPage);
   if (currentPage > totalPages) currentPage = totalPages;
   if (currentPage < 1) currentPage = 1;
@@ -2834,12 +2855,13 @@ function renderTabelDenganPaginasi() {
   const endIndex = startIndex + rowsPerPage;
   const pageData = filteredDataUserAkun.slice(startIndex, endIndex);
 
-  // Render baris tabel
+  // Render Baris Tabel
   tbody.innerHTML = pageData.map((row, index) => {
     const nomor = startIndex + index + 1;
     const roleStr = row.role || "Siswa";
+    const usernameAman = String(row.username || "").replace(/'/g, "\\'"); // Escaping petik tunggal untuk onclick
 
-    // Pewarnaan Badge Role
+    // Badge Warna Role
     let badgeClass = "bg-info text-dark";
     if (roleStr === "Super Admin") badgeClass = "bg-danger text-white";
     else if (roleStr === "Guru") badgeClass = "bg-primary text-white";
@@ -2854,11 +2876,11 @@ function renderTabelDenganPaginasi() {
         <td class="text-center"><span class="badge ${badgeClass}">${roleStr}</span></td>
         <td class="text-center">
           <button class="btn btn-sm btn-outline-warning text-dark fw-bold me-1" 
-                  onclick="editUserAkun('${row.username}')" title="Edit Akun Ini">
+                  onclick="editUserAkun('${usernameAman}')" title="Edit Akun Ini">
             ✏️ Edit
           </button>
           <button class="btn btn-sm btn-outline-danger fw-bold" 
-                  onclick="hapusUserAkun('${row.username}')" title="Hapus User Ini">
+                  onclick="hapusUserAkun('${usernameAman}')" title="Hapus User Ini">
             🗑️ Hapus
           </button>
         </td>
@@ -2866,9 +2888,18 @@ function renderTabelDenganPaginasi() {
     `;
   }).join('');
 
-  // Render komponen Navigasi Paginasi
+  // Render Tombol Paginasi
   renderControlsPaginasi(totalPages);
 }
+
+// 3. FUNGSI EVIKET/EVENT LISTENER SEARCH INPUT (Agar Otomatis Filter Saat Ketik)
+document.addEventListener("DOMContentLoaded", () => {
+  const inputCari = document.getElementById("inputCariGuru") || document.getElementById("inputCariUser");
+  if (inputCari) {
+    // Jalankan filter saat user mengetik (realtime)
+    inputCari.addEventListener("input", filterTabelAkun);
+  }
+});
 
 // 2. FUNGSI MEMBUAT TOMBOL PAGINASI
 function renderControlsPaginasi(totalPages) {
@@ -2941,11 +2972,21 @@ function bukaModalTambahUser() {
   document.getElementById("modalUserTitle").innerText = "➕ Tambah Akun Pengguna Baru";
   document.getElementById("formTambahGuru").reset();
   toggleFormRoleSiswa();
-  if (window.modalTambahGuruInstance) modalTambahGuruInstance.show();
+
+  if (modalTambahGuruInstance) {
+    modalTambahGuruInstance.show();
+  } else {
+    // Fallback jika instance belum terbentuk
+    const modalEl = document.getElementById("modalTambahGuru");
+    if (modalEl) {
+      modalTambahGuruInstance = new bootstrap.Modal(modalEl);
+      modalTambahGuruInstance.show();
+    }
+  }
 }
 
 function editUserAkun(username) {
-  const user = rawDataUserAkun.find(u => u.username === username);
+  const user = rawDataUserAkun.find(u => String(u.username) === String(username));
   if (!user) {
     alert("Data akun tidak ditemukan!");
     return;
@@ -2962,7 +3003,16 @@ function editUserAkun(username) {
   document.getElementById("addKelasSiswa").value = user.kelas || "";
 
   toggleFormRoleSiswa();
-  if (window.modalTambahGuruInstance) modalTambahGuruInstance.show();
+
+  if (modalTambahGuruInstance) {
+    modalTambahGuruInstance.show();
+  } else {
+    const modalEl = document.getElementById("modalTambahGuru");
+    if (modalEl) {
+      modalTambahGuruInstance = new bootstrap.Modal(modalEl);
+      modalTambahGuruInstance.show();
+    }
+  }
 }
 
 // 6. PROSES SIMPAN USER
@@ -2980,8 +3030,9 @@ async function prosesSimpanUser() {
     return;
   }
 
+  // Action disesuaikan dengan handler di backend Node.js
   const payload = {
-    action: mode === "add" ? "tambahUser" : "editUser",
+    action: mode === "add" ? "tambahguru" : "edituser",
     orig_username: origUsername,
     role: role,
     username: username,
@@ -2992,12 +3043,13 @@ async function prosesSimpanUser() {
 
   try {
     const res = await apiPost(payload);
-    alert(res.message || "Pengguna berhasil disimpan!");
-    if (window.modalTambahGuruInstance) modalTambahGuruInstance.hide();
-    
-    // Refresh data dari server
-    if (typeof muatTabelGuru === "function") muatTabelGuru();
-    else if (typeof muatTabelPengguna === "function") muatTabelPengguna();
+    if (res.status === "success") {
+      alert(res.message || "Pengguna berhasil disimpan!");
+      if (modalTambahGuruInstance) modalTambahGuruInstance.hide();
+      muatTabelPengguna();
+    } else {
+      alert("Gagal: " + res.message);
+    }
   } catch(e) {
     alert("Gagal menyimpan akun: " + e.message);
   }
@@ -3008,7 +3060,7 @@ async function hapusUserAkun(username) {
   if (!confirm(`Apakah Anda yakin ingin menghapus akun '${username}'?`)) return;
 
   try {
-    const res = await apiPost({ action: "hapusUser", username: username });
+    const res = await apiPost({ action: "hapusguru", username: username });
     alert(res.message || "Akun berhasil dihapus!");
     
     // Refresh data dari server
