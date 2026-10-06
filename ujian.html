@@ -8,9 +8,17 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
   <style>
-    body { background-color: #f0f2f5; user-select: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    /* PROTEKSI SELEKSI TEKS DAN DRAG */
+    body { 
+      background-color: #f0f2f5; 
+      user-select: none; 
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    }
     
     /* STYLE CARD LOGIN ELEGAN */
     .card-login-elegan {
@@ -110,12 +118,43 @@
       font-size: 0.85rem;
       font-weight: 600;
     }
+
+    /* PROTEKSI MEDIA PRINT (PENCEGAHAN CETAK/PDF SCREENSHOT) */
+    @media print {
+      body { display: none !important; }
+    }
+
+    /* OVERLAY PERINGATAN SCREENSHOT / TINGGALKAN TAB */
+    #antiScreenshotOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.96);
+      color: #ffffff;
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      backdrop-filter: blur(15px);
+    }
   </style>
   <script src="config.js"></script>
 </head>
-<body>
+<body oncontextmenu="return false;" ondragstart="return false;">
 
-<div class="container py-4">
+<!-- OVERLAY ANTI SCREENSHOT / FOKUS HILANG -->
+<div id="antiScreenshotOverlay" class="d-none">
+  <i class="fa-solid fa-triangle-exclamation text-warning display-1 mb-3"></i>
+  <h2 class="fw-bold">Layar Terkunci!</h2>
+  <p class="lead px-4">Terdeteksi perpindahan fokus layar atau percobaan screenshot.<br>Kembali fokus ke jendela ujian untuk melanjutkan.</p>
+  <button class="btn btn-light fw-bold px-4 py-2 mt-2" onclick="pulihkanFokusLayar()">Kembali ke Ujian</button>
+</div>
+
+<div class="container py-4" id="mainExamContent">
 
   <!-- TAHAP 1: FORM VERIFIKASI / MASUK UJIAN (ELEGAN) -->
   <div id="sectionLoginUjian" class="row justify-content-center my-4">
@@ -133,7 +172,7 @@
 
         <!-- BODY FORM -->
         <div class="card-body p-4 p-md-4">
-          <form id="formMasukUjian" onSubmit="mulaiKonfirmasiUjian(event)">
+          <form id="formMasukUjian" onsubmit="mulaiKonfirmasiUjian(event)">
             
             <!-- 1. Input NIS / NISN -->
             <div class="mb-3">
@@ -150,10 +189,10 @@
               <label for="inputKodeSoal" class="form-label fw-semibold small text-muted">KODE SOAL / UJIAN</label>
               <div class="input-group">
                 <span class="input-group-text input-group-text-elegan"><i class="fa-solid fa-key"></i></span>
-                <select id="inputKodeSoal" class="form-select form-select-elegan" onChange="muatPengaturanSiswa()" disabled required>
+                <select id="inputKodeSoal" class="form-select form-select-elegan" onchange="muatPengaturanSiswa()" disabled required>
                   <option value="">-- Masukkan No. Peserta Terlebih Dahulu --</option>
                 </select>
-                <button class="btn btn-outline-secondary" type="button" id="btnRefreshKode" onClick="refreshKodeSoal()" title="Muat ulang daftar kode soal" disabled>
+                <button class="btn btn-outline-secondary" type="button" id="btnRefreshKode" onclick="refreshKodeSoal()" title="Muat ulang daftar kode soal" disabled>
                   🔄
                 </button>
               </div>
@@ -232,8 +271,8 @@
 
           <!-- NAVIGASI BAWAH SOAL -->
           <div class="d-flex justify-content-between pt-3 border-top mt-4">
-            <button class="btn btn-outline-secondary fw-bold" id="btnPrev" onClick="soalSebelumnya()">← Sebelumnya</button>
-            <button class="btn btn-primary fw-bold" id="btnNext" onClick="soalBerikutnya()">Berikutnya →</button>
+            <button class="btn btn-outline-secondary fw-bold" id="btnPrev" onclick="soalSebelumnya()">← Sebelumnya</button>
+            <button class="btn btn-primary fw-bold" id="btnNext" onclick="soalBerikutnya()">Berikutnya →</button>
           </div>
         </div>
       </div>
@@ -246,7 +285,7 @@
             <!-- Grid tombol nomor soal -->
           </div>
 
-          <button class="btn btn-success w-100 fw-bold py-2" onClick="konfirmasiKirim()">
+          <button class="btn btn-success w-100 fw-bold py-2" onclick="konfirmasiKirim()">
             Selesaikan & Kirim Jawaban
           </button>
         </div>
@@ -276,8 +315,66 @@
     return (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : (typeof API_URL !== 'undefined' ? API_URL : "");
   }
 
+  // ==========================================
+  // FITUR PENCEGAHAN SCREENSHOT & KECURANGAN
+  // ==========================================
+  function inisialisasiProteksiKecurangan() {
+    // 1. Blokir Kombinasi Tombol Keyboard (PrintScreen, F12, DevTools, Ctrl+P, Ctrl+S, Dll)
+    document.addEventListener("keydown", function (e) {
+      // Tombol PrintScreen
+      if (e.key === "PrintScreen" || e.keyCode === 44) {
+        bersihkanClipboard();
+        tampilkanOverlayKunci();
+        e.preventDefault();
+        return false;
+      }
+      
+      // Shortcut Ctrl + P, S, U, Shift+I/J/C, F12
+      if (
+        (e.ctrlKey && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S' || e.key === 'u' || e.key === 'U')) ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
+        (e.key === 'F12' || e.keyCode === 123)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        alert("Aksi ini dilarang selama ujian!");
+        return false;
+      }
+    });
+
+    // 2. Kosongkan Clipboard bila menekan PrintScreen / Copy
+    document.addEventListener("keyup", function (e) {
+      if (e.key === "PrintScreen" || e.keyCode === 44) {
+        bersihkanClipboard();
+      }
+    });
+
+    // 3. Deteksi saat Browser Hilang Fokus (Alt+Tab, Buka Snipping Tool, dll)
+    window.addEventListener("blur", function () {
+      if (statusUjianAktif) {
+        tampilkanOverlayKunci();
+      }
+    });
+  }
+
+  function bersihkanClipboard() {
+    try {
+      navigator.clipboard.writeText("");
+    } catch (err) {}
+  }
+
+  function tampilkanOverlayKunci() {
+    const overlay = document.getElementById("antiScreenshotOverlay");
+    if (overlay) overlay.classList.remove("d-none");
+  }
+
+  function pulihkanFokusLayar() {
+    const overlay = document.getElementById("antiScreenshotOverlay");
+    if (overlay) overlay.classList.add("d-none");
+  }
+
   // PEMERIKSAAN OTOMATIS SAAT HALAMAN DI-REFRESH / LOADED
-document.addEventListener("DOMContentLoaded", function() {
+  document.addEventListener("DOMContentLoaded", function() {
     // -------------------------------------------------------------
     // PROTEKSI AKSE LANGSUNG: Cek Sesi Login Siswa
     // -------------------------------------------------------------
@@ -833,69 +930,94 @@ document.addEventListener("DOMContentLoaded", function() {
     kirimJawabanKeServer();
   }
 
-  async function kirimJawabanKeServer() {
-    if (timerInterval) clearInterval(timerInterval);
-    matikanProteksiNavigasi();
+ async function kirimJawabanKeServer() {
+  if (timerInterval) clearInterval(timerInterval);
+  matikanProteksiNavigasi();
 
-    document.body.innerHTML = `
-      <div class="d-flex flex-column align-items-center justify-content-center vh-100 bg-white">
-        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-        <h4>Mengirimkan Jawaban Anda...</h4>
-        <p class="text-muted">Jangan tutup halaman ini sampai proses selesai.</p>
-      </div>
-    `;
+  const overlayModal = document.createElement("div");
+  overlayModal.id = "loadingSubmitOverlay";
+  overlayModal.style = "position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.95);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;";
+  overlayModal.innerHTML = `
+    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+    <h4>Mengirimkan Jawaban Anda...</h4>
+    <p class="text-muted">Jangan tutup halaman ini sampai proses selesai.</p>
+  `;
+  document.body.appendChild(overlayModal);
 
-    const payload = {
-      action: "submitUjian",
-      kode_soal: dataPeserta.kode,
-      no_peserta: dataPeserta.noPeserta,
-      nama: dataPeserta.nama,
-      kelas: dataPeserta.kelas,
-      detail_jawaban: JSON.stringify(jawabanSiswa)
-    };
+  const payload = {
+    action: "submitUjian",
+    kode_soal: dataPeserta.kode,
+    no_peserta: dataPeserta.noPeserta,
+    nama: dataPeserta.nama,
+    kelas: dataPeserta.kelas,
+    detail_jawaban: JSON.stringify(jawabanSiswa)
+  };
 
-    try {
-      const targetUrl = getApiUrl();
-      const res = await fetch(targetUrl, {
-        method: "POST",
-        redirect: "follow",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload)
-      });
-      const result = await res.json();
+  try {
+    const targetUrl = getApiUrl();
+    const res = await fetch(targetUrl, {
+      method: "POST",
+      redirect: "follow",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
 
+    if (result.status === "success") {
       hapusSesiLokal();
+      const isTampilSkor = String(result.tampil_skor || "").trim().toLowerCase() === "ya";
+      const skorHtml = isTampilSkor ? `
+        <div class="my-3 p-3 bg-light rounded border">
+          <small class="text-muted d-block fw-semibold mb-1">SKOR PEROLEHAN PG</small>
+          <h1 class="display-4 fw-bold text-primary mb-0">${result.skor_pg !== undefined ? result.skor_pg : 0}</h1>
+        </div>
+      ` : '';
 
-      if (result.status === "success") {
-        const isTampilSkor = String(result.tampil_skor || "").trim().toLowerCase() === "ya";
-        const skorHtml = isTampilSkor ? `
-          <div class="my-3 p-3 bg-light rounded border">
-            <small class="text-muted d-block fw-semibold mb-1">SKOR PEROLEHAN PG</small>
-            <h1 class="display-4 fw-bold text-primary mb-0">${result.skor_pg !== undefined ? result.skor_pg : 0}</h1>
+      document.body.innerHTML = `
+        <div class="d-flex flex-column align-items-center justify-content-center vh-100 bg-light">
+          <div class="card p-5 text-center card-custom bg-white" style="max-width: 500px; width: 90%;">
+            <div class="display-1 text-success mb-2"><i class="fa-solid fa-circle-check"></i></div>
+            <h3 class="fw-bold mb-1">Ujian Selesai!</h3>
+            <p class="text-muted">Jawaban Anda telah berhasil tersimpan di sistem.</p>
+            ${skorHtml}
+            <a href="siswa.html" class="btn btn-primary mt-3 fw-bold w-100">Kembali ke Dashboard Siswa</a>
           </div>
-        ` : '';
+        </div>
+      `;
+    } else {
+      const elLoading = document.getElementById("loadingSubmitOverlay");
+      if (elLoading) elLoading.remove();
 
+      // CEK APABILA GAGAL KARENA JAWABAN SUDAH ADA DI SERVER
+      const msg = String(result.message || "").toLowerCase();
+      const isSudahPernah = result.sudah_ada || msg.includes("sudah pernah dikirim") || msg.includes("sudah ada");
+
+      if (isSudahPernah) {
+        hapusSesiLokal();
         document.body.innerHTML = `
           <div class="d-flex flex-column align-items-center justify-content-center vh-100 bg-light">
-            <div class="card p-5 text-center card-custom bg-white" style="max-width: 500px; width: 90%;">
-              <div class="display-1 text-success mb-2">✅</div>
-              <h3 class="fw-bold mb-1">Ujian Selesai!</h3>
-              <p class="text-muted">Jawaban Anda telah berhasil tersimpan di sistem.</p>
-              ${skorHtml}
-              <a href="siswa.html" class="btn btn-primary mt-3 fw-bold w-100">Kembali ke Dashboard Siswa</a>
+            <div class="card p-5 text-center card-custom bg-white shadow-sm" style="max-width: 500px; width: 90%;">
+              <div class="display-1 text-warning mb-2"><i class="fa-solid fa-circle-exclamation"></i></div>
+              <h3 class="fw-bold mb-1">Jawaban Sudah Terkirim</h3>
+              <p class="text-muted">${result.message || "Anda sudah pernah mengirimkan jawaban untuk ujian ini sebelumnya."}</p>
+              <a href="siswa.html" class="btn btn-primary mt-3 fw-bold w-100">
+                <i class="fa-solid fa-house me-2"></i>Kembali ke Dashboard Siswa
+              </a>
             </div>
           </div>
         `;
       } else {
-        alert("Gagal menyimpan jawaban: " + (result.message || "Respon server tidak valid"));
-        window.location.href = "siswa.html";
+        alert("Gagal menyimpan jawaban: " + (result.message || "Sistem sedang sibuk. Silakan coba lagi."));
+        aktifkanProteksiNavigasi();
       }
-    } catch (e) {
-      hapusSesiLokal();
-      alert("Terjadi kesalahan koneksi saat mengirim jawaban.");
-      window.location.href = "siswa.html";
     }
+  } catch (e) {
+    const elLoading = document.getElementById("loadingSubmitOverlay");
+    if (elLoading) elLoading.remove();
+    alert("Terjadi kesalahan koneksi saat mengirim jawaban. Silakan pastikan koneksi internet aktif lalu coba tekan tombol Kirim kembali.");
+    aktifkanProteksiNavigasi();
   }
+}
   
   async function muatPengaturanSiswa() {
     const kodeSoal = document.getElementById("inputKodeSoal").value.trim();
