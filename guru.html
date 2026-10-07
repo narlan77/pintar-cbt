@@ -1174,21 +1174,13 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 
-  function toggleSidebar() {
+function toggleSidebar() {
     const sidebar = document.getElementById("sidebarMenu");
     const backdrop = document.getElementById("sidebarBackdrop");
     sidebar.classList.toggle("show");
     backdrop.classList.toggle("show");
   }
-
-// Tutup sidebar jika backdrop (area hitam luar) diklik
-document.addEventListener("DOMContentLoaded", () => {
-  const backdrop = document.getElementById("sidebarBackdrop");
-  if (backdrop) {
-    backdrop.addEventListener("click", toggleSidebar);
-  }
-});
-
+  
   function logoutGuru() {
     if (confirm("Apakah Anda yakin ingin keluar dari Panel Guru?")) {
       sessionStorage.removeItem("isGuruLoggedIn");
