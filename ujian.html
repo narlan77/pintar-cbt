@@ -812,64 +812,41 @@
     if (el) el.innerText = teks;
   }
 
-  async function autoSaveJawabanKeServer(noSoal = null, jawaban = null, isWaktuHabis = false) {
-  if (!dataPeserta.noPeserta || !dataPeserta.kode) return;
+  async function autoSaveJawabanKeServer(noSoal, jawaban) {
+    if (!dataPeserta.noPeserta || !dataPeserta.kode) return;
 
-  tampilkanStatusAutoSave(isWaktuHabis ? "Mengirim Ujian Final..." : "Menyimpan...");
+    tampilkanStatusAutoSave("Menyimpan...");
 
-  // Ambil seluruh jawaban dari LocalStorage atau variabel global jika ada
-  const semuaJawabanLokal = typeof getSemuaJawabanLokal === "function" 
-    ? getSemuaJawabanLokal() 
-    : (window.jawabanSiswa || {});
+    const payload = {
+      action: "autosave",
+      id_peserta: dataPeserta.noPeserta,
+      kode_ujian: dataPeserta.kode,
+      no_soal: noSoal,
+      jawaban: jawaban
+    };
 
-  const payload = {
-    action: "autosave",
-    id_peserta: dataPeserta.noPeserta,
-    kode_ujian: dataPeserta.kode,
-    nama: dataPeserta.nama || "-",
-    kelas: dataPeserta.kelas || "-",
-    mata_pelajaran: dataPeserta.mapel || dataPeserta.mata_pelajaran || "-",
-    no_soal: noSoal,
-    jawaban: jawaban,
-    detail_jawaban: JSON.stringify(semuaJawabanLokal), // Mengirim seluruh snapshot jawaban
-    waktu_habis: isWaktuHabis // Flag penanda waktu habis untuk backend
-  };
-
-  try {
-    const targetUrl = getApiUrl();
-    const res = await fetch(targetUrl, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await res.json();
-
-    if (result.status === "success") {
-      if (result.is_final || isWaktuHabis) {
-        tampilkanStatusAutoSave("Ujian Selesai & Terkirim ✓");
-        alert("Waktu ujian telah habis. Seluruh jawaban Anda telah berhasil disimpan secara permanen!");
-        
-        // Hapus cache lokal & arahkan ke halaman selesai
-        if (typeof bersihkanStorageLokal === "function") bersihkanStorageLokal();
-        window.location.href = "selesai.html"; 
-      } else {
-        tampilkanStatusAutoSave("Tersimpan ✓");
-      }
-    } else {
-      tampilkanStatusAutoSave("Gagal menyimpan");
-    }
-  } catch (err) {
-    console.error("Gagal AutoSave:", err);
-    tampilkanStatusAutoSave("Offline (Lokal ✓)");
-
-    // Jika waktu habis tetapi koneksi offline, simpan flag khusus ke LocalStorage
-    if (isWaktuHabis) {
-      localStorage.setItem("PENDING_FINAL_SUBMIT_" + dataPeserta.kode, JSON.stringify(payload));
-      alert("Waktu habis! Koneksi internet terputus. Jawaban telah tersimpan di browser dan akan dikirim otomatis saat koneksi terhubung.");
+    try {
+      const targetUrl = getApiUrl();
+      fetch(targetUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(result => {
+        if (result.status === "success") {
+          tampilkanStatusAutoSave("Tersimpan ✓");
+        } else {
+          tampilkanStatusAutoSave("Gagal menyimpan");
+        }
+      })
+      .catch(() => {
+        tampilkanStatusAutoSave("Offline (Lokal ✓)");
+      });
+    } catch (err) {
+      tampilkanStatusAutoSave("Offline (Lokal ✓)");
     }
   }
-}
 
   // 4. RENDER TOMBOL GRID NOMOR SOAL
   function renderGridNomor() {
