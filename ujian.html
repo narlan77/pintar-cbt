@@ -10,6 +10,28 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
+    /* KONTROL UKURAN GAMBAR SOAL YANG DIPERKETAT & SPESIFIK */
+    .card-custom #soalKonten img,
+    .img-soal-container img {
+      display: block !important;
+      max-width: 100% !important;
+      max-height: 220px !important; /* Batas tinggi maksimal untuk HP */
+      height: auto !important;
+      width: auto !important;
+      margin: 10px auto !important;
+      object-fit: contain !important;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    /* Penyesuaian khusus untuk layar Laptop/Desktop */
+    @media (min-width: 992px) {
+      .card-custom #soalKonten img,
+      .img-soal-container img {
+        max-height: 320px !important; /* Batas tinggi maksimal untuk Laptop */
+      }
+    }
+
     /* PROTEKSI SELEKSI TEKS DAN DRAG */
     body { 
       background-color: #f0f2f5; 
@@ -319,9 +341,7 @@
   // FITUR PENCEGAHAN SCREENSHOT & KECURANGAN
   // ==========================================
   function inisialisasiProteksiKecurangan() {
-    // 1. Blokir Kombinasi Tombol Keyboard (PrintScreen, F12, DevTools, Ctrl+P, Ctrl+S, Dll)
     document.addEventListener("keydown", function (e) {
-      // Tombol PrintScreen
       if (e.key === "PrintScreen" || e.keyCode === 44) {
         bersihkanClipboard();
         tampilkanOverlayKunci();
@@ -329,7 +349,6 @@
         return false;
       }
       
-      // Shortcut Ctrl + P, S, U, Shift+I/J/C, F12
       if (
         (e.ctrlKey && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S' || e.key === 'u' || e.key === 'U')) ||
         (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
@@ -342,14 +361,12 @@
       }
     });
 
-    // 2. Kosongkan Clipboard bila menekan PrintScreen / Copy
     document.addEventListener("keyup", function (e) {
       if (e.key === "PrintScreen" || e.keyCode === 44) {
         bersihkanClipboard();
       }
     });
 
-    // 3. Deteksi saat Browser Hilang Fokus (Alt+Tab, Buka Snipping Tool, dll)
     window.addEventListener("blur", function () {
       if (statusUjianAktif) {
         tampilkanOverlayKunci();
@@ -375,9 +392,6 @@
 
   // PEMERIKSAAN OTOMATIS SAAT HALAMAN DI-REFRESH / LOADED
   document.addEventListener("DOMContentLoaded", function() {
-    // -------------------------------------------------------------
-    // PROTEKSI AKSE LANGSUNG: Cek Sesi Login Siswa
-    // -------------------------------------------------------------
     const akunSiswaSaved = localStorage.getItem("akun_siswa_login");
     
     if (!akunSiswaSaved) {
@@ -386,19 +400,14 @@
       return;
     }
 
-    // Inisialisasi Fitur Keamanan Screenshot/Fokus
     inisialisasiProteksiKecurangan();
-
-    // Parse Data Login Siswa
     const akunSiswa = JSON.parse(akunSiswaSaved);
 
-    // Cek apakah ada data direct dari portal siswa.html
     const sesiSaved = localStorage.getItem("sesi_ujian_aktif");
     if (sesiSaved) {
       try {
         const parsed = JSON.parse(sesiSaved);
         if (parsed.dataPeserta && parsed.dataPeserta.kode && (!parsed.listSoal || parsed.listSoal.length === 0)) {
-          // Direct launch dari siswa.html, otomatis jalankan pemuatan soal
           dataPeserta = parsed.dataPeserta;
           otomatikMulaiDariSiswa(dataPeserta);
           return;
@@ -406,25 +415,22 @@
       } catch (e) {}
     }
 
-    // Jalankan pemeriksaan jika ujian sedang berjalan (setelah refresh)
     cekSesiUjianAktif();
 
-    // Autofill & Kunci No. Peserta / Nama berdasarkan Akun Siswa yang Login
     const inputNis = document.getElementById("inputNisSiswa");
     const inputNama = document.getElementById("inputNamaSiswa");
 
     if (inputNis && akunSiswa.nis) {
       inputNis.value = akunSiswa.nis;
-      inputNis.readOnly = true; // Kunci input agar tidak bisa diubah manual
+      inputNis.readOnly = true; 
       prosesVerifikasiDanMuatKode(akunSiswa.nis);
     }
 
     if (inputNama && akunSiswa.nama) {
       inputNama.value = akunSiswa.nama;
-      inputNama.readOnly = true; // Kunci nama siswa
+      inputNama.readOnly = true; 
     }
 
-    // Event Listener pada Input No. Peserta / NIS
     if (inputNis) {
       inputNis.addEventListener("blur", function() {
         prosesVerifikasiDanMuatKode(this.value);
@@ -439,7 +445,6 @@
     }
   });
 
-  // OTOMATIS MEMULAI UJIAN JIKA BERASAL DARI PORTAL SISWA
   async function otomatikMulaiDariSiswa(peserta) {
     document.getElementById("sectionLoginUjian").classList.add("d-none");
     document.getElementById("sectionLembarUjian").classList.remove("d-none");
@@ -486,7 +491,6 @@
     }
   }
 
-  // VERIFIKASI NO PESERTA & FILTER KODE SOAL TERSEDIA
   async function prosesVerifikasiDanMuatKode(noPeserta) {
     const valNis = String(noPeserta || "").trim();
     const selectKode = document.getElementById("inputKodeSoal");
@@ -570,7 +574,6 @@
     prosesVerifikasiDanMuatKode(valNis);
   }
 
-  // PENCEGAHAN DAN PERINGATAN TOMBOL BACK
   function aktifkanProteksiNavigasi() {
     statusUjianAktif = true;
     history.pushState(null, null, location.href);
@@ -657,7 +660,6 @@
     localStorage.removeItem("durasi_total_detik");
   }
 
-  // 1. VERIFIKASI & AMBIL SOAL DARI SERVER
   async function mulaiKonfirmasiUjian(event) {
     if (event) event.preventDefault();
 
@@ -729,92 +731,89 @@
     }
   }
  
-// 2. TAMPILKAN SOAL BERDASARKAN INDEX (DENGAN DUKUNGAN GAMBAR)
-function tampilkanSoal(index) {
-  indexSoalAktif = index;
-  const item = listSoal[index];
-  const keyUnik = index + 1;
+  // FUNGSI UTAMA TAMPILKAN SOAL DENGAN PENGATURAN GAMBAR PROPORSIONAL
+  function tampilkanSoal(index) {
+    indexSoalAktif = index;
+    const item = listSoal[index];
+    const keyUnik = index + 1;
 
-  let tipeSoal = String(item.tipe || "PG").trim().toUpperCase();
-  let teksPertanyaan = item.pertanyaan || "";
+    let tipeSoal = String(item.tipe || "PG").trim().toUpperCase();
+    let teksPertanyaan = item.pertanyaan || "";
 
-  // 1. OLAH GAMBAR SOAL
-  let urlGambar = item.gambar || item.gambar_soal || "";
-  
-  // Konversi otomatis jika tautan berupa Google Drive
-  if (urlGambar && (urlGambar.includes("drive.google.com") || urlGambar.includes("docs.google.com"))) {
-    const match = urlGambar.match(/[-\w]{25,}/);
-    if (match && match[0]) {
-      urlGambar = `https://lh3.googleusercontent.com/d/${match[0]}`;
-    }
-  }
-
-  // Buat komponen HTML gambar jika tautan tersedia
-  const htmlGambar = urlGambar ? `
-    <div class="my-3 text-center">
-      <img src="${urlGambar}" 
-           class="img-fluid rounded border shadow-sm" 
-           style="max-height: 350px; object-fit: contain;" 
-           alt="Gambar Soal No. ${keyUnik}" 
-           onerror="this.style.display='none';" />
-    </div>
-  ` : "";
-
-  const isEssai = (tipeSoal === "ESSAI" || tipeSoal === "ESSAY" || tipeSoal === "ES");
-
-  document.getElementById("labelNomorSoal").innerText = `Soal No. ${index + 1} dari ${listSoal.length} (${isEssai ? "Essai" : "Pilihan Ganda"})`;
-  
-  // SUNTIKKAN TEKS PERTANYAAN DAN GAMBAR SOAL
-  document.getElementById("soalKonten").innerHTML = `
-    <div class="mb-2">${teksPertanyaan || "-"}</div>
-    ${htmlGambar}
-  `;
-
-  const containerOpsi = document.getElementById("opsiJawabanContainer");
-  containerOpsi.innerHTML = "";
-
-  if (isEssai) {
-    const textJawaban = jawabanSiswa[keyUnik] || "";
-    const htmlEssai = `
-      <div class="mb-3">
-        <label class="form-label fw-bold text-muted mb-2">Tuliskan Jawaban Anda Di Bawah Ini:</label>
-        <textarea class="form-control p-3" rows="6" placeholder="Ketik jawaban lengkap di sini..." 
-          oninput="handleInputEssai(${keyUnik}, this.value)">${textJawaban}</textarea>
-      </div>
-    `;
-    containerOpsi.innerHTML = htmlEssai;
-  } 
-  else {
-    const pilihan = [
-      { key: "A", val: fixPecahanDariTanggal(item.opA) },
-      { key: "B", val: fixPecahanDariTanggal(item.opB) },
-      { key: "C", val: fixPecahanDariTanggal(item.opC) },
-      { key: "D", val: fixPecahanDariTanggal(item.opD) },
-      { key: "E", val: fixPecahanDariTanggal(item.opE) }
-    ];
-
-    pilihan.forEach(opt => {
-      if (opt.val && String(opt.val).trim() !== "") {
-        const isChecked = jawabanSiswa[keyUnik] === opt.key ? "checked" : "";
-        const htmlOpsi = `
-          <label class="option-item d-block">
-            <input type="radio" name="soal_${keyUnik}" value="${opt.key}" ${isChecked} onchange="pilihJawaban(${keyUnik}, '${opt.key}')">
-            <strong>${opt.key}.</strong> ${opt.val}
-          </label>
-        `;
-        containerOpsi.innerHTML += htmlOpsi;
+    // 1. OLAH GAMBAR SOAL
+    let urlGambar = item.gambar || item.gambar_soal || "";
+    
+    if (urlGambar && (urlGambar.includes("drive.google.com") || urlGambar.includes("docs.google.com"))) {
+      const match = urlGambar.match(/[-\w]{25,}/);
+      if (match && match[0]) {
+        urlGambar = `https://lh3.googleusercontent.com/d/${match[0]}`;
       }
-    });
+    }
+
+    // Komponen HTML Gambar dengan pengaman inline style ukuran maksimal
+    const htmlGambar = urlGambar ? `
+      <div class="img-soal-container text-center my-3">
+        <img src="${urlGambar}" 
+             style="max-width: 100%; max-height: 220px; height: auto; width: auto; object-fit: contain; display: inline-block; border-radius: 8px;" 
+             alt="Gambar Soal No. ${keyUnik}" 
+             onerror="this.style.display='none';" />
+      </div>
+    ` : "";
+
+    const isEssai = (tipeSoal === "ESSAI" || tipeSoal === "ESSAY" || tipeSoal === "ES");
+
+    document.getElementById("labelNomorSoal").innerText = `Soal No. ${index + 1} dari ${listSoal.length} (${isEssai ? "Essai" : "Pilihan Ganda"})`;
+    
+    // SUNTIKKAN TEKS PERTANYAAN DAN GAMBAR SOAL
+    document.getElementById("soalKonten").innerHTML = `
+      <div class="mb-2">${teksPertanyaan || "-"}</div>
+      ${htmlGambar}
+    `;
+
+    const containerOpsi = document.getElementById("opsiJawabanContainer");
+    containerOpsi.innerHTML = "";
+
+    if (isEssai) {
+      const textJawaban = jawabanSiswa[keyUnik] || "";
+      const htmlEssai = `
+        <div class="mb-3">
+          <label class="form-label fw-bold text-muted mb-2">Tuliskan Jawaban Anda Di Bawah Ini:</label>
+          <textarea class="form-control p-3" rows="6" placeholder="Ketik jawaban lengkap di sini..." 
+            oninput="handleInputEssai(${keyUnik}, this.value)">${textJawaban}</textarea>
+        </div>
+      `;
+      containerOpsi.innerHTML = htmlEssai;
+    } 
+    else {
+      const pilihan = [
+        { key: "A", val: fixPecahanDariTanggal(item.opA) },
+        { key: "B", val: fixPecahanDariTanggal(item.opB) },
+        { key: "C", val: fixPecahanDariTanggal(item.opC) },
+        { key: "D", val: fixPecahanDariTanggal(item.opD) },
+        { key: "E", val: fixPecahanDariTanggal(item.opE) }
+      ];
+
+      pilihan.forEach(opt => {
+        if (opt.val && String(opt.val).trim() !== "") {
+          const isChecked = jawabanSiswa[keyUnik] === opt.key ? "checked" : "";
+          const htmlOpsi = `
+            <label class="option-item d-block">
+              <input type="radio" name="soal_${keyUnik}" value="${opt.key}" ${isChecked} onchange="pilihJawaban(${keyUnik}, '${opt.key}')">
+              <strong>${opt.key}.</strong> ${opt.val}
+            </label>
+          `;
+          containerOpsi.innerHTML += htmlOpsi;
+        }
+      });
+    }
+
+    document.getElementById("btnPrev").disabled = (index === 0);
+    document.getElementById("btnNext").disabled = (index === listSoal.length - 1);
+
+    simpanSesiLokal();
+    updateGridNomorUI();
   }
 
-  document.getElementById("btnPrev").disabled = (index === 0);
-  document.getElementById("btnNext").disabled = (index === listSoal.length - 1);
-
-  simpanSesiLokal();
-  updateGridNomorUI();
-}
-
-  // 3. SIMPAN JAWABAN SEMENTARA & AUTO-SAVE KE SERVER
   function pilihJawaban(keyUnik, isiJawaban) {
     if (typeof isiJawaban === 'string' && isiJawaban.trim() === "") {
       delete jawabanSiswa[keyUnik];
@@ -875,7 +874,6 @@ function tampilkanSoal(index) {
     }
   }
 
-  // 4. RENDER TOMBOL GRID NOMOR SOAL
   function renderGridNomor() {
     const grid = document.getElementById("gridNomorSoal");
     grid.innerHTML = "";
@@ -913,7 +911,6 @@ function tampilkanSoal(index) {
     if (indexSoalAktif > 0) tampilkanSoal(indexSoalAktif - 1);
   }
 
-  // 5. HITUNG WAKTU MUNDUR (TIMER)
   function jalankanTimer() {
     const box = document.getElementById("boxTimer");
     if (timerInterval) clearInterval(timerInterval);
@@ -939,7 +936,6 @@ function tampilkanSoal(index) {
     return val < 10 ? "0" + val : val;
   }
 
-  // 6. SUBMIT JAWABAN SISWA
   function konfirmasiKirim() {
     const totalSoal = listSoal.length;
     const totalDijawab = Object.keys(jawabanSiswa).filter(k => String(jawabanSiswa[k]).trim() !== "").length;
@@ -957,94 +953,93 @@ function tampilkanSoal(index) {
     kirimJawabanKeServer();
   }
 
- async function kirimJawabanKeServer() {
-  if (timerInterval) clearInterval(timerInterval);
-  matikanProteksiNavigasi();
+  async function kirimJawabanKeServer() {
+    if (timerInterval) clearInterval(timerInterval);
+    matikanProteksiNavigasi();
 
-  const overlayModal = document.createElement("div");
-  overlayModal.id = "loadingSubmitOverlay";
-  overlayModal.style = "position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.95);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;";
-  overlayModal.innerHTML = `
-    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-    <h4>Mengirimkan Jawaban Anda...</h4>
-    <p class="text-muted">Jangan tutup halaman ini sampai proses selesai.</p>
-  `;
-  document.body.appendChild(overlayModal);
+    const overlayModal = document.createElement("div");
+    overlayModal.id = "loadingSubmitOverlay";
+    overlayModal.style = "position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.95);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;";
+    overlayModal.innerHTML = `
+      <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+      <h4>Mengirimkan Jawaban Anda...</h4>
+      <p class="text-muted">Jangan tutup halaman ini sampai proses selesai.</p>
+    `;
+    document.body.appendChild(overlayModal);
 
-  const payload = {
-    action: "submitUjian",
-    kode_soal: dataPeserta.kode,
-    no_peserta: dataPeserta.noPeserta,
-    nama: dataPeserta.nama,
-    kelas: dataPeserta.kelas,
-    detail_jawaban: JSON.stringify(jawabanSiswa)
-  };
+    const payload = {
+      action: "submitUjian",
+      kode_soal: dataPeserta.kode,
+      no_peserta: dataPeserta.noPeserta,
+      nama: dataPeserta.nama,
+      kelas: dataPeserta.kelas,
+      detail_jawaban: JSON.stringify(jawabanSiswa)
+    };
 
-  try {
-    const targetUrl = getApiUrl();
-    const res = await fetch(targetUrl, {
-      method: "POST",
-      redirect: "follow",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
-    const result = await res.json();
+    try {
+      const targetUrl = getApiUrl();
+      const res = await fetch(targetUrl, {
+        method: "POST",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
 
-    if (result.status === "success") {
-      hapusSesiLokal();
-      const isTampilSkor = String(result.tampil_skor || "").trim().toLowerCase() === "ya";
-      const skorHtml = isTampilSkor ? `
-        <div class="my-3 p-3 bg-light rounded border">
-          <small class="text-muted d-block fw-semibold mb-1">SKOR PEROLEHAN PG</small>
-          <h1 class="display-4 fw-bold text-primary mb-0">${result.skor_pg !== undefined ? result.skor_pg : 0}</h1>
-        </div>
-      ` : '';
-
-      document.body.innerHTML = `
-        <div class="d-flex flex-column align-items-center justify-content-center vh-100 bg-light">
-          <div class="card p-5 text-center card-custom bg-white" style="max-width: 500px; width: 90%;">
-            <div class="display-1 text-success mb-2"><i class="fa-solid fa-circle-check"></i></div>
-            <h3 class="fw-bold mb-1">Ujian Selesai!</h3>
-            <p class="text-muted">Jawaban Anda telah berhasil tersimpan di sistem.</p>
-            ${skorHtml}
-            <a href="siswa.html" class="btn btn-primary mt-3 fw-bold w-100">Kembali ke Dashboard Siswa</a>
-          </div>
-        </div>
-      `;
-    } else {
-      const elLoading = document.getElementById("loadingSubmitOverlay");
-      if (elLoading) elLoading.remove();
-
-      // CEK APABILA GAGAL KARENA JAWABAN SUDAH ADA DI SERVER
-      const msg = String(result.message || "").toLowerCase();
-      const isSudahPernah = result.sudah_ada || msg.includes("sudah pernah dikirim") || msg.includes("sudah ada");
-
-      if (isSudahPernah) {
+      if (result.status === "success") {
         hapusSesiLokal();
+        const isTampilSkor = String(result.tampil_skor || "").trim().toLowerCase() === "ya";
+        const skorHtml = isTampilSkor ? `
+          <div class="my-3 p-3 bg-light rounded border">
+            <small class="text-muted d-block fw-semibold mb-1">SKOR PEROLEHAN PG</small>
+            <h1 class="display-4 fw-bold text-primary mb-0">${result.skor_pg !== undefined ? result.skor_pg : 0}</h1>
+          </div>
+        ` : '';
+
         document.body.innerHTML = `
           <div class="d-flex flex-column align-items-center justify-content-center vh-100 bg-light">
-            <div class="card p-5 text-center card-custom bg-white shadow-sm" style="max-width: 500px; width: 90%;">
-              <div class="display-1 text-warning mb-2"><i class="fa-solid fa-circle-exclamation"></i></div>
-              <h3 class="fw-bold mb-1">Jawaban Sudah Terkirim</h3>
-              <p class="text-muted">${result.message || "Anda sudah pernah mengirimkan jawaban untuk ujian ini sebelumnya."}</p>
-              <a href="siswa.html" class="btn btn-primary mt-3 fw-bold w-100">
-                <i class="fa-solid fa-house me-2"></i>Kembali ke Dashboard Siswa
-              </a>
+            <div class="card p-5 text-center card-custom bg-white" style="max-width: 500px; width: 90%;">
+              <div class="display-1 text-success mb-2"><i class="fa-solid fa-circle-check"></i></div>
+              <h3 class="fw-bold mb-1">Ujian Selesai!</h3>
+              <p class="text-muted">Jawaban Anda telah berhasil tersimpan di sistem.</p>
+              ${skorHtml}
+              <a href="siswa.html" class="btn btn-primary mt-3 fw-bold w-100">Kembali ke Dashboard Siswa</a>
             </div>
           </div>
         `;
       } else {
-        alert("Gagal menyimpan jawaban: " + (result.message || "Sistem sedang sibuk. Silakan coba lagi."));
-        aktifkanProteksiNavigasi();
+        const elLoading = document.getElementById("loadingSubmitOverlay");
+        if (elLoading) elLoading.remove();
+
+        const msg = String(result.message || "").toLowerCase();
+        const isSudahPernah = result.sudah_ada || msg.includes("sudah pernah dikirim") || msg.includes("sudah ada");
+
+        if (isSudahPernah) {
+          hapusSesiLokal();
+          document.body.innerHTML = `
+            <div class="d-flex flex-column align-items-center justify-content-center vh-100 bg-light">
+              <div class="card p-5 text-center card-custom bg-white shadow-sm" style="max-width: 500px; width: 90%;">
+                <div class="display-1 text-warning mb-2"><i class="fa-solid fa-circle-exclamation"></i></div>
+                <h3 class="fw-bold mb-1">Jawaban Sudah Terkirim</h3>
+                <p class="text-muted">${result.message || "Anda sudah pernah mengirimkan jawaban untuk ujian ini sebelumnya."}</p>
+                <a href="siswa.html" class="btn btn-primary mt-3 fw-bold w-100">
+                  <i class="fa-solid fa-house me-2"></i>Kembali ke Dashboard Siswa
+                </a>
+              </div>
+            </div>
+          `;
+        } else {
+          alert("Gagal menyimpan jawaban: " + (result.message || "Sistem sedang sibuk. Silakan coba lagi."));
+          aktifkanProteksiNavigasi();
+        }
       }
+    } catch (e) {
+      const elLoading = document.getElementById("loadingSubmitOverlay");
+      if (elLoading) elLoading.remove();
+      alert("Terjadi kesalahan koneksi saat mengirim jawaban. Silakan pastikan koneksi internet aktif lalu coba tekan tombol Kirim kembali.");
+      aktifkanProteksiNavigasi();
     }
-  } catch (e) {
-    const elLoading = document.getElementById("loadingSubmitOverlay");
-    if (elLoading) elLoading.remove();
-    alert("Terjadi kesalahan koneksi saat mengirim jawaban. Silakan pastikan koneksi internet aktif lalu coba tekan tombol Kirim kembali.");
-    aktifkanProteksiNavigasi();
   }
-}
   
   async function muatPengaturanSiswa() {
     const kodeSoal = document.getElementById("inputKodeSoal").value.trim();
