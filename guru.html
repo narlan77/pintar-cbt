@@ -2952,13 +2952,6 @@ function bukaModalEssai(index) {
     });
 
     const totalNilaiEssai = parseFloat(document.getElementById("inputNilaiEssaiModal").value) || 0;
-    // Ambil elemen tombol Simpan Nilai Essai pada footer modal
-    const btn = document.querySelector("#modalEssai .modal-footer .btn-success");
-    const teksAsli = btn ? btn.innerHTML : "";
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan Data...`;
-    }
 
     try {
       const result = await apiPost({
