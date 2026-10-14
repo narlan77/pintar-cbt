@@ -729,63 +729,90 @@
     }
   }
  
-  // 2. TAMPILKAN SOAL BERDASARKAN INDEX
-  function tampilkanSoal(index) {
-    indexSoalAktif = index;
-    const item = listSoal[index];
-    const keyUnik = index + 1;
+// 2. TAMPILKAN SOAL BERDASARKAN INDEX (DENGAN DUKUNGAN GAMBAR)
+function tampilkanSoal(index) {
+  indexSoalAktif = index;
+  const item = listSoal[index];
+  const keyUnik = index + 1;
 
-    let tipeSoal = String(item.tipe || "PG").trim().toUpperCase();
-    let teksPertanyaan = item.pertanyaan || "";
+  let tipeSoal = String(item.tipe || "PG").trim().toUpperCase();
+  let teksPertanyaan = item.pertanyaan || "";
 
-    const isEssai = (tipeSoal === "ESSAI" || tipeSoal === "ESSAY" || tipeSoal === "ES");
-
-    document.getElementById("labelNomorSoal").innerText = `Soal No. ${index + 1} dari ${listSoal.length} (${isEssai ? "Essai" : "Pilihan Ganda"})`;
-    document.getElementById("soalKonten").innerHTML = teksPertanyaan || "-";
-
-    const containerOpsi = document.getElementById("opsiJawabanContainer");
-    containerOpsi.innerHTML = "";
-
-    if (isEssai) {
-      const textJawaban = jawabanSiswa[keyUnik] || "";
-      const htmlEssai = `
-        <div class="mb-3">
-          <label class="form-label fw-bold text-muted mb-2">Tuliskan Jawaban Anda Di Bawah Ini:</label>
-          <textarea class="form-control p-3" rows="6" placeholder="Ketik jawaban lengkap di sini..." 
-            oninput="handleInputEssai(${keyUnik}, this.value)">${textJawaban}</textarea>
-        </div>
-      `;
-      containerOpsi.innerHTML = htmlEssai;
-    } 
-    else {
-      const pilihan = [
-        { key: "A", val: fixPecahanDariTanggal(item.opA) },
-        { key: "B", val: fixPecahanDariTanggal(item.opB) },
-        { key: "C", val: fixPecahanDariTanggal(item.opC) },
-        { key: "D", val: fixPecahanDariTanggal(item.opD) },
-        { key: "E", val: fixPecahanDariTanggal(item.opE) }
-      ];
-
-      pilihan.forEach(opt => {
-        if (opt.val && String(opt.val).trim() !== "") {
-          const isChecked = jawabanSiswa[keyUnik] === opt.key ? "checked" : "";
-          const htmlOpsi = `
-            <label class="option-item d-block">
-              <input type="radio" name="soal_${keyUnik}" value="${opt.key}" ${isChecked} onchange="pilihJawaban(${keyUnik}, '${opt.key}')">
-              <strong>${opt.key}.</strong> ${opt.val}
-            </label>
-          `;
-          containerOpsi.innerHTML += htmlOpsi;
-        }
-      });
+  // 1. OLAH GAMBAR SOAL
+  let urlGambar = item.gambar || item.gambar_soal || "";
+  
+  // Konversi otomatis jika tautan berupa Google Drive
+  if (urlGambar && (urlGambar.includes("drive.google.com") || urlGambar.includes("docs.google.com"))) {
+    const match = urlGambar.match(/[-\w]{25,}/);
+    if (match && match[0]) {
+      urlGambar = `https://lh3.googleusercontent.com/d/${match[0]}`;
     }
-
-    document.getElementById("btnPrev").disabled = (index === 0);
-    document.getElementById("btnNext").disabled = (index === listSoal.length - 1);
-
-    simpanSesiLokal();
-    updateGridNomorUI();
   }
+
+  // Buat komponen HTML gambar jika tautan tersedia
+  const htmlGambar = urlGambar ? `
+    <div class="my-3 text-center">
+      <img src="${urlGambar}" 
+           class="img-fluid rounded border shadow-sm" 
+           style="max-height: 350px; object-fit: contain;" 
+           alt="Gambar Soal No. ${keyUnik}" 
+           onerror="this.style.display='none';" />
+    </div>
+  ` : "";
+
+  const isEssai = (tipeSoal === "ESSAI" || tipeSoal === "ESSAY" || tipeSoal === "ES");
+
+  document.getElementById("labelNomorSoal").innerText = `Soal No. ${index + 1} dari ${listSoal.length} (${isEssai ? "Essai" : "Pilihan Ganda"})`;
+  
+  // SUNTIKKAN TEKS PERTANYAAN DAN GAMBAR SOAL
+  document.getElementById("soalKonten").innerHTML = `
+    <div class="mb-2">${teksPertanyaan || "-"}</div>
+    ${htmlGambar}
+  `;
+
+  const containerOpsi = document.getElementById("opsiJawabanContainer");
+  containerOpsi.innerHTML = "";
+
+  if (isEssai) {
+    const textJawaban = jawabanSiswa[keyUnik] || "";
+    const htmlEssai = `
+      <div class="mb-3">
+        <label class="form-label fw-bold text-muted mb-2">Tuliskan Jawaban Anda Di Bawah Ini:</label>
+        <textarea class="form-control p-3" rows="6" placeholder="Ketik jawaban lengkap di sini..." 
+          oninput="handleInputEssai(${keyUnik}, this.value)">${textJawaban}</textarea>
+      </div>
+    `;
+    containerOpsi.innerHTML = htmlEssai;
+  } 
+  else {
+    const pilihan = [
+      { key: "A", val: fixPecahanDariTanggal(item.opA) },
+      { key: "B", val: fixPecahanDariTanggal(item.opB) },
+      { key: "C", val: fixPecahanDariTanggal(item.opC) },
+      { key: "D", val: fixPecahanDariTanggal(item.opD) },
+      { key: "E", val: fixPecahanDariTanggal(item.opE) }
+    ];
+
+    pilihan.forEach(opt => {
+      if (opt.val && String(opt.val).trim() !== "") {
+        const isChecked = jawabanSiswa[keyUnik] === opt.key ? "checked" : "";
+        const htmlOpsi = `
+          <label class="option-item d-block">
+            <input type="radio" name="soal_${keyUnik}" value="${opt.key}" ${isChecked} onchange="pilihJawaban(${keyUnik}, '${opt.key}')">
+            <strong>${opt.key}.</strong> ${opt.val}
+          </label>
+        `;
+        containerOpsi.innerHTML += htmlOpsi;
+      }
+    });
+  }
+
+  document.getElementById("btnPrev").disabled = (index === 0);
+  document.getElementById("btnNext").disabled = (index === listSoal.length - 1);
+
+  simpanSesiLokal();
+  updateGridNomorUI();
+}
 
   // 3. SIMPAN JAWABAN SEMENTARA & AUTO-SAVE KE SERVER
   function pilihJawaban(keyUnik, isiJawaban) {
