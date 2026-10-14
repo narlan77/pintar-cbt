@@ -289,16 +289,16 @@
 
       <!-- 3. HASIL UJIAN -->
       <button class="nav-link" id="hasil-tab" data-bs-toggle="tab" data-bs-target="#tab-hasil" type="button" role="tab" onClick="muatHasilUjian()">
-        <span>📊</span> Lihat Hasil Ujian
+        <span>📊</span> Hasil Ujian
       </button>
 
       <!-- 4. ANALISIS HASIL -->
       <button class="nav-link" id="tab-analisis-tab" data-bs-toggle="tab" data-bs-target="#tab-analisis" type="button" role="tab" onClick="muatAnalisisSoal()">
-        <span>📈</span> Analisis Hasil Ujian
+        <span>📈</span> Analisis Hasil
       </button>
       <!-- 4a. PENGELOLAAN SUMBER BELAJAR -->
 <button class="nav-link" id="sumber-tab" data-bs-toggle="tab" data-bs-target="#tab-sumber-guru" type="button" role="tab" onClick="muatSumberBelajarGuru()">
-  <span>📖</span> Kelola Sumber Belajar
+  <span>📖</span> Sumber Belajar
 </button>
       <!-- 5. KELOLA USER (KHUSUS SUPER ADMIN) -->
       <button class="nav-link text-warning mt-2" id="guru-admin-tab" data-bs-toggle="tab" data-bs-target="#tab-kelola-guru" type="button" role="tab" style="display: none;">
@@ -560,6 +560,7 @@
                               <option value="Tidak">Sembunyikan dari siswa</option>
                           </select>
                       </div>
+
                   </div>
               </div>
 
@@ -753,9 +754,14 @@
         <h5 class="fw-bold mb-0 text-dark">📖 Kelola Sumber Belajar Siswa</h5>
         <small class="text-muted">Tambahkan materi manual, link website, atau embed video YouTube.</small>
       </div>
-      <button class="btn btn-primary btn-sm fw-bold px-3 rounded-pill" onClick="bukaModalTambahSumber()">
-        ➕ Tambah Sumber Baru
-      </button>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm fw-bold px-3 rounded-pill" onClick="bukaModalTambahSumber()">
+          ➕ Tambah Sumber Belajar
+        </button>
+        <button class="btn btn-outline-primary btn-sm fw-bold px-3 rounded-pill" onClick="muatSumberBelajarGuru()">
+          🔄 Refresh
+        </button>
+      </div>
     </div>
 
     <div class="table-responsive rounded-3 border">
@@ -2846,6 +2852,7 @@ function bukaModalEssai(index) {
     document.getElementById("modalKelasSiswa").innerText = item.kelas;
 
     let detailJawaban = {};
+
     try { 
       detailJawaban = typeof item.detail_jawaban === 'string' ? JSON.parse(item.detail_jawaban) : (item.detail_jawaban || {}); 
     } catch(e){}
@@ -2945,6 +2952,13 @@ function bukaModalEssai(index) {
     });
 
     const totalNilaiEssai = parseFloat(document.getElementById("inputNilaiEssaiModal").value) || 0;
+    // Ambil elemen tombol Simpan Nilai Essai pada footer modal
+    const btn = document.querySelector("#modalEssai .modal-footer .btn-success");
+    const teksAsli = btn ? btn.innerHTML : "";
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan Data...`;
+    }
 
     try {
       const result = await apiPost({
@@ -3664,6 +3678,14 @@ async function simpanSumberBelajar() {
     const valArr = $('#sumberKelas').val();
     kelasSelected = Array.isArray(valArr) ? valArr.join(", ") : valArr;
   }
+  
+  // Ambil elemen tombol Simpan pada footer modal Sumber Belajar
+  const btn = document.querySelector("#modalTambahSumber .modal-footer .btn-primary");
+  const teksAsli = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan Sumber...`;
+  }
 
   const payload = {
     action: editId ? "editsumberbelajar" : "tambahsumberbelajar",
@@ -3678,6 +3700,10 @@ async function simpanSumberBelajar() {
 
   if (!payload.judul) {
     alert("Judul materi wajib diisi!");
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = teksAsli;
+    }
     return;
   }
 
@@ -3692,6 +3718,11 @@ async function simpanSumberBelajar() {
     }
   } catch (e) {
     alert("Kesalahan koneksi server.");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = teksAsli;
+    }
   }
 }
 
@@ -3726,29 +3757,64 @@ async function bukaModalEditSumber(id) {
 }
 
 async function toggleStatusSumber(id) {
+  // Cari tombol berdasarkan atribut onclick yang memuat ID tersebut
+  const btn = document.querySelector(`button[onclick*="toggleStatusSumber('${id}')"]`);
+  const teksAsli = btn ? btn.innerHTML : "";
+  
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Memproses...`;
+  }
+
   try {
     const res = await apiPost({ action: "togglestatussumber", id: id });
     if (res.status === "success") {
       muatSumberBelajarGuru();
     } else {
       alert("Gagal mengubah status.");
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = teksAsli;
+      }
     }
   } catch (e) {
     alert("Kesalahan koneksi.");
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = teksAsli;
+    }
   }
 }
 
 async function hapusSumber(id) {
   if (!confirm("Hapus sumber belajar ini?")) return;
+
+  // Cari tombol hapus berdasarkan atribut onclick yang memuat ID tersebut
+  const btn = document.querySelector(`button[onclick*="hapusSumber('${id}')"]`);
+  const teksAsli = btn ? btn.innerHTML : "";
+  
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Menghapus...`;
+  }
+
   try {
     const res = await apiPost({ action: "hapussumberbelajar", id: id });
     if (res.status === "success") {
       muatSumberBelajarGuru();
     } else {
       alert("Gagal menghapus.");
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = teksAsli;
+      }
     }
   } catch (e) {
     alert("Kesalahan koneksi.");
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = teksAsli;
+    }
   }
 }
 </script>
