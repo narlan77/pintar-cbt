@@ -241,7 +241,29 @@
         border-color: #86b7fe !important;
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
     }
-    
+    /* STYLE KONTROL UKURAN GAMBAR PADA PRATINJAU & CETAK NASKAH SOAL */
+    #containerListTinjauSoal img,
+    .soal-item img {
+      display: block !important;
+      max-width: 100% !important;
+      max-height: 220px !important; /* Batas tinggi maksimal untuk layar HP/Pratinjau */
+      height: auto !important;
+      width: auto !important;
+      margin: 10px auto !important;
+      object-fit: contain !important;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    /* Penyesuaian khusus saat dokumen dicetak / diexport PDF */
+    @media print {
+      #containerListTinjauSoal img,
+      .soal-item img {
+        max-height: 200px !important; /* Batas tinggi maksimal agar hemat kertas cetak */
+        box-shadow: none !important;
+        border: none !important;
+      }
+    }
   </style>
 
   <!-- Library Parser Excel (.xlsx) & Word (.docx) -->
@@ -2141,7 +2163,7 @@ function gantiHalamanKodeSoal(page) {
     finally { btnSimpan.disabled = false; btnSimpan.innerHTML = "💾 Simpan Semua Soal ke Database"; }
   }
 
-  async function tinjauDanCetakSoal(kodeSoal) {
+async function tinjauDanCetakSoal(kodeSoal) {
     if (!kodeSoal || typeof kodeSoal !== "string") {
       kodeSoal = typeof getKodeSoal === "function" ? getKodeSoal() : document.getElementById("kodeSoalInput")?.value.trim().toUpperCase();
     }
@@ -2200,6 +2222,19 @@ function gantiHalamanKodeSoal(page) {
             .soal-text { font-weight: bold; margin-bottom: 5px; }
             .opsi-list { list-style-type: none; padding-left: 20px; margin: 5px 0; }
             .opsi-list li { margin-bottom: 3px; }
+            
+            /* PENGATURAN GAMBAR SOAL PADA CETAKAN / PDF */
+            .soal-item img {
+              display: block;
+              max-width: 100%;
+              max-height: 200px;
+              height: auto;
+              width: auto;
+              object-fit: contain;
+              margin: 8px auto;
+              border-radius: 6px;
+            }
+
             @media print {
               body { margin: 0; }
               .no-print { display: none; }
@@ -2244,9 +2279,26 @@ function gantiHalamanKodeSoal(page) {
         const opD = item.opD || item["Opsi D"] || "";
         const isPG = tipe === "PG" || tipe === "PILGAN";
 
+        // --- OLAH GAMBAR SOAL (KONVERSI LINK GOOGLE DRIVE JIKA ADA) ---
+        let urlGambar = item.gambar || item.gambar_soal || "";
+        if (urlGambar && (urlGambar.includes("drive.google.com") || urlGambar.includes("docs.google.com"))) {
+          const match = urlGambar.match(/[-\w]{25,}/);
+          if (match && match[0]) {
+            urlGambar = `https://lh3.googleusercontent.com/d/${match[0]}`;
+          }
+        }
+
+        const htmlGambar = urlGambar ? `
+          <div style="text-align: center; margin: 8px 0;">
+            <img src="${urlGambar}" alt="Gambar Soal No. ${no}" onerror="this.style.display='none';" />
+          </div>
+        ` : "";
+        // -------------------------------------------------------------
+
         htmlContent += `
           <div class="soal-item">
             <div class="soal-text">${no}. ${pertanyaan}</div>
+            ${htmlGambar}
         `;
 
         if (isPG) {
