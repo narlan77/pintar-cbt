@@ -282,6 +282,10 @@
       <button class="nav-link" id="pengaturan-tab" data-bs-toggle="tab" data-bs-target="#tab-pengaturan" type="button" role="tab">
         <span>⚙️</span> Pengaturan Ujian
       </button>
+      <!-- TAMBAHAN: MENU MONITORING UJIAN -->
+        <button class="nav-link" id="monitoring-tab" data-bs-toggle="tab" data-bs-target="#tab-monitoring" type="button" role="tab" onClick="muatMonitoringUjian()">
+            <span>🖥️</span> Monitoring Ujian
+        </button>
 
       <!-- 3. HASIL UJIAN -->
       <button class="nav-link" id="hasil-tab" data-bs-toggle="tab" data-bs-target="#tab-hasil" type="button" role="tab" onClick="muatHasilUjian()">
@@ -292,7 +296,10 @@
       <button class="nav-link" id="tab-analisis-tab" data-bs-toggle="tab" data-bs-target="#tab-analisis" type="button" role="tab" onClick="muatAnalisisSoal()">
         <span>📈</span> Analisis Hasil Ujian
       </button>
-
+      <!-- 4a. PENGELOLAAN SUMBER BELAJAR -->
+<button class="nav-link" id="sumber-tab" data-bs-toggle="tab" data-bs-target="#tab-sumber-guru" type="button" role="tab" onClick="muatSumberBelajarGuru()">
+  <span>📖</span> Kelola Sumber Belajar
+</button>
       <!-- 5. KELOLA USER (KHUSUS SUPER ADMIN) -->
       <button class="nav-link text-warning mt-2" id="guru-admin-tab" data-bs-toggle="tab" data-bs-target="#tab-kelola-guru" type="button" role="tab" style="display: none;">
         <span>👥</span> Kelola User
@@ -332,19 +339,13 @@
         </div>
         <div class="col-md-6">
           <div class="input-group">
-            <input 
-              type="text" 
-              id="kodeSoalInput" 
-              class="form-control form-control-lg fs-6" 
-              list="listKodeSoal" 
-              placeholder="Ketik atau pilih dari daftar..."
-              autocomplete="off"
-            >
-            <datalist id="listKodeSoal"></datalist>
-            <button class="btn btn-outline-secondary px-3" type="button" onClick="muatDaftarKodeSoal()" title="Segarkan Daftar Kode Soal">
-              🔄
-            </button>
-          </div>
+              <select id="kodeSoalInput" class="form-select form-select-lg fs-6">
+                <option value="" disabled selected>-- Pilih Kode Soal --</option>
+              </select>
+              <button class="btn btn-outline-secondary px-3" type="button" onClick="muatDaftarKodeSoal()" title="Segarkan Daftar Kode Soal">
+                🔄
+              </button>
+            </div>
         </div>
         <div class="col-md-3">
           <button class="btn btn-primary w-100 fw-bold shadow-sm" id="btnMuatPengaturan" onClick="muatDataSoal()">
@@ -361,16 +362,20 @@
       <div class="tab-pane fade show active" id="tab-import" role="tabpanel">
         <div class="card card-custom p-4 mb-4">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <h5 class="fw-bold mb-0 text-primary">📋 Daftar Kode Soal Terbuat</h5>
-              <small class="text-muted">Daftar seluruh paket bank soal yang tersimpan di sistem.</small>
+              <div>
+                <h5 class="fw-bold mb-0 text-primary">📋 Daftar Kode Soal Terbuat</h5>
+                <small class="text-muted">Daftar seluruh paket bank soal yang tersimpan di sistem.</small>
+              </div>
+              <div class="d-flex gap-2">
+                <!-- TAMBAHKAN TOMBOL INI -->
+                <button class="btn btn-primary btn-sm fw-bold px-3 rounded-pill" onClick="bukaModalTambahBankSoal()">
+                  ➕ Tambah Bank Soal
+                </button>
+                <button class="btn btn-outline-primary btn-sm fw-bold px-3 rounded-pill" onClick="muatTabelDaftarKodeSoal()">
+                  🔄 Refresh
+                </button>
+              </div>
             </div>
-            <div class="d-flex gap-2">
-              <button class="btn btn-outline-primary btn-sm fw-bold px-3 rounded-pill" onClick="muatTabelDaftarKodeSoal()">
-                🔄 Refresh
-              </button>
-            </div>
-          </div>
 
           <div class="table-responsive rounded-3 border">
             <table class="table table-hover align-middle mb-0" id="tabelDaftarKodeSoal">
@@ -567,7 +572,64 @@
           </form>
         </div>
       </div>
+        
+<!-- MENU TAMBAHAN: MONITORING UJIAN -->
+<div class="tab-pane fade" id="tab-monitoring" role="tabpanel">
+  <div class="card card-custom p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <div>
+        <h5 class="fw-bold mb-0 text-dark">🖥️ Real-time Monitoring Ujian Siswa</h5>
+        <small class="text-muted" id="subTitleMonitoring">Kode Soal: - | Mapel: -</small>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary btn-sm fw-bold px-3 rounded-pill" onClick="muatMonitoringUjian()">
+          🔄 Refresh Status
+        </button>
+      </div>
+    </div>
 
+    <!-- Ringkasan Statistik Status -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="stat-card border-start border-warning border-4 p-3">
+          <small class="text-uppercase fw-bold text-muted">Sedang Mengerjakan</small>
+          <h3 class="fw-extrabold text-warning mb-0 mt-1" id="statMengerjakan">0</h3>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card border-start border-success border-4 p-3">
+          <small class="text-uppercase fw-bold text-muted">Selesai Ujian</small>
+          <h3 class="fw-extrabold text-success mb-0 mt-1" id="statSelesai">0</h3>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card border-start border-primary border-4 p-3">
+          <small class="text-uppercase fw-bold text-muted">Total Peserta</small>
+          <h3 class="fw-extrabold text-primary mb-0 mt-1" id="statTotalPeserta">0</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive rounded-3 border">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th class="text-center">No</th>
+            <th>No. Peserta / NIS</th>
+            <th>Nama Siswa</th>
+            <th class="text-center">Kelas</th>
+            <th class="text-center">Waktu Update / Selesai</th>
+            <th class="text-center">Status Siswa</th>
+            <th class="text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tabelMonitoringBody">
+          <tr><td colspan="7" class="text-center py-4 text-muted">Silakan tentukan Kode Soal Aktif di atas.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
       <!-- MENU 3: HASIL UJIAN -->
       <div class="tab-pane fade" id="tab-hasil" role="tabpanel">
         <div class="row g-3 mb-4 no-print" id="statCards">
@@ -683,6 +745,98 @@
         </div>
       </div>
 
+<!-- TAB KELOLA SUMBER BELAJAR (GURU) -->
+<div class="tab-pane fade" id="tab-sumber-guru" role="tabpanel">
+  <div class="card card-custom p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h5 class="fw-bold mb-0 text-dark">📖 Kelola Sumber Belajar Siswa</h5>
+        <small class="text-muted">Tambahkan materi manual, link website, atau embed video YouTube.</small>
+      </div>
+      <button class="btn btn-primary btn-sm fw-bold px-3 rounded-pill" onClick="bukaModalTambahSumber()">
+        ➕ Tambah Sumber Baru
+      </button>
+    </div>
+
+    <div class="table-responsive rounded-3 border">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th class="text-center">No</th>
+            <th>Kode Soal / Mapel</th>
+            <th>Judul Materi</th>
+            <th>Tipe</th>
+            <th>Link / Konten</th>
+            <th class="text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tabelSumberGuruBody">
+          <tr><td colspan="6" class="text-center py-3 text-muted">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TAMBAH / EDIT SUMBER BELAJAR -->
+<div class="modal fade" id="modalTambahSumber" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold" id="modalSumberTitle">➕ Tambah Sumber Belajar</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="formSumberBelajar">
+          <input type="hidden" id="sumberEditId" value="">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Kode Soal / Mapel (Opsional / Spesifik)</label>
+            <input type="text" id="sumberKode" class="form-control text-uppercase" placeholder="Contoh: MTK-7 (Biarkan kosong jika umum)">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Judul / Topik Materi</label>
+            <input type="text" id="sumberJudul" class="form-control" placeholder="Contoh: Rumus Aljabar Dasar" required>
+          </div>
+
+          <!-- KELAS TUJUAN (DIISI OTOMATIS DARI CONFIG.JS) -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Peruntukan Kelas Tujuan</label>
+            <select class="form-select" id="sumberKelas" multiple="multiple" data-placeholder="Pilih satu atau beberapa kelas...">
+              <!-- Opsi kelas akan otomatis dimuat oleh fungsi populateDaftarKelas() -->
+            </select>
+            <small class="text-muted">Biarkan kosong jika sumber belajar ini dapat dilihat oleh semua kelas.</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Tipe Sumber</label>
+            <select id="sumberTipe" class="form-select" onchange="toggleFormTipeSumber()">
+              <option value="manual">Tulis Materi Manual (Teks / Artikel)</option>
+              <option value="website">Tempel Link Website Lain</option>
+              <option value="youtube">Embed Video YouTube</option>
+            </select>
+          </div>
+
+          <div class="mb-3" id="groupLinkSumber" style="display: none;">
+            <label class="form-label fw-semibold">Link Website / URL Video YouTube</label>
+            <input type="text" id="sumberLink" class="form-control" placeholder="https://www.youtube.com/watch?v=... atau https://buku.kemdikdasmen.go.id">
+            <small class="text-muted" id="infoLinkHelp">Untuk YouTube, masukkan link video atau link embed.</small>
+          </div>
+
+          <div class="mb-3" id="groupIsiMateri">
+            <label class="form-label fw-semibold">Isi Materi / Deskripsi</label>
+            <textarea id="sumberIsi" class="form-control" rows="5" placeholder="Ketik materi pembelajaran secara lengkap di sini..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary fw-bold" onclick="simpanSumberBelajar()">💾 Simpan Sumber</button>
+      </div>
+    </div>
+  </div>
+</div>
       <!-- MENU 5: KELOLA USER (KHUSUS SUPER ADMIN) -->
       <div class="tab-pane fade no-print" id="tab-kelola-guru" role="tabpanel">
         <div class="card card-custom p-4">
@@ -1014,23 +1168,104 @@
     </div>
   </div>
 </div>
+<!-- MODAL TAMBAH BANK SOAL BARU -->
+<div class="modal fade no-print" id="modalTambahBankSoal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">➕ Tambah Paket Bank Soal Baru</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="formTambahBankSoal">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Kode Soal / Ujian</label>
+            <input type="text" id="newKodeSoal" class="form-control text-uppercase" placeholder="Contoh: PH-MTK-7A" required>
+            <small class="text-muted">Gunakan huruf besar/angka tanpa spasi.</small>
+          </div>
 
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Mata Pelajaran (Mapel)</label>
+            <select class="form-select" id="newMataPelajaran" required>
+              <option value="" disabled selected>-- Pilih Mata Pelajaran --</option>
+              <optgroup label="Pendidikan Agama">
+                <option value="Pendidikan Agama Islam">Pendidikan Agama Islam</option>
+                <option value="Pendidikan Agama Kristen">Pendidikan Agama Kristen</option>
+                <option value="Pendidikan Agama Katolik">Pendidikan Agama Katolik</option>
+              </optgroup>
+              <optgroup label="Mata Pelajaran Umum">
+                <option value="Pendidikan Pancasila / PKn">Pendidikan Pancasila / PKn</option>
+                <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                <option value="Matematika">Matematika</option>
+                <option value="Bahasa Inggris">Bahasa Inggris</option>
+                <option value="Informatika">Informatika</option>
+                <option value="PJOK">PJOK</option>
+                <option value="Seni Budaya">Seni Budaya</option>
+                <option value="Prakarya">Prakarya</option>
+                <option value="Sejarah">Sejarah</option>
+              </optgroup>
+              <optgroup label="Sains & Sosial">
+                <option value="IPAS">IPAS (SD)</option>
+                <option value="IPA Terpadu">IPA Terpadu (SMP)</option>
+                <option value="IPS Terpadu">IPS Terpadu (SMP)</option>
+                <option value="Fisika">Fisika</option>
+                <option value="Kimia">Kimia</option>
+                <option value="Biologi">Biologi</option>
+                <option value="Sosiologi">Sosiologi</option>
+                <option value="Ekonomi">Ekonomi</option>
+                <option value="Geografi">Geografi</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Jumlah Soal PG</label>
+              <input type="number" id="newJumlahPG" class="form-control" value="10" min="0" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Jumlah Soal ESSAI</label>
+              <input type="number" id="newJumlahEssai" class="form-control" value="2" min="0" required>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary fw-bold" onClick="prosesSimpanBankSoalBaru()">💾 Simpan Bank Soal</button>
+      </div>
+    </div>
+  </div>
+</div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    $(document).ready(function() {
-        if ($('#cfgDaftarKelas').length) {
-            $('#cfgDaftarKelas').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                allowClear: true,
-                placeholder: $('#cfgDaftarKelas').data('placeholder'),
-                closeOnSelect: false
-            });
-        }
-    });
+$(document).ready(function() {
+    // Inisialisasi Select2 untuk Pengaturan Kelas Ujian
+    if ($('#cfgDaftarKelas').length) {
+        $('#cfgDaftarKelas').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            allowClear: true,
+            placeholder: $('#cfgDaftarKelas').data('placeholder'),
+            closeOnSelect: false
+        });
+    }
+
+    // Inisialisasi Select2 untuk Peruntukan Kelas Sumber Belajar
+    if ($('#sumberKelas').length) {
+        $('#sumberKelas').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            allowClear: true,
+            dropdownParent: $('#modalTambahSumber'), // Wajib agar dropdown muncul di dalam modal
+            placeholder: $('#sumberKelas').data('placeholder') || 'Pilih satu atau beberapa kelas...',
+            closeOnSelect: false
+        });
+    }
+});
 </script>
 <script>
 // Inisialisasi Select2 saat modal Generator AI dibuka
@@ -1060,7 +1295,13 @@ $('#modalAIGenerator').on('shown.bs.modal', function () {
   let modalLihatJawabanInstance = null;
   let modalGenAIInstance = null;
 
+// Deklarasikan variabel instance modal di luar agar bisa diakses fungsi global
+let modalTambahBankSoalInstance = null;
+
 document.addEventListener("DOMContentLoaded", function() {
+// Panggil fungsi pengisi kelas dari config.js
+  populateDaftarKelas();
+  //panggil fungsi pengguna
   const nama = sessionStorage.getItem("namaGuru") || "Guru";
   const role = sessionStorage.getItem("roleGuru") || "Guru";
 
@@ -1090,18 +1331,20 @@ document.addEventListener("DOMContentLoaded", function() {
   const inputPenyusun = document.getElementById("cfgPenyusun");
   if (inputPenyusun) inputPenyusun.value = nama;
 
-  // Safe Helper Inisialisasi Modal Bootstrap
+  // Safe Helper Inisialisasi Modal Bootstrap (Dideklarasikan lebih awal)
   const initModal = (id) => {
     const el = document.getElementById(id);
     return el && typeof bootstrap !== "undefined" ? new bootstrap.Modal(el) : null;
   };
 
+  // Inisialisasi Seluruh Instance Modal Bootstrap
   modalEssaiInstance = initModal('modalEssai');
   modalTambahGuruInstance = initModal('modalTambahGuru');
   modalInputSoalInstance = initModal('modalInputSoal');
   modalTinjauSoalInstance = initModal('modalTinjauSoal');
   modalLihatJawabanInstance = initModal('modalLihatJawaban');
   modalGenAIInstance = initModal('modalGenAI');
+  modalTambahBankSoalInstance = initModal('modalTambahBankSoal'); // <--- Diinisialisasi di sini
 
   // Helper Pemuat Tabel Pengguna (Fallback Handler)
   const refreshUserTable = () => {
@@ -1128,29 +1371,39 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  // Pengaturan Last Kode Soal
-  const lastKode = localStorage.getItem("guru_last_kode_soal") || "";
-  const inputKodeSoal = document.getElementById("kodeSoalInput");
+  // =========================================================
+  // PENGATURAN KODE SOAL AKTIF & DROPDOWN HANDLER
+  // =========================================================
+  const selectKodeSoal = document.getElementById("kodeSoalInput");
   const inputCfgKode = document.getElementById("cfgKodeUjian");
 
-  if (lastKode) {
-    if (inputKodeSoal) inputKodeSoal.value = lastKode;
-    if (inputCfgKode) inputCfgKode.value = lastKode;
+  // 1. Muat opsi drop-down dari database
+  if (typeof muatDaftarKodeSoal === "function") {
+    muatDaftarKodeSoal();
   }
 
-  if (inputKodeSoal) {
-    inputKodeSoal.addEventListener("input", function(e) {
+  // 2. Pasang event listener 'change' pada drop-down
+  if (selectKodeSoal) {
+    selectKodeSoal.addEventListener("change", function(e) {
       const val = e.target.value.trim().toUpperCase();
       localStorage.setItem("guru_last_kode_soal", val);
       if (inputCfgKode) inputCfgKode.value = val;
+
+      if (typeof muatDataSoal === "function" && val) {
+        muatDataSoal(val);
+      }
     });
   }
 
-  // Muat daftar kode soal awal (jika ada fungsinya)
-  if (typeof muatTabelDaftarKodeSoal === "function") muatTabelDaftarKodeSoal();
+  // 3. Muat tabel daftar kode soal
+  if (typeof muatTabelDaftarKodeSoal === "function") {
+    muatTabelDaftarKodeSoal();
+  }
 
   // Restore Active Tab dari LocalStorage
   const lastTab = localStorage.getItem("guru_active_tab");
+  const lastKode = localStorage.getItem("guru_last_kode_soal") || "";
+
   if (lastTab) {
     const tabTrigger = document.querySelector(`#guruTab button[data-bs-target="${lastTab}"]`);
     if (tabTrigger && typeof bootstrap !== "undefined") {
@@ -1191,7 +1444,59 @@ function toggleSidebar() {
       window.location.href = "index.html";
     }
   }
+function populateDaftarKelas() {
+  // Pastikan variabel DAFTAR_KELAS dari config.js tersedia
+  if (typeof DAFTAR_KELAS === "undefined" || !Array.isArray(DAFTAR_KELAS)) {
+    console.warn("DAFTAR_KELAS tidak ditemukan di config.js");
+    return;
+  }
 
+  // Daftar ID elemen select yang ingin di-generate otomatis
+  const targetElementIds = [
+    "cfgDaftarKelas",      // Dropdown di Pengaturan Ujian (Multiple)
+    "aiTingkatKelas",      // Dropdown di Modal Generator AI (Multiple)
+    "addKelasSiswa",        // Dropdown di Modal Tambah/Edit User Siswa (Single)
+    "sumberKelas"      // Dropdown di Modal Tambah Sumber Belajar
+  ];
+
+  targetElementIds.forEach(id => {
+    const selectElem = document.getElementById(id);
+    if (!selectElem) return;
+
+    // Simpan nilai lama jika ada yang terpilih (khusus untuk edit user/pengaturan)
+    const oldValues = Array.from(selectElem.selectedOptions).map(opt => opt.value);
+
+    // Kosongkan opsi sebelumnya, lalu buat placeholder bawaan jika diperlukan
+    selectElem.innerHTML = "";
+    
+    if (id === "addKelasSiswa") {
+      const defaultOpt = document.createElement("option");
+      defaultOpt.value = "";
+      defaultOpt.textContent = "-- Pilih Kelas --";
+      defaultOpt.disabled = true;
+      defaultOpt.selected = true;
+      selectElem.appendChild(defaultOpt);
+    }
+
+    // Masukkan opsi dari config.js (`DAFTAR_KELAS`)
+    DAFTAR_KELAS.forEach(kelas => {
+      const opt = document.createElement("option");
+      opt.value = kelas;
+      opt.textContent = `Kelas ${kelas}`;
+      
+      // Kembalikan status terpilih jika sebelumnya sudah dipilih
+      if (oldValues.includes(kelas)) {
+        opt.selected = true;
+      }
+      
+      selectElem.appendChild(opt);
+    });
+
+    // Refresh plugin Select2 jika elemen tersebut menggunakannya
+    if (window.jQuery && $(selectElem).data('select2')) {$(selectElem).trigger('change');
+    }
+  });
+}
   // ====================================================================
   // MODUL 3: LAYANAN API & UTILITAS
   // ====================================================================
@@ -1207,15 +1512,20 @@ function toggleSidebar() {
     return await res.json();
   }
 
-  function getKodeSoal() {
-    const kode = document.getElementById("kodeSoalInput").value.trim().toUpperCase();
-    if (!kode) {
-      alert("Masukkan Kode Soal terlebih dahulu di bagian atas!");
-      return null;
-    }
-    document.getElementById("cfgKodeUjian").value = kode;
-    return kode;
+function getKodeSoal() {
+  const selectKode = document.getElementById("kodeSoalInput");
+  const kode = selectKode ? selectKode.value.trim().toUpperCase() : "";
+
+  if (!kode) {
+    alert("Silakan pilih Kode Soal terlebih dahulu pada drop-down!");
+    return null;
   }
+
+  const inputCfgKode = document.getElementById("cfgKodeUjian");
+  if (inputCfgKode) inputCfgKode.value = kode;
+
+  return kode;
+}
 
   function selectDropdownValue(selectId, targetVal) {
     const selectElem = document.getElementById(selectId);
@@ -1305,84 +1615,87 @@ function toggleSidebar() {
     }
   }
 
-  async function muatDaftarKodeSoal() {
-    const datalist = document.getElementById("listKodeSoal");
-    const tbody = document.getElementById("tabelDaftarKodeBody");
-    const roleGuru = sessionStorage.getItem("roleGuru") || "Guru";
+async function muatDaftarKodeSoal() {
+  const selectKode = document.getElementById("kodeSoalInput");
+  if (!selectKode) return;
+
+  const selectedLama = localStorage.getItem("guru_last_kode_soal") || "";
+
+  selectKode.innerHTML = '<option value="" disabled selected>⏳ Memuat daftar kode soal...</option>';
+
+  try {
+    // 1. Ambil data identitas login dari sessionStorage jika backend membutuhkan saringan role
+    const usernameGuru = sessionStorage.getItem("usernameGuru") || sessionStorage.getItem("username") || "";
     const namaGuru = sessionStorage.getItem("namaGuru") || "";
+    const roleGuru = sessionStorage.getItem("roleGuru") || "Guru";
 
-    if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat daftar kode soal...</td></tr>';
+    // 2. Coba panggil action API utama
+    let response = await apiPost({ 
+      action: "getDaftarSemuaKodeSoal",
+      username: usernameGuru,
+      nama: namaGuru,
+      role: roleGuru 
+    });
+
+    // Fallback ke action 'getdaftarkodesoal' jika respons pertama kosong/gagal
+    if (!response || (response.status !== "success" && !Array.isArray(response))) {
+      response = await apiPost({ action: "getdaftarkodesoal" });
     }
 
-    try {
-      const response = await apiPost({ action: "getdaftarkodesoal" });
+    // 3. Normalisasi data array dari berbagai kemungkinan struktur JSON respons
+    let listData = [];
+    if (Array.isArray(response)) {
+      listData = response;
+    } else if (response && Array.isArray(response.data)) {
+      listData = response.data;
+    } else if (response && Array.isArray(response.result)) {
+      listData = response.result;
+    }
 
-      if (response.status === "success" && Array.isArray(response.data)) {
-        let listData = response.data;
+    // 4. Jika data berhasil didapatkan
+    if (listData && listData.length > 0) {
+      selectKode.innerHTML = '<option value="" disabled selected>-- Pilih Kode Soal --</option>';
 
-        if (datalist) {
-          datalist.innerHTML = "";
-          listData.forEach(item => {
-            const kode = typeof item === 'object' ? item.kode_soal : item;
-            if (kode) {
-              const opt = document.createElement("option");
-              opt.value = kode;
-              datalist.appendChild(opt);
-            }
-          });
+      listData.forEach(item => {
+        const kode = typeof item === 'object' ? (item.kode_soal || item.kode || item.kodeUjian) : item;
+        const mapel = typeof item === 'object' && (item.mata_pelajaran || item.mapel) 
+          ? ` (${item.mata_pelajaran || item.mapel})` 
+          : '';
+
+        if (kode && typeof kode === 'string') {
+          const opt = document.createElement("option");
+          opt.value = kode.trim().toUpperCase();
+          opt.textContent = `${kode.trim().toUpperCase()}${mapel}`;
+          selectKode.appendChild(opt);
         }
+      });
 
-        if (tbody) {
-          let filteredData = listData;
-          if (roleGuru !== "Super Admin" && namaGuru) {
-            filteredData = listData.filter(item => {
-              if (typeof item === 'string') return true;
-              const penyusun = (item.penyusun || item.nama_ujian || "").toLowerCase().trim();
-              return penyusun === namaGuru.toLowerCase().trim() || penyusun.includes(namaGuru.toLowerCase().trim());
-            });
-          }
-
-          if (filteredData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada paket soal yang dibuat.</td></tr>';
-            return;
-          }
-
-          tbody.innerHTML = "";
-          filteredData.forEach((item, idx) => {
-            const kode = typeof item === 'object' ? (item.kode_soal || item.kode) : item;
-            const mapel = typeof item === 'object' ? (item.mata_pelajaran || item.mapel || '-') : '-';
-            const kelas = typeof item === 'object' ? (item.kelas || item.daftar_kelas || '-') : '-';
-            const jumlahPG = typeof item === 'object' ? (item.jumlah_pg ?? '-') : '-';
-            const jumlahEssai = typeof item === 'object' ? (item.jumlah_essai ?? '-') : '-';
-            const totalSoal = typeof item === 'object' ? (item.total_soal ?? '-') : '-';
-
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td class="text-center fw-bold">${idx + 1}</td>
-              <td><span class="badge bg-primary fs-6">${kode}</span></td>
-              <td>${mapel}</td>
-              <td>${kelas}</td>
-              <td class="text-center">${jumlahPG}</td>
-              <td class="text-center">${jumlahEssai}</td>
-              <td class="text-center fw-bold">${totalSoal}</td>
-              <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary fw-bold me-1" onclick="muatDataSoal('${kode}')" title="Pilih & Edit Pengaturan">✏️ Edit</button>
-                <button class="btn btn-sm btn-outline-info text-dark fw-bold me-1" onclick="tinjauDanCetakSoal('${kode}')" title="Cetak Naskah Soal">🖨️ Naskah</button>
-                <button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusBankSoal('${kode}')" title="Hapus Paket Soal Ini">🗑️</button>
-              </td>
-            `;
-            tbody.appendChild(tr);
-          });
-        }
-      } else {
-        if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">${response.message || 'Gagal memuat data.'}</td></tr>`;
+      // Kembalikan ke pilihan sebelumnya jika ada
+      if (selectedLama && Array.from(selectKode.options).some(o => o.value === selectedLama)) {
+        selectKode.value = selectedLama;
+      } else if (selectKode.options.length > 1) {
+        selectKode.selectedIndex = 1;
       }
-    } catch (err) {
-      console.error("Gagal memuat kode soal:", err);
-      if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Terjadi kesalahan koneksi saat memuat kode soal.</td></tr>';
+
+      // Sync ke input pengaturan
+      const activeVal = selectKode.value;
+      if (activeVal) {
+        localStorage.setItem("guru_last_kode_soal", activeVal);
+        const inputCfgKode = document.getElementById("cfgKodeUjian");
+        if (inputCfgKode) inputCfgKode.value = activeVal;
+      }
+    } else if (listData && listData.length === 0) {
+      selectKode.innerHTML = '<option value="" disabled selected>Belum ada bank soal terbuat</option>';
+    } else {
+      console.warn("Format respons API tidak dikenali:", response);
+      selectKode.innerHTML = '<option value="" disabled selected>Format data tidak sesuai</option>';
     }
+
+  } catch (err) {
+    console.error("Gagal memuat daftar kode soal ke drop-down:", err);
+    selectKode.innerHTML = '<option value="" disabled selected>Kesalahan koneksi server</option>';
   }
+}
 
   // Variabel Paginasi Kode Soal
 let rawDaftarKodeSoal = [];
@@ -2133,6 +2446,15 @@ Sajikan hasil balasan dalam format text UNICODE dan HANYA dalam bentuk TABEL Exc
       if (result.status === "success") {
         rawDataBankSoal = result.bank_soal || [];
         rawDataHasil = result.data || [];
+
+        // === URUTKAN BERDASARKAN NOMOR PESERTA ===
+        rawDataHasil.sort((a, b) => {
+          const noA = String(a.no_peserta || a.noPeserta || "").trim();
+          const noB = String(b.no_peserta || b.noPeserta || "").trim();
+          // Menggunakan localeCompare dengan numeric: true agar urutan angka natural (misal: 2 di atas 10)
+          return noA.localeCompare(noB, undefined, { numeric: true, sensitivity: 'base' });
+        });
+
         filteredHasil = [...rawDataHasil];
 
         populasiFilterKelas();
@@ -2156,11 +2478,18 @@ Sajikan hasil balasan dalam format text UNICODE dan HANYA dalam bentuk TABEL Exc
     tbody.innerHTML = "";
 
     if (!dataList || dataList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Data tidak ditemukan.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted data-tidak-ditemukan">Data tidak ditemukan.</td></tr>';
       return;
     }
 
-    dataList.forEach((item) => {
+    // Urutkan juga data yang sedang difilter agar tetap rapi sesuai nomor peserta
+    const sortedData = [...dataList].sort((a, b) => {
+      const noA = String(a.no_peserta || a.noPeserta || "").trim();
+      const noB = String(b.no_peserta || b.noPeserta || "").trim();
+      return noA.localeCompare(noB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    sortedData.forEach((item) => {
       const nilaiPG = parseFloat(item.skor_pg || 0);
       const nilaiEssai = parseFloat(item.nilai_essai || 0);
       const totalNilai = nilaiPG + nilaiEssai;
@@ -2331,6 +2660,16 @@ Sajikan hasil balasan dalam format text UNICODE dan HANYA dalam bentuk TABEL Exc
   }
 
   // Lembar Jawaban & Koreksi Essai
+// 1. Helper fungsi escape karakter HTML untuk mencegah XSS
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 async function bukaModalLihatJawaban(index) {
   const item = rawDataHasil[index];
   if (!item) return;
@@ -2368,7 +2707,7 @@ async function bukaModalLihatJawaban(index) {
   const es = parseFloat(item.nilai_essai || 0);
   document.getElementById("ljTotalNilai").innerText = (pg + es);
 
-  // === PERBAIKAN 1: Ekstraksi Jawaban Lebih Fleksibel ===
+  // Ekstraksi Jawaban
   const rawJwb = item.detail_jawaban || item.detailJawaban || item.jawaban || {};
   let jwbObj = {};
   try {
@@ -2377,7 +2716,7 @@ async function bukaModalLihatJawaban(index) {
     console.error("Gagal parse jawaban:", e);
   }
 
-  // === Ekstraksi Detail Nilai Essai ===
+  // Ekstraksi Detail Nilai Essai
   const rawDetailNilai = item.detail_nilai_essai || item.detailNilaiEssai || {};
   let detailNilaiObj = {};
   try {
@@ -2397,19 +2736,23 @@ async function bukaModalLihatJawaban(index) {
     const no = soal.no_soal || (i + 1);
     const tipe = String(soal.tipe || "PG").toUpperCase();
     
-    // === PERBAIKAN 2: Pengecekan Kunci Jawaban Siswa Multi-Format ===
-    const jwbSiswa = jwbObj[no] || 
+    const jwbSiswaRaw = jwbObj[no] || 
                      jwbObj[String(no)] || 
                      jwbObj[`soal_${no}`] || 
                      jwbObj[i] || 
                      jwbObj[i + 1] || 
-                     "-";
+                     "";
 
     const kunci = soal.kunci || mapKunciAnalisis[no] || "-";
 
+    // AMANKAN TEKS JAWABAN & PERTANYAAN DARI XSS MENGGUNAKAN escapeHtml
+    const jwbSiswa = jwbSiswaRaw ? escapeHtml(jwbSiswaRaw) : "<i class='text-muted'>(Tidak dijawab)</i>";
+    const amanPertanyaan = escapeHtml(soal.pertanyaan || '-');
+    const amanKunci = escapeHtml(kunci);
+
     let statusBadge = "";
     if (tipe === "PG") {
-      const isBenar = String(jwbSiswa).trim().toUpperCase() === String(kunci).trim().toUpperCase();
+      const isBenar = String(jwbSiswaRaw).trim().toUpperCase() === String(kunci).trim().toUpperCase();
       statusBadge = isBenar ? '<span class="badge bg-success">Benar</span>' : '<span class="badge bg-danger">Salah</span>';
     } else {
       const skorEssai = (detailNilaiObj[no] !== undefined) ? detailNilaiObj[no] : (detailNilaiObj[String(no)] !== undefined ? detailNilaiObj[String(no)] : "-");
@@ -2423,21 +2766,22 @@ async function bukaModalLihatJawaban(index) {
             <h6 class="fw-bold mb-0">No. ${no} [${tipe}]</h6>
             ${statusBadge}
           </div>
-          <p class="mb-2">${soal.pertanyaan || '-'}</p>
+          <p class="mb-2">${amanPertanyaan}</p>
     `;
 
     if (tipe === "PG") {
       divSoal += `
         <div class="small bg-light p-2 rounded">
           <strong>Jawaban Siswa:</strong> <span class="fw-bold">${jwbSiswa}</span> | 
-          <strong>Kunci Jawaban:</strong> <span class="fw-bold text-success">${kunci}</span>
+          <strong>Kunci Jawaban:</strong> <span class="fw-bold text-success">${amanKunci}</span>
         </div>
       `;
     } else {
       divSoal += `
         <div class="small bg-light p-2 rounded">
           <strong>Jawaban Essai Siswa:</strong>
-          <p class="mb-0 text-primary fw-semibold mt-1" style="white-space: pre-wrap;">${jwbSiswa}</p>
+          <!-- AMAN: Ditampilkan sebagai teks murni dengan style pre-wrap -->
+          <div class="mt-1 text-primary fw-semibold" style="white-space: pre-wrap;">${jwbSiswa}</div>
         </div>
       `;
     }
@@ -2484,6 +2828,16 @@ async function bukaModalLihatJawaban(index) {
     };
   }
 
+// 1. Buat helper fungsi aman untuk escape karakter HTML
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function bukaModalEssai(index) {
     selectedIndexHasil = index;
     const item = rawDataHasil[index];
@@ -2496,11 +2850,9 @@ function bukaModalEssai(index) {
       detailJawaban = typeof item.detail_jawaban === 'string' ? JSON.parse(item.detail_jawaban) : (item.detail_jawaban || {}); 
     } catch(e){}
 
-    // SAFE PARSE: Menangani single-stringify maupun legacy double-stringify
     let detailNilaiEssai = {};
     try { 
       let parsed = typeof item.detail_nilai_essai === 'string' ? JSON.parse(item.detail_nilai_essai) : (item.detail_nilai_essai || {});
-      // Jika hasil parse pertama masih berupa string, parse sekali lagi
       if (typeof parsed === 'string') {
         parsed = JSON.parse(parsed);
       }
@@ -2518,9 +2870,13 @@ function bukaModalEssai(index) {
       if (tipe === "ESSAI" || tipe === "ESSAY" || tipe === "ES") {
         countEssai++;
         const keyUnik = idx + 1;
-        const jawabanSiswaText = detailJawaban[keyUnik] || detailJawaban[soal.no_soal] || "<i class='text-muted'>(Tidak dijawab)</i>";
         
-        // Pengecekan key angka maupun string
+        // AMBIL TEKS JAWABAN MENTAH
+        const rawText = detailJawaban[keyUnik] || detailJawaban[soal.no_soal];
+        
+        // AMANKAN DARI XSS MENGGUNAKAN ESCAPE HTML
+        const jawabanSiswaText = rawText ? escapeHtml(rawText) : "<i class='text-muted'>(Tidak dijawab)</i>";
+        
         const nilaiExisting = detailNilaiEssai[keyUnik] !== undefined 
           ? detailNilaiEssai[keyUnik] 
           : (detailNilaiEssai[String(keyUnik)] !== undefined ? detailNilaiEssai[String(keyUnik)] : 0);
@@ -2532,10 +2888,11 @@ function bukaModalEssai(index) {
               <span class="badge bg-secondary">Maks: ${soal.skor || 10}</span>
             </div>
             <div class="card-body">
-              <p class="mb-2"><strong>Pertanyaan:</strong> ${soal.pertanyaan}</p>
+              <p class="mb-2"><strong>Pertanyaan:</strong> ${escapeHtml(soal.pertanyaan)}</p>
               <div class="p-3 bg-white rounded border text-dark mb-3">
                 <strong>Jawaban Siswa:</strong><br>
-                <div class="mt-1">${jawabanSiswaText}</div>
+                <!-- AMAN: Ditampilkan sebagai teks murni dengan style pre-wrap -->
+                <div class="mt-1" style="white-space: pre-wrap;">${jawabanSiswaText}</div>
               </div>
               
               <div class="row align-items-center g-2 bg-light p-2 rounded">
@@ -2565,7 +2922,7 @@ function bukaModalEssai(index) {
 
     hitungTotalNilaiEssaiModal();
     modalEssaiInstance.show();
-  }
+}
 
 
   function hitungTotalNilaiEssaiModal() {
@@ -3060,6 +3417,338 @@ async function hapusUserAkun(username) {
     else if (typeof muatTabelPengguna === "function") muatTabelPengguna();
   } catch(e) {
     alert("Gagal menghapus akun: " + e.message);
+  }
+}
+
+// ====================================================================
+// MODUL 10 MONITORING UJIAN & RESET JAWABAN
+// ====================================================================
+async function muatMonitoringUjian() {
+  const kode = getKodeSoal();
+  if (!kode) return;
+
+  const mapel = document.getElementById("cfgMapel")?.value || currentMapel || "-";
+  document.getElementById("subTitleMonitoring").innerText = `Kode Soal: ${kode} | Mapel: ${mapel}`;
+
+  const tbody = document.getElementById("tabelMonitoringBody");
+  tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat status siswa...</td></tr>';
+
+  try {
+    const result = await apiPost({ action: "getMonitoringUjian", kode_soal: kode });
+
+    if (result.status === "success" && Array.isArray(result.data)) {
+      const listData = result.data;
+
+      let countMengerjakan = 0;
+      let countSelesai = 0;
+
+      if (listData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Belum ada aktivitas peserta pada kode soal ini.</td></tr>';
+        document.getElementById("statMengerjakan").innerText = "0";
+        document.getElementById("statSelesai").innerText = "0";
+        document.getElementById("statTotalPeserta").innerText = "0";
+        return;
+      }
+
+      tbody.innerHTML = "";
+      listData.forEach((item, idx) => {
+        const isSelesai = item.status_siswa === "SELESAI";
+        if (isSelesai) countSelesai++;
+        else countMengerjakan++;
+
+        const statusBadge = isSelesai 
+          ? '<span class="badge bg-success">Selesai</span>' 
+          : '<span class="badge bg-warning text-dark">Sedang Mengerjakan</span>';
+
+        const row = `
+          <tr>
+            <td class="text-center fw-bold">${idx + 1}</td>
+            <td>${item.no_peserta || '-'}</td>
+            <td class="fw-bold">${item.nama || '-'}</td>
+            <td class="text-center">${item.kelas || '-'}</td>
+            <td class="text-center">${new Date(item.timestamp).toLocaleString("id-ID")}</td>
+            <td class="text-center">${statusBadge}</td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-outline-danger fw-bold" 
+                      onclick="resetJawabanSiswa('${item.id}', '${item.no_peserta}', '${kode}', '${item.nama}')" 
+                      title="Reset / Hapus Jawaban">
+                🔄 Reset Ujian
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+
+      document.getElementById("statMengerjakan").innerText = countMengerjakan;
+      document.getElementById("statSelesai").innerText = countSelesai;
+      document.getElementById("statTotalPeserta").innerText = listData.length;
+
+    } else {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Gagal: ${result.message || "Terjadi kesalahan"}</td></tr>`;
+    }
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">Gagal terhubung ke server.</td></tr>';
+  }
+}
+
+// Fungsi Reset (Hapus Jawaban) Siswa
+async function resetJawabanSiswa(idUjian, noPeserta, kodeSoal, namaSiswa) {
+  const konfirmasi = confirm(`⚠️ PERINGATAN:\nApakah Anda yakin ingin MERESET / MENGHAPUS jawaban siswa "${namaSiswa}" (${noPeserta})?\nSiswa dapat login kembali dan mengerjakan dari awal.`);
+  if (!konfirmasi) return;
+
+  try {
+    const result = await apiPost({
+      action: "resetJawabanSiswa",
+      id_ujian: idUjian,
+      no_peserta: noPeserta,
+      kode_soal: kodeSoal
+    });
+
+    if (result.status === "success") {
+      alert("Jawaban siswa berhasil direset!");
+      muatMonitoringUjian(); // Refresh tabel monitoring
+    } else {
+      alert("Gagal mereset: " + (result.message || "Terjadi kesalahan"));
+    }
+  } catch (e) {
+    alert("Terjadi kesalahan koneksi saat mereset jawaban siswa.");
+  }
+}
+
+// Buka Modal Tambah Bank Soal Baru
+function bukaModalTambahBankSoal() {
+  document.getElementById("formTambahBankSoal").reset();
+  if (modalTambahBankSoalInstance) {
+    modalTambahBankSoalInstance.show();
+  } else {
+    const el = document.getElementById("modalTambahBankSoal");
+    if (el) {
+      modalTambahBankSoalInstance = new bootstrap.Modal(el);
+      modalTambahBankSoalInstance.show();
+    }
+  }
+}
+
+// Simpan Data Bank Soal Baru ke Server
+async function prosesSimpanBankSoalBaru() {
+  const kodeSoal = document.getElementById("newKodeSoal").value.trim().toUpperCase();
+  const mapel = document.getElementById("newMataPelajaran").value;
+  const jumlahPG = parseInt(document.getElementById("newJumlahPG").value) || 0;
+  const jumlahEssai = parseInt(document.getElementById("newJumlahEssai").value) || 0;
+  const namaGuru = sessionStorage.getItem("namaGuru") || "Guru";
+
+  if (!kodeSoal) {
+    alert("Kode Soal wajib diisi!");
+    return;
+  }
+  if (!mapel) {
+    alert("Mata Pelajaran wajib dipilih!");
+    return;
+  }
+
+  const payload = {
+    action: "tambahBankSoalBaru", // Handler action di backend Node.js
+    kode_soal: kodeSoal,
+    mata_pelajaran: mapel,
+    jumlah_pg: jumlahPG,
+    jumlah_essai: jumlahEssai,
+    penyusun: namaGuru
+  };
+
+  try {
+    const res = await apiPost(payload);
+    if (res.status === "success") {
+      alert(res.message || `Bank soal '${kodeSoal}' berhasil dibuat!`);
+
+      if (modalTambahBankSoalInstance) modalTambahBankSoalInstance.hide();
+
+      // Refresh daftar di tabel dan drop-down Kode Soal Aktif
+      if (typeof muatTabelDaftarKodeSoal === "function") muatTabelDaftarKodeSoal();
+      if (typeof muatDaftarKodeSoal === "function") await muatDaftarKodeSoal();
+
+      // Set kode soal baru menjadi pilihan aktif
+      const selectKode = document.getElementById("kodeSoalInput");
+      if (selectKode) {
+        selectKode.value = kodeSoal;
+        localStorage.setItem("guru_last_kode_soal", kodeSoal);
+      }
+
+      // Otomatis muat data pengaturannya
+      if (typeof muatDataSoal === "function") {
+        muatDataSoal(kodeSoal);
+      }
+    } else {
+      alert("Gagal membuat bank soal: " + (res.message || "Terjadi kesalahan."));
+    }
+  } catch (err) {
+    alert("Gagal terhubung ke server: " + err.message);
+  }
+}
+let modalTambahSumberInstance = null;
+document.addEventListener("DOMContentLoaded", () => {
+  const el = document.getElementById("modalTambahSumber");
+  if (el) modalTambahSumberInstance = new bootstrap.Modal(el);
+});
+
+function toggleFormTipeSumber() {
+  const tipe = document.getElementById("sumberTipe").value;
+  const groupLink = document.getElementById("groupLinkSumber");
+  const groupIsi = document.getElementById("groupIsiMateri");
+
+  if (tipe === "manual") {
+    groupLink.style.display = "none";
+    groupIsi.style.display = "block";
+  } else if (tipe === "website") {
+    groupLink.style.display = "block";
+    groupIsi.style.display = "block";
+    document.getElementById("infoLinkHelp").innerText = "Masukkan URL website referensi lengkap dengan https://";
+  } else if (tipe === "youtube") {
+    groupLink.style.display = "block";
+    groupIsi.style.display = "block";
+    document.getElementById("infoLinkHelp").innerText = "Masukkan link YouTube (contoh: https://www.youtube.com/watch?v=XXXX atau link embed).";
+  }
+}
+
+function bukaModalTambahSumber() {
+  document.getElementById("formSumberBelajar").reset();
+  document.getElementById("sumberEditId").value = ""; // Kosongkan ID untuk mode tambah baru
+  if ($('#sumberKelas').length) $('#sumberKelas').val([]).trigger('change');
+  toggleFormTipeSumber();
+  modalTambahSumberInstance.show();
+}
+
+async function muatSumberBelajarGuru() {
+  const tbody = document.getElementById("tabelSumberGuruBody");
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3">Memuat data...</td></tr>';
+  try {
+    const res = await apiPost({ action: "getsumberbelajar", is_guru: true });
+    if (res.status === "success" && Array.isArray(res.data)) {
+      if (res.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Belum ada sumber belajar.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = res.data.map((item, i) => {
+        const isAktif = String(item.status || "Aktif").toLowerCase() === "aktif";
+        const btnStatusClass = isAktif ? "btn-success" : "btn-outline-secondary";
+        const btnStatusText = isAktif ? "👁️ Sembuyikan" : "👁️‍🗨 Tampilkan";
+
+        return `
+          <tr>
+            <td class="text-center fw-bold">${i + 1}</td>
+            <td>
+              <span class="badge bg-secondary">${item.kode_soal || 'UMUM'}</span><br>
+              <small class="text-muted">Kelas: ${item.kelas || 'Semua'}</small>
+            </td>
+            <td class="fw-bold">${item.judul}</td>
+            <td><span class="badge bg-primary text-uppercase">${item.tipe}</span></td>
+            <td><small class="text-truncate d-block" style="max-width: 220px;">${item.link || item.isi || '-'}</small></td>
+            <td class="text-center" style="white-space: nowrap;">
+              <button class="btn btn-sm ${btnStatusClass} fw-bold me-1 px-2 py-1" onclick="toggleStatusSumber('${item.id}')" title="Ubah Status Tampil">${btnStatusText}</button>
+              <button class="btn btn-sm btn-warning text-dark fw-bold me-1 px-2 py-1" onclick="bukaModalEditSumber('${item.id}')" title="Edit Materi">✏️ Edit</button>
+              <button class="btn btn-sm btn-danger fw-bold px-2 py-1" onclick="hapusSumber('${item.id}')" title="Hapus Materi">🗑️ Hapus</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Gagal memuat data.</td></tr>';
+  }
+}
+
+async function simpanSumberBelajar() {
+  const editId = document.getElementById("sumberEditId").value.trim();
+  let kelasSelected = "";
+  if ($('#sumberKelas').length) {
+    const valArr = $('#sumberKelas').val();
+    kelasSelected = Array.isArray(valArr) ? valArr.join(", ") : valArr;
+  }
+
+  const payload = {
+    action: editId ? "editsumberbelajar" : "tambahsumberbelajar",
+    id: editId,
+    kode_soal: document.getElementById("sumberKode").value.trim(),
+    judul: document.getElementById("sumberJudul").value.trim(),
+    tipe: document.getElementById("sumberTipe").value,
+    link: document.getElementById("sumberLink").value.trim(),
+    isi: document.getElementById("sumberIsi").value.trim(),
+    kelas: kelasSelected
+  };
+
+  if (!payload.judul) {
+    alert("Judul materi wajib diisi!");
+    return;
+  }
+
+  try {
+    const res = await apiPost(payload);
+    if (res.status === "success") {
+      alert(res.message || "Berhasil disimpan!");
+      modalTambahSumberInstance.hide();
+      muatSumberBelajarGuru();
+    } else {
+      alert("Gagal: " + res.message);
+    }
+  } catch (e) {
+    alert("Kesalahan koneksi server.");
+  }
+}
+
+async function bukaModalEditSumber(id) {
+  try {
+    const res = await apiPost({ action: "getsumberbelajar", is_guru: true });
+    if (res.status === "success" && Array.isArray(res.data)) {
+      const item = res.data.find(d => d.id === id);
+      if (!item) {
+        alert("Data tidak ditemukan.");
+        return;
+      }
+
+      document.getElementById("sumberEditId").value = item.id;
+      document.getElementById("sumberKode").value = item.kode_soal || "";
+      document.getElementById("sumberJudul").value = item.judul || "";
+      document.getElementById("sumberTipe").value = item.tipe || "manual";
+      document.getElementById("sumberLink").value = item.link || "";
+      document.getElementById("sumberIsi").value = item.isi || "";
+
+      if ($('#sumberKelas').length) {
+        const arrKelas = item.kelas ? item.kelas.split(",").map(s => s.trim()) : [];
+        $('#sumberKelas').val(arrKelas).trigger('change');
+      }
+
+      toggleFormTipeSumber();
+      modalTambahSumberInstance.show();
+    }
+  } catch (e) {
+    alert("Gagal membuka data edit.");
+  }
+}
+
+async function toggleStatusSumber(id) {
+  try {
+    const res = await apiPost({ action: "togglestatussumber", id: id });
+    if (res.status === "success") {
+      muatSumberBelajarGuru();
+    } else {
+      alert("Gagal mengubah status.");
+    }
+  } catch (e) {
+    alert("Kesalahan koneksi.");
+  }
+}
+
+async function hapusSumber(id) {
+  if (!confirm("Hapus sumber belajar ini?")) return;
+  try {
+    const res = await apiPost({ action: "hapussumberbelajar", id: id });
+    if (res.status === "success") {
+      muatSumberBelajarGuru();
+    } else {
+      alert("Gagal menghapus.");
+    }
+  } catch (e) {
+    alert("Kesalahan koneksi.");
   }
 }
 </script>
