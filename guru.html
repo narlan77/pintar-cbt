@@ -456,7 +456,7 @@
         </div>
       </div>
 
-      <!-- MENU 2: PENGATURAN UJIAN -->
+<!-- MENU 2: PENGATURAN UJIAN -->
       <div class="tab-pane fade" id="tab-pengaturan" role="tabpanel">
         <div class="card card-custom p-4 shadow-sm border-0">
           <h5 class="mb-4 fw-bold text-primary">⚙️ Pengaturan Parameter Ujian</h5>
@@ -547,9 +547,9 @@
                   </div>
               </div>
 
-              <!-- WAKTU & ATURAN -->
+              <!-- WAKTU, STATUS, KONTROL & TOKEN PENGAWAS -->
               <div class="mb-4">
-                  <h6 class="form-section-title fw-bold text-uppercase mb-3">3. Durasi, Status, & Kontrol Jawaban</h6>
+                  <h6 class="form-section-title fw-bold text-uppercase mb-3">3. Durasi, Status, Kontrol & Token Kunci Layar</h6>
                   <div class="row g-3">
                       <div class="col-md-3">
                           <label class="form-label fw-semibold">Lama Ujian (Menit)</label>
@@ -583,6 +583,16 @@
                           </select>
                       </div>
 
+                      <!-- TOKEN PENGAWAS MASUK DI SINI DENGAN GRID RAPI -->
+                      <div class="col-md-4">
+                          <label class="form-label fw-semibold text-danger">Token Pengawas (Kunci Keluar Layar)</label>
+                          <div class="input-group">
+                              <input type="text" id="cfgTokenPengawas" class="form-control fw-bold text-uppercase font-monospace text-center" placeholder="Bebas / 6 Karakter" maxlength="10">
+                              <button class="btn btn-outline-secondary" type="button" onclick="generateTokenOtomatis()" title="Buat Token Acak">🎲 Acak</button>
+                          </div>
+                          <small class="text-muted" style="font-size: 0.75rem;">Password yang diinput siswa untuk membuka kunci layar.</small>
+                      </div>
+
                   </div>
               </div>
 
@@ -599,12 +609,14 @@
 <!-- MENU TAMBAHAN: MONITORING UJIAN -->
 <div class="tab-pane fade" id="tab-monitoring" role="tabpanel">
   <div class="card card-custom p-4">
+    
+    <!-- HEADER UTAMA MONITORING -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
       <div>
         <h5 class="fw-bold mb-0 text-dark">🖥️ Real-time Monitoring Ujian Siswa</h5>
         <small class="text-muted" id="subTitleMonitoring">Kode Soal: - | Mapel: -</small>
       </div>
-      <div class="d-flex gap-2">
+      <div>
         <button class="btn btn-outline-primary btn-sm fw-bold px-3 rounded-pill" onClick="muatMonitoringUjian()">
           🔄 Refresh Status
         </button>
@@ -633,6 +645,7 @@
       </div>
     </div>
 
+<!-- TABEL MONITORING -->
     <div class="table-responsive rounded-3 border">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-dark">
@@ -651,6 +664,7 @@
         </tbody>
       </table>
     </div>
+
   </div>
 </div>
       <!-- MENU 3: HASIL UJIAN -->
@@ -786,6 +800,13 @@
       </div>
     </div>
 
+    <!-- KOTAK PENCARIAN & FILTER SUMBER BELAJAR -->
+    <div class="row g-2 mb-3">
+      <div class="col-md-5">
+        <input type="text" id="searchSumberGuru" class="form-control form-control-sm" placeholder="🔍 Cari Judul, Kode Soal, atau Tipe..." onkeyup="filterTabelSumberGuru()">
+      </div>
+    </div>
+
     <div class="table-responsive rounded-3 border">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-dark">
@@ -803,6 +824,8 @@
         </tbody>
       </table>
     </div>
+    <!-- PAGINASI SUMBER BELAJAR -->
+    <div class="d-flex justify-content-end mt-3" id="paginationSumberGuruContainer"></div>
   </div>
 </div>
 
@@ -1615,7 +1638,13 @@ function getKodeSoal() {
         document.getElementById("cfgDurasi").value = cfg.durasi || 90;
         document.getElementById("cfgPenyusun").value = cfg.penyusun || cfg.nama_ujian || sessionStorage.getItem("namaGuru") || "";
         document.getElementById("cfgPengawas").value = cfg.pengawas || "";
-        
+        // === TAMBAHKAN BARIS INI AGAR TOKEN MUNCUL KEMBALI ===
+      const tokenVal = cfg.token_pengawas || cfg.tokenPengawas || "";
+      const inputTokenElem = document.getElementById("cfgTokenPengawas");
+      if (inputTokenElem) {
+        inputTokenElem.value = tokenVal;
+      }
+      // ====================================================
         if ($('#cfgDaftarKelas').length && cfg.kelas) {
           const arrKelas = typeof cfg.kelas === 'string' ? cfg.kelas.split(',').map(s => s.trim()) : cfg.kelas;
           $('#cfgDaftarKelas').val(arrKelas).trigger('change');
@@ -1926,7 +1955,8 @@ function gantiHalamanKodeSoal(page) {
       status_ujian: document.getElementById("cfgStatus") ? document.getElementById("cfgStatus").value : "Aktif",
       acak_soal: document.getElementById("cfgAcak") ? document.getElementById("cfgAcak").value : "Tidak",
       kelas: kelasSelected,
-      tampil_skor: document.getElementById("cfgTampilSkor") ? document.getElementById("cfgTampilSkor").value : "Ya"
+      tampil_skor: document.getElementById("cfgTampilSkor") ? document.getElementById("cfgTampilSkor").value : "Ya",
+      token_pengawas: document.getElementById("cfgTokenPengawas") ? document.getElementById("cfgTokenPengawas").value.trim().toUpperCase() : ""
     };
 
     try {
@@ -3677,43 +3707,143 @@ function bukaModalTambahSumber() {
   modalTambahSumberInstance.show();
 }
 
+// VARIABEL PAGINASI & PENCARIAN SUMBER BELAJAR
+let rawDataSumberGuru = [];
+let filteredDataSumberGuru = [];
+let currentPageSumberGuru = 1;
+const itemsPerPageSumberGuru = 5;
+
 async function muatSumberBelajarGuru() {
   const tbody = document.getElementById("tabelSumberGuruBody");
+  const paginationContainer = document.getElementById("paginationSumberGuruContainer");
   tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3">Memuat data...</td></tr>';
+  if (paginationContainer) paginationContainer.style.display = "none";
+
   try {
     const res = await apiPost({ action: "getsumberbelajar", is_guru: true });
     if (res.status === "success" && Array.isArray(res.data)) {
-      if (res.data.length === 0) {
+      rawDataSumberGuru = res.data;
+      filteredDataSumberGuru = [...rawDataSumberGuru];
+      
+      if (rawDataSumberGuru.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Belum ada sumber belajar.</td></tr>';
         return;
       }
-      tbody.innerHTML = res.data.map((item, i) => {
-        const isAktif = String(item.status || "Aktif").toLowerCase() === "aktif";
-        const btnStatusClass = isAktif ? "btn-success" : "btn-outline-secondary";
-        const btnStatusText = isAktif ? "👁️ Sembuyikan" : "👁️‍🗨 Tampilkan";
-
-        return `
-          <tr>
-            <td class="text-center fw-bold">${i + 1}</td>
-            <td>
-              <span class="badge bg-secondary">${item.kode_soal || 'UMUM'}</span><br>
-              <small class="text-muted">Kelas: ${item.kelas || 'Semua'}</small>
-            </td>
-            <td class="fw-bold">${item.judul}</td>
-            <td><span class="badge bg-primary text-uppercase">${item.tipe}</span></td>
-            <td><small class="text-truncate d-block" style="max-width: 220px;">${item.link || item.isi || '-'}</small></td>
-            <td class="text-center" style="white-space: nowrap;">
-              <button class="btn btn-sm ${btnStatusClass} fw-bold me-1 px-2 py-1" onclick="toggleStatusSumber('${item.id}')" title="Ubah Status Tampil">${btnStatusText}</button>
-              <button class="btn btn-sm btn-warning text-dark fw-bold me-1 px-2 py-1" onclick="bukaModalEditSumber('${item.id}')" title="Edit Materi">✏️ Edit</button>
-              <button class="btn btn-sm btn-danger fw-bold px-2 py-1" onclick="hapusSumber('${item.id}')" title="Hapus Materi">🗑️ Hapus</button>
-            </td>
-          </tr>
-        `;
-      }).join('');
+      
+      currentPageSumberGuru = 1;
+      filterTabelSumberGuru();
+    } else {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Gagal memuat data dari server.</td></tr>';
     }
   } catch (e) {
     tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Gagal memuat data.</td></tr>';
   }
+}
+
+// FUNGSI PENCARIAN SUMBER BELAJAR
+function filterTabelSumberGuru() {
+  const keyword = (document.getElementById("searchSumberGuru")?.value || "").trim().toLowerCase();
+
+  filteredDataSumberGuru = rawDataSumberGuru.filter(item => {
+    if (!item) return false;
+    const judul = String(item.judul || "").toLowerCase();
+    const kodeSoal = String(item.kode_soal || "").toLowerCase();
+    const tipe = String(item.tipe || "").toLowerCase();
+    const kelas = String(item.kelas || "").toLowerCase();
+
+    return judul.includes(keyword) || kodeSoal.includes(keyword) || tipe.includes(keyword) || kelas.includes(keyword);
+  });
+
+  currentPageSumberGuru = 1;
+  renderTabelSumberGuruPaginasi();
+}
+
+function renderTabelSumberGuruPaginasi() {
+  const tbody = document.getElementById("tabelSumberGuruBody");
+  const paginationContainer = document.getElementById("paginationSumberGuruContainer");
+  if (!tbody) return;
+
+  const totalItems = filteredDataSumberGuru.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPageSumberGuru) || 1;
+
+  if (currentPageSumberGuru > totalPages) currentPageSumberGuru = totalPages;
+  if (currentPageSumberGuru < 1) currentPageSumberGuru = 1;
+
+  const startIndex = (currentPageSumberGuru - 1) * itemsPerPageSumberGuru;
+  const endIndex = startIndex + itemsPerPageSumberGuru;
+  const paginatedData = filteredDataSumberGuru.slice(startIndex, endIndex);
+
+  if (paginatedData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Data tidak ditemukan.</td></tr>';
+    if (paginationContainer) paginationContainer.style.setProperty('display', 'none', 'important');
+    return;
+  }
+
+  tbody.innerHTML = paginatedData.map((item, i) => {
+    const nomorUrut = startIndex + i + 1;
+    const isAktif = String(item.status || "Aktif").toLowerCase() === "aktif";
+    const btnStatusClass = isAktif ? "btn-success" : "btn-outline-secondary";
+    const btnStatusText = isAktif ? "👁️ Sembuyikan" : "👁️‍🗨 Tampilkan";
+
+    return `
+      <tr>
+        <td class="text-center fw-bold">${nomorUrut}</td>
+        <td>
+          <span class="badge bg-secondary">${item.kode_soal || 'UMUM'}</span><br>
+          <small class="text-muted">Kelas: ${item.kelas || 'Semua'}</small>
+        </td>
+        <td class="fw-bold">${item.judul}</td>
+        <td><span class="badge bg-primary text-uppercase">${item.tipe}</span></td>
+        <td><small class="text-truncate d-block" style="max-width: 220px;">${item.link || item.isi || '-'}</small></td>
+        <td class="text-center" style="white-space: nowrap;">
+          <button class="btn btn-sm ${btnStatusClass} fw-bold me-1 px-2 py-1" onclick="toggleStatusSumber('${item.id}')" title="Ubah Status Tampil">${btnStatusText}</button>
+          <button class="btn btn-sm btn-warning text-dark fw-bold me-1 px-2 py-1" onclick="bukaModalEditSumber('${item.id}')" title="Edit Materi">✏️ Edit</button>
+          <button class="btn btn-sm btn-danger fw-bold px-2 py-1" onclick="hapusSumber('${item.id}')" title="Hapus Materi">🗑️ Hapus</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  if (paginationContainer) {
+    if (totalPages <= 1) {
+      paginationContainer.style.setProperty('display', 'none', 'important');
+    } else {
+      paginationContainer.style.display = "flex";
+      renderTombolPaginasiSumberGuru(paginationContainer, totalPages);
+    }
+  }
+}
+
+function renderTombolPaginasiSumberGuru(container, totalPages) {
+  let html = '<ul class="pagination pagination-sm mb-0">';
+  
+  html += `
+    <li class="page-item ${currentPageSumberGuru === 1 ? 'disabled' : ''}">
+      <button class="page-link" onclick="gantiHalamanSumberGuru(${currentPageSumberGuru - 1})">&laquo;</button>
+    </li>
+  `;
+
+  for (let i = 1; i <= totalPages; i++) {
+    html += `
+      <li class="page-item ${i === currentPageSumberGuru ? 'active' : ''}">
+        <button class="page-link" onclick="gantiHalamanSumberGuru(${i})">${i}</button>
+      </li>
+    `;
+  }
+
+  html += `
+    <li class="page-item ${currentPageSumberGuru === totalPages ? 'disabled' : ''}">
+      <button class="page-link" onclick="gantiHalamanSumberGuru(${currentPageSumberGuru + 1})">&raquo;</button>
+    </li>
+  `;
+
+  html += '</ul>';
+  container.innerHTML = html;
+}
+
+function gantiHalamanSumberGuru(page) {
+  currentPageSumberGuru = page;
+  renderTabelSumberGuruPaginasi();
 }
 
 async function simpanSumberBelajar() {
@@ -3862,6 +3992,16 @@ async function hapusSumber(id) {
     }
   }
 }
+
+function generateTokenOtomatis() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let token = "";
+  for (let i = 0; i < 6; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  document.getElementById("cfgTokenPengawas").value = token;
+}
+
 </script>
 </body>
 </html>
