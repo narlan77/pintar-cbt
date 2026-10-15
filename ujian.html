@@ -461,7 +461,13 @@
         method: "POST",
         redirect: "follow",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "getsoalsiswa", kode: peserta.kode })
+        body: JSON.stringify({ 
+          action: "getsoalsiswa", 
+          kode: peserta.kode, 
+          no_peserta: peserta.noPeserta || peserta.nis, 
+          nama: peserta.nama, 
+          kelas: peserta.kelas 
+        })
       });
 
       const result = await res.json();
@@ -471,7 +477,7 @@
         if (listSoal.length === 0) throw new Error("Bank soal untuk kode ini kosong.");
 
         const durasiMenit = parseInt(result.durasi) || 60;
-        sisaDetik = durasiMenit * 60;
+        sisaDetik = result.sisa_detik ? parseInt(result.sisa_detik) : (durasiMenit * 60);
 
         localStorage.setItem("waktu_mulai_ujian", Date.now());
         localStorage.setItem("durasi_total_detik", sisaDetik);
@@ -488,6 +494,86 @@
     } catch (err) {
       alert("Gagal memuat soal: " + err.message);
       window.location.href = "siswa.html";
+    }
+  }
+  
+  async function mulaiKonfirmasiUjian(event) {
+    if (event) event.preventDefault();
+
+    const elKode = document.getElementById("inputKodeSoal");
+    const elNama = document.getElementById("inputNamaSiswa");
+    const elKelas = document.getElementById("inputKelasSiswa");
+    const elNis = document.getElementById("inputNisSiswa");
+
+    const kode = elKode ? elKode.value.trim().toUpperCase() : "";
+    const nama = elNama ? elNama.value.trim() : "";
+    const kelas = elKelas ? elKelas.value.trim() : "";
+    const noPeserta = elNis ? elNis.value.trim() : "";
+
+    if (!kode || !nama || !kelas || !noPeserta) {
+      alert("Harap lengkapi semua data!");
+      return;
+    }
+
+    const btnMasuk = document.getElementById("btnMasuk");
+    btnMasuk.disabled = true;
+    btnMasuk.innerText = "Memeriksa Soal & Durasi...";
+
+    dataPeserta = { kode, noPeserta, nama, kelas };
+
+    try {
+      const targetUrl = getApiUrl();
+      const res = await fetch(targetUrl, {
+        method: "POST",
+        redirect: "follow",      
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ 
+          action: "getsoalsiswa", 
+          kode: kode, 
+          no_peserta: noPeserta, 
+          nama: nama, 
+          kelas: kelas 
+        })
+      });
+
+      const result = await res.json();
+
+      if (result.status === "success" || result.status === "ok") {
+        listSoal = result.soal || result.data || [];
+        
+        if (listSoal.length === 0) {
+          throw new Error("Bank soal untuk kode ini masih kosong.");
+        }
+
+        const durasiMenit = parseInt(result.durasi) || 60;
+        sisaDetik = result.sisa_detik ? parseInt(result.sisa_detik) : (durasiMenit * 60);
+        
+        // --- TAMBAHKAN DISINI AGAR KODE UJIAN TERSIMPAN DI LOCALSTORAGE ---
+        localStorage.setItem("kode_ujian_aktif", kode);
+        
+        localStorage.setItem("waktu_mulai_ujian", Date.now());
+        localStorage.setItem("durasi_total_detik", sisaDetik);
+
+        document.getElementById("infoSiswa").innerText = `${nama} (${kelas})`;
+        document.getElementById("infoKode").innerText = kode;
+        document.getElementById("labelMataPelajaran").innerText = `Ujian: ${kode}`;
+
+        document.getElementById("sectionLoginUjian").classList.add("d-none");
+        document.getElementById("sectionLembarUjian").classList.remove("d-none");
+        paksaFullscreenUjian();
+        aktifkanProteksiNavigasi();
+        simpanSesiLokal();
+        renderGridNomor();
+        tampilkanSoal(0);
+        jalankanTimer();
+      } else {
+        alert(result.message || "Kode Ujian tidak ditemukan.");
+      }
+    } catch (err) {
+      alert("Gagal memuat ujian: " + err.message);
+    } finally {
+      btnMasuk.disabled = false;
+      btnMasuk.innerText = "Verifikasi & Buka Soal";
     }
   }
 
@@ -660,76 +746,7 @@
     localStorage.removeItem("durasi_total_detik");
   }
 
-  async function mulaiKonfirmasiUjian(event) {
-    if (event) event.preventDefault();
 
-    const elKode = document.getElementById("inputKodeSoal");
-    const elNama = document.getElementById("inputNamaSiswa");
-    const elKelas = document.getElementById("inputKelasSiswa");
-    const elNis = document.getElementById("inputNisSiswa");
-
-    const kode = elKode ? elKode.value.trim().toUpperCase() : "";
-    const nama = elNama ? elNama.value.trim() : "";
-    const kelas = elKelas ? elKelas.value.trim() : "";
-    const noPeserta = elNis ? elNis.value.trim() : "";
-
-    if (!kode || !nama || !kelas || !noPeserta) {
-      alert("Harap lengkapi semua data!");
-      return;
-    }
-
-    const btnMasuk = document.getElementById("btnMasuk");
-    btnMasuk.disabled = true;
-    btnMasuk.innerText = "Memeriksa Soal & Durasi...";
-
-    dataPeserta = { kode, noPeserta, nama, kelas };
-
-    try {
-      const targetUrl = getApiUrl();
-      const res = await fetch(targetUrl, {
-        method: "POST",
-        redirect: "follow",      
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "getsoalsiswa", kode: kode })
-      });
-
-      const result = await res.json();
-
-      if (result.status === "success" || result.status === "ok") {
-        listSoal = result.soal || result.data || [];
-        
-        if (listSoal.length === 0) {
-          throw new Error("Bank soal untuk kode ini masih kosong.");
-        }
-
-        const durasiMenit = parseInt(result.durasi) || 60;
-        sisaDetik = durasiMenit * 60;
-        
-        localStorage.setItem("waktu_mulai_ujian", Date.now());
-        localStorage.setItem("durasi_total_detik", sisaDetik);
-
-        document.getElementById("infoSiswa").innerText = `${nama} (${kelas})`;
-        document.getElementById("infoKode").innerText = kode;
-        document.getElementById("labelMataPelajaran").innerText = `Ujian: ${kode}`;
-
-        document.getElementById("sectionLoginUjian").classList.add("d-none");
-        document.getElementById("sectionLembarUjian").classList.remove("d-none");
-
-        aktifkanProteksiNavigasi();
-        simpanSesiLokal();
-        renderGridNomor();
-        tampilkanSoal(0);
-        jalankanTimer();
-      } else {
-        alert(result.message || "Kode Ujian tidak ditemukan.");
-      }
-    } catch (err) {
-      alert("Gagal memuat ujian: " + err.message);
-    } finally {
-      btnMasuk.disabled = false;
-      btnMasuk.innerText = "Verifikasi & Buka Soal";
-    }
-  }
  
   // FUNGSI UTAMA TAMPILKAN SOAL DENGAN PENGATURAN GAMBAR PROPORSIONAL
   function tampilkanSoal(index) {
