@@ -10,16 +10,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <style>
-    :root {
-      --sidebar-width: 260px;
-      --primary-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    }
-
     body {
-      background-color: #f4f7f6;
+      background-color: #f0f2f5;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       min-height: 100vh;
-      color: #334155;
     }
     
     /* CARD LOGIN SISWA */
@@ -31,7 +25,7 @@
       overflow: hidden;
     }
     .login-header-siswa {
-      background: var(--primary-gradient);
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
       padding: 2.2rem 1.5rem;
       color: #ffffff;
     }
@@ -48,113 +42,30 @@
       border: 1px solid rgba(255, 255, 255, 0.3);
     }
     
-    /* DASHBOARD LAYOUT & SIDEBAR */
-    .app-wrapper {
-      display: flex;
-      min-height: 100vh;
+    /* DASHBOARD SISWA */
+    .navbar-siswa {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
     }
-
-    .sidebar {
-      width: var(--sidebar-width);
-      background: #ffffff;
-      border-right: 1px solid #e2e8f0;
-      position: fixed;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      z-index: 1040;
-      display: flex;
-      flex-direction: column;
-      transition: all 0.3s ease;
-    }
-
-    .sidebar-brand {
-      padding: 1.5rem;
-      background: var(--primary-gradient);
-      color: white;
-      font-weight: bold;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-    }
-
-    .sidebar-menu {
-      padding: 1rem;
-      overflow-y: auto;
-      flex-grow: 1;
-    }
-
-    .sidebar-menu .nav-link {
-      color: #64748b;
-      font-weight: 600;
-      padding: 0.75rem 1rem;
-      border-radius: 10px;
-      margin-bottom: 5px;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-    }
-
-    .sidebar-menu .nav-link i {
-      width: 24px;
-      margin-right: 10px;
-      font-size: 1.1rem;
-    }
-
-    .sidebar-menu .nav-link:hover {
-      background-color: #f1f5f9;
-      color: #1e3c72;
-    }
-
-    .sidebar-menu .nav-link.active {
-      background: var(--primary-gradient);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(30, 60, 114, 0.2);
-    }
-
-    /* MAIN CONTENT AREA */
-    .main-content {
-      margin-left: var(--sidebar-width);
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
-
-    .topbar {
-      background: #ffffff;
-      border-bottom: 1px solid #e2e8f0;
-      padding: 0.75rem 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 1030;
-    }
-
-    .content-body {
-      padding: 2rem;
-      flex-grow: 1;
-    }
-
-    /* CARDS & COMPONENTS */
     .card-custom {
       border-radius: 14px;
       border: none;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
       transition: all 0.2s ease;
     }
-    .card-ujian-aktif { border-left: 5px solid #0d6efd; }
-    .card-ujian-selesai { border-left: 5px solid #198754; }
+    .card-ujian-aktif {
+      border-left: 5px solid #0d6efd;
+    }
+    .card-ujian-selesai {
+      border-left: 5px solid #198754;
+    }
     
     .badge-status {
-      font-size: 0.75rem;
-      padding: 5px 10px;
+      font-size: 0.8rem;
+      padding: 6px 12px;
       border-radius: 20px;
-      font-weight: 600;
     }
 
+    /* EMBED IFRAME SUMBER BELAJAR */
     .iframe-sumber-belajar {
       width: 100%;
       height: 780px;
@@ -162,6 +73,7 @@
       border-radius: 12px;
     }
 
+    /* MODAL PREVIEW JAWABAN */
     .soal-review-box {
       background-color: #f8fafc;
       border: 1px solid #e2e8f0;
@@ -170,42 +82,71 @@
       margin-bottom: 15px;
     }
 
-    /* RESPONSIVE MEDIA QUERIES UNTUK HP */
-    @media (max-width: 991.98px) {
-      .sidebar {
-        transform: translateX(-100%);
-      }
-      .sidebar.show {
-        transform: translateX(0);
-      }
-      .main-content {
-        margin-left: 0;
-      }
-      .content-body {
-        padding: 1rem;
-      }
-    }
-
-    /* PRINT STYLES */
+/* STYLE KHUSUS PRINT: MENCETAK SELURUH HALAMAN LEMBAR JAWABAN SECARA UTUH */
     @media print {
-      body * { visibility: hidden !important; }
-      #modalDetailJawaban, #modalDetailJawaban * { visibility: visible !important; }
-      #modalDetailJawaban {
-        position: absolute !important; left: 0 !important; top: 0 !important;
-        width: 100% !important; height: auto !important; margin: 0 !important;
-        background: white !important; overflow: visible !important;
+      /* Sembunyikan navigasi, tombol, dan elemen di luar modal */
+      body * {
+        visibility: hidden !important;
       }
-      .modal-dialog { max-width: 100% !important; width: 100% !important; margin: 0 !important; }
-      .modal-content { border: none !important; box-shadow: none !important; }
-      .modal-body { max-height: none !important; overflow: visible !important; padding: 0 !important; }
-      .modal-footer, .btn-close, button { display: none !important; }
-      .soal-review-box { background-color: #fff !important; border: 1px solid #ccc !important; break-inside: avoid; }
-    }
 
+      /* Tampilkan modal dan seluruh isinya secara penuh */
+      #modalDetailJawaban, 
+      #modalDetailJawaban * {
+        visibility: visible !important;
+      }
+
+      /* Lepaskan posisi modal dari layar agar bisa mengalir ke bawah (multihalaman) */
+      #modalDetailJawaban {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        overflow: visible !important;
+      }
+
+      .modal-dialog {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        transform: none !important;
+      }
+
+      .modal-content {
+        border: none !important;
+        box-shadow: none !important;
+        background: white !important;
+      }
+
+      /* Hilangkan batasan tinggi (scroll) pada modal-body agar semua soal ikut tercetak */
+      .modal-body {
+        max-height: none !important;
+        overflow: visible !important;
+        padding: 0 !important;
+      }
+
+      /* Sembunyikan tombol tutup, tombol cetak, dan footer modal saat dicetak */
+      .modal-footer, 
+      .btn-close,
+      button {
+        display: none !important;
+      }
+
+      /* Pastikan latar belakang kotak soal tetap rapi saat dicetak */
+      .soal-review-box {
+        background-color: #fff !important;
+        border: 1px solid #ccc !important;
+        break-inside: avoid; /* Mencegah kotak soal terpotong di tengah halaman kertas */
+      }
+    }
+    /* STYLE KONTROL UKURAN GAMBAR PADA MODAL DETAIL LEMBAR JAWABAN */
     .soal-review-box img {
       display: block !important;
       max-width: 100% !important;
-      max-height: 220px !important;
+      max-height: 220px !important; /* Batas tinggi maksimal untuk layar HP */
       height: auto !important;
       width: auto !important;
       margin: 10px auto !important;
@@ -213,18 +154,26 @@
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
+
+    /* Penyesuaian khusus untuk layar Laptop/Desktop di dalam modal */
+    @media (min-width: 992px) {
+      .soal-review-box img {
+        max-height: 300px !important; /* Batas tinggi maksimal untuk Laptop */
+      }
+    }
   </style>
   <script src="config.js"></script>
 </head>
 <body>
 
 <!-- ================================================================= -->
-<!-- SECTION 1: FORM LOGIN SISWA -->
+<!-- SECTION 1: FORM LOGIN SISWA (TERHUBUNG KE SHEET PENGGUNA) -->
 <!-- ================================================================= -->
 <div id="sectionLogin" class="container py-5">
   <div class="row justify-content-center my-4">
     <div class="col-md-6 col-lg-4">
       <div class="card card-login-siswa">
+        
         <div class="login-header-siswa text-center">
           <div class="login-icon-wrapper">
             <i class="fa-solid fa-user-graduate fa-2x text-white"></i>
@@ -235,6 +184,7 @@
 
         <div class="card-body p-4">
           <form id="formLoginSiswa" onsubmit="loginSiswa(event)">
+            
             <div class="mb-3">
               <label for="inputNisLogin" class="form-label fw-semibold small text-muted">USERNAME / NIS / NO. PESERTA</label>
               <div class="input-group">
@@ -253,7 +203,7 @@
 
             <div id="loginAlert" class="alert alert-danger d-none small mb-3" role="alert"></div>
 
-            <button type="submit" id="btnLogin" class="btn btn-primary w-100 py-2 fw-bold rounded-pill">
+            <button type="submit" id="btnLogin" class="btn btn-primary w-100 py-2 fw-bold">
               <i class="fa-solid fa-right-to-bracket me-2"></i> Masuk Akun
             </button>
           </form>
@@ -264,6 +214,7 @@
             </a>
           </div>
         </div>
+
       </div>
     </div>
   </div>
@@ -271,173 +222,156 @@
 
 
 <!-- ================================================================= -->
-<!-- SECTION 2: DASHBOARD UTAMA SISWA (SIDEBAR LAYOUT) -->
+<!-- SECTION 2: DASHBOARD UTAMA SISWA -->
 <!-- ================================================================= -->
 <div id="sectionDashboard" class="d-none">
-  <div class="app-wrapper">
+  
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-siswa sticky-top shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="#">
+        <i class="fa-solid fa-graduation-cap me-2"></i> Ruang Siswa
+      </a>
+      <div class="d-flex align-items-center text-white ms-auto">
+        <div class="me-3 text-end d-none d-md-block">
+          <div class="fw-bold text-uppercase" id="navNamaSiswa">-</div>
+          <small class="text-white-50" id="navInfoSiswa">-</small>
+        </div>
+        <button class="btn btn-outline-light btn-sm rounded-pill px-3" onclick="logoutSiswa()">
+          <i class="fa-solid fa-power-off me-1"></i> Keluar
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- CONTENT CONTAINER -->
+  <div class="container py-4">
     
-    <!-- BACKDROP MOBILE OVERLAY -->
-    <div id="sidebarBackdrop" class="position-fixed top-0 start-0 w-100 h-100 bg-dark opacity-50 d-none d-lg-none" style="z-index: 1035;" onclick="toggleSidebar()"></div>
-
-    <!-- SIDEBAR NAVIGASI -->
-    <nav id="appSidebar" class="sidebar shadow-sm">
-      <div class="sidebar-brand">
-        <i class="fa-solid fa-graduation-cap me-2 fa-lg"></i> Ruang Siswa
+    <!-- BANNER SELAMAT DATANG -->
+    <div class="card card-custom p-4 bg-white mb-4">
+      <div class="d-flex align-items-center">
+        <div class="me-3 d-none d-sm-block">
+          <div class="bg-primary-subtle text-primary rounded-circle p-3 text-center" style="width: 60px; height: 60px;">
+            <i class="fa-solid fa-user-check fa-2x"></i>
+          </div>
+        </div>
+        <div>
+          <h5 class="fw-bold mb-1">Selamat Datang, <span id="dashNamaSiswa" class="text-primary text-uppercase">-</span>!</h5>
+          <p class="text-muted mb-0 small">
+            No. Peserta: <strong id="dashNisSiswa">-</strong> | Kelas: <strong id="dashKelasSiswa">-</strong>
+          </p>
+        </div>
       </div>
+    </div>
 
-      <div class="sidebar-menu nav flex-column" role="tablist">
-        <button class="nav-link active text-start w-100" id="tabUjian" data-bs-toggle="pill" data-bs-target="#contentUjian" type="button" onclick="toggleSidebarOnMobile()">
-          <i class="fa-solid fa-file-pen"></i> Ujian Tersedia
+    <!-- NAV TABS -->
+    <ul class="nav nav-pills mb-4 gap-2" id="siswaTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-semibold rounded-pill px-4" id="tabUjian" data-bs-toggle="pill" data-bs-target="#contentUjian" type="button">
+          <i class="fa-solid fa-file-pen me-2"></i> Ujian Tersedia
         </button>
-        <button class="nav-link text-start w-100" id="tabRiwayat" data-bs-toggle="pill" data-bs-target="#contentRiwayat" type="button" onclick="muatRiwayatUjian(); toggleSidebarOnMobile();">
-          <i class="fa-solid fa-clock-rotate-left"></i> Riwayat & Nilai
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold rounded-pill px-4" id="tabRiwayat" data-bs-toggle="pill" data-bs-target="#contentRiwayat" type="button" onclick="muatRiwayatUjian()">
+          <i class="fa-solid fa-clock-rotate-left me-2"></i> Riwayat & Nilai
         </button>
-        <button class="nav-link text-start w-100" id="tabSumberSiswa" data-bs-toggle="pill" data-bs-target="#contentSumberSiswa" type="button" onclick="muatSumberBelajarSiswa(); toggleSidebarOnMobile();">
-          <i class="fa-solid fa-book-bookmark"></i> Sumber Belajar
-        </button>
-        <button class="nav-link text-start w-100" id="tabSumberBelajar" data-bs-toggle="pill" data-bs-target="#contentSumberBelajar" type="button" onclick="toggleSidebarOnMobile()">
-          <i class="fa-solid fa-book-open"></i> Cari Buku Referensi
-        </button>
-      </div>
-
-      <div class="p-3 border-top bg-light">
-        <button class="btn btn-outline-danger w-100 btn-sm rounded-pill py-2 fw-semibold" onclick="logoutSiswa()">
-          <i class="fa-solid fa-power-off me-2"></i> Keluar Akun
-        </button>
-      </div>
-    </nav>
-
-    <!-- KONTEN UTAMA KANAN -->
-    <div class="main-content">
+      </li>
       
-      <!-- TOPBAR ATAS -->
-      <header class="topbar">
-        <div class="d-flex align-items-center gap-3">
-          <button class="btn btn-outline-secondary btn-sm d-lg-none border-0 fs-5" onclick="toggleSidebar()">
-            <i class="fa-solid fa-bars"></i>
+<!-- TAB TAMBAHAN: SUMBER BELAJAR -->
+<li class="nav-item" role="presentation">
+  <button class="nav-link fw-semibold rounded-pill px-4" id="tabSumberSiswa" data-bs-toggle="pill" data-bs-target="#contentSumberSiswa" type="button" onclick="muatSumberBelajarSiswa()">
+    <i class="fa-solid fa-book-bookmark me-2"></i> Sumber Belajar
+  </button>
+</li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold rounded-pill px-4" id="tabSumberBelajar" data-bs-toggle="pill" data-bs-target="#contentSumberBelajar" type="button">
+          <i class="fa-solid fa-book-open me-2"></i> Cari Buku Referensi
+        </button>
+      </li>
+      
+    </ul>
+
+    <!-- TAB CONTENTS -->
+    <div class="tab-content" id="siswaTabsContent">
+      
+      <!-- TAB 1: UJIAN BERLANGSUNG / TERSEDIA -->
+      <div class="tab-pane fade show active" id="contentUjian" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0 text-secondary"><i class="fa-solid fa-list-check me-2"></i>Daftar Ujian Aktif (Sesuai Kelas Anda)</h6>
+          <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="muatDaftarUjianAktif()">
+            <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh
           </button>
-          <div>
-            <h6 class="fw-bold mb-0 text-dark">Portal Ujian Online</h6>
-            <small class="text-muted" id="topbarTanggal">-</small>
-          </div>
         </div>
 
-        <div class="d-flex align-items-center">
-          <div class="text-end me-3 d-none d-sm-block">
-            <div class="fw-bold text-uppercase small text-primary" id="navNamaSiswa">-</div>
-            <small class="text-muted" style="font-size: 0.75rem;" id="navInfoSiswa">-</small>
-          </div>
-          <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px;">
-            <i class="fa-solid fa-user"></i>
-          </div>
+        <div id="containerUjianAktif" class="row g-3">
+          <!-- Card Ujian Aktif dimuat dinamis -->
         </div>
-      </header>
-
-      <!-- ISI KONTEN UTAMA (TAB CONTENTS) -->
-      <div class="content-body">
-        
-        <!-- BANNER SELAMAT DATANG -->
-        <div class="card card-custom p-4 bg-white mb-4">
-          <div class="d-flex align-items-center">
-            <div class="me-3 d-none d-sm-block">
-              <div class="bg-primary-subtle text-primary rounded-circle p-3 text-center" style="width: 60px; height: 60px;">
-                <i class="fa-solid fa-user-check fa-2x"></i>
-              </div>
-            </div>
-            <div>
-              <h5 class="fw-bold mb-1">Selamat Datang, <span id="dashNamaSiswa" class="text-primary text-uppercase">-</span>!</h5>
-              <p class="text-muted mb-0 small">
-                No. Peserta: <strong id="dashNisSiswa">-</strong> | Kelas: <strong id="dashKelasSiswa">-</strong>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="tab-content" id="siswaTabsContent">
-          
-          <!-- TAB 1: UJIAN BERLANGSUNG / TERSEDIA -->
-          <div class="tab-pane fade show active" id="contentUjian" role="tabpanel">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h6 class="fw-bold mb-0 text-secondary"><i class="fa-solid fa-list-check me-2"></i>Daftar Ujian Aktif (Sesuai Kelas Anda)</h6>
-              <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="muatDaftarUjianAktif()">
-                <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh
-              </button>
-            </div>
-
-            <div id="containerUjianAktif" class="row g-3">
-              <!-- Card Ujian Aktif dimuat dinamis -->
-            </div>
-          </div>
-
-          <!-- TAB 2: RIWAYAT, KARTU NILAI & JAWABAN -->
-          <div class="tab-pane fade" id="contentRiwayat" role="tabpanel">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h6 class="fw-bold mb-0 text-secondary"><i class="fa-solid fa-square-poll-vertical me-2"></i>Hasil & Lembar Jawaban</h6>
-              <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="muatRiwayatUjian()">
-                <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh
-              </button>
-            </div>
-
-            <div id="containerRiwayatUjian" class="row g-3">
-              <!-- Card Riwayat Ujian dimuat dinamis -->
-            </div>
-          </div>
-
-          <!-- TAB 3: SUMBER BELAJAR (SISWA) -->
-          <div class="tab-pane fade" id="contentSumberSiswa" role="tabpanel">
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
-              <div>
-                <h5 class="fw-bold text-primary mb-1"><i class="fa-solid fa-book-open-reader me-2"></i>Pusat Sumber Belajar</h5>
-                <p class="text-muted small mb-0">Materi pembelajaran, referensi website, dan video edukasi khusus kelas Anda.</p>
-              </div>
-              <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="muatSumberBelajarSiswa()">
-                <i class="fa-solid fa-arrows-rotate me-1"></i> Segarkan Data
-              </button>
-            </div>
-
-            <div id="containerSumberBelajarSiswa" class="row g-4">
-              <div class="col-12 text-center py-5">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="text-muted mt-2 small">Memuat sumber belajar...</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- TAB 4: CARI BUKU SUMBER (EMBED KATALOG KEMENDIKDASMEN) -->
-          <div class="tab-pane fade" id="contentSumberBelajar" role="tabpanel">
-            <div class="card card-custom bg-white p-3 mb-3">
-              <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 border-bottom pb-2">
-                <div>
-                  <h6 class="fw-bold mb-0 text-primary">
-                    <i class="fa-solid fa-book-bookmark me-2"></i>Katalog Buku Resmi Kemendikdasmen
-                  </h6>
-                  <small class="text-muted">Akses seluruh buku teks utama dan pendamping resmi sekolah.</small>
-                </div>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="refreshIframeBuku()">
-                    <i class="fa-solid fa-arrows-rotate me-1"></i> Muat Ulang
-                  </button>
-                  <a href="https://buku.kemendikdasmen.go.id/katalog" target="_blank" class="btn btn-sm btn-primary rounded-pill">
-                    <i class="fa-solid fa-up-right-from-square me-1"></i> Buka di Tab Baru
-                  </a>
-                </div>
-              </div>
-
-              <div class="ratio ratio-16x9 rounded overflow-hidden shadow-sm" style="min-height: 700px;">
-                <iframe 
-                  id="iframeKatalogBuku"
-                  src="https://buku.kemendikdasmen.go.id/katalog" 
-                  title="Katalog Buku Kemendikdasmen"
-                  class="iframe-sumber-belajar"
-                  allowfullscreen>
-                </iframe>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
       </div>
+
+      <!-- TAB 2: RIWAYAT, KARTU NILAI & JAWABAN -->
+      <div class="tab-pane fade" id="contentRiwayat" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0 text-secondary"><i class="fa-solid fa-square-poll-vertical me-2"></i>Hasil & Lembar Jawaban</h6>
+          <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="muatRiwayatUjian()">
+            <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh
+          </button>
+        </div>
+
+        <div id="containerRiwayatUjian" class="row g-3">
+          <!-- Card Riwayat Ujian dimuat dinamis -->
+        </div>
+      </div>
+<!-- TAB 3: SUMBER BELAJAR (SISWA) -->
+<div class="tab-pane fade" id="contentSumberSiswa" role="tabpanel">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+      <h5 class="fw-bold text-primary mb-1"><i class="fa-solid fa-book-open-reader me-2"></i>Pusat Sumber Belajar</h5>
+      <p class="text-muted small mb-0">Materi pembelajaran, referensi website, dan video edukasi khusus kelas Anda.</p>
+    </div>
+    <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="muatSumberBelajarSiswa()">
+      <i class="fa-solid fa-arrows-rotate me-1"></i> Segarkan Data
+    </button>
+  </div>
+
+  <div id="containerSumberBelajarSiswa" class="row g-4">
+    <div class="col-12 text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="text-muted mt-2 small">Memuat sumber belajar...</p>
+    </div>
+  </div>
+</div>
+      <!-- TAB 4: CARI BUKU SUMBER (EMBED KATALOG KEMENDIKDASMEN) -->
+      <div class="tab-pane fade" id="contentSumberBelajar" role="tabpanel">
+        <div class="card card-custom bg-white p-3 mb-3">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 border-bottom pb-2">
+            <div>
+              <h6 class="fw-bold mb-0 text-primary">
+                <i class="fa-solid fa-book-bookmark me-2"></i>Katalog Buku Resmi Kemendikdasmen
+              </h6>
+              <small class="text-muted">Akses seluruh buku teks utama dan pendamping resmi sekolah.</small>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="refreshIframeBuku()">
+                <i class="fa-solid fa-arrows-rotate me-1"></i> Muat Ulang
+              </button>
+              <a href="https://buku.kemendikdasmen.go.id/katalog" target="_blank" class="btn btn-sm btn-primary rounded-pill">
+                <i class="fa-solid fa-up-right-from-square me-1"></i> Buka di Tab Baru
+              </a>
+            </div>
+          </div>
+
+          <div class="ratio ratio-16x9 rounded overflow-hidden shadow-sm" style="min-height: 700px;">
+            <iframe 
+              id="iframeKatalogBuku"
+              src="https://buku.kemendikdasmen.go.id/katalog" 
+              title="Katalog Buku Kemendikdasmen"
+              class="iframe-sumber-belajar"
+              allowfullscreen>
+            </iframe>
+          </div>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -449,7 +383,7 @@
 <!-- ================================================================= -->
 <div class="modal fade" id="modalDetailJawaban" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content border-0 shadow-lg rounded-4">
+    <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title fw-bold" id="modalTitleDetail">
           <i class="fa-solid fa-file-invoice me-2"></i>Detail Lembar Jawaban
@@ -478,32 +412,16 @@
 
   document.addEventListener("DOMContentLoaded", function() {
     cekSesiLoginSiswa();
-    // Tanggal di topbar
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const elTgl = document.getElementById("topbarTanggal");
-    if (elTgl) elTgl.innerText = new Date().toLocaleDateString('id-ID', options);
   });
-
-  // Fungsi toggle sidebar interaktif untuk layar HP / Mobile
-  function toggleSidebar() {
-    const sidebar = document.getElementById("appSidebar");
-    const backdrop = document.getElementById("sidebarBackdrop");
-    if (sidebar) sidebar.classList.toggle("show");
-    if (backdrop) backdrop.classList.toggle("d-none");
-  }
-
-  function toggleSidebarOnMobile() {
-    if (window.innerWidth < 992) {
-      toggleSidebar();
-    }
-  }
 
   // Helper API URL
   function getApiUrl() {
     return (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : (typeof API_URL !== 'undefined' ? API_URL : "");
   }
 
-  // Helper Global Fetch API POST
+  // =========================================================
+  // HELPER GLOBAL FETCH / API POST (AMAN DARI REDIRECT GITHUB PAGES)
+  // =========================================================
   async function apiPost(payload) {
     const targetUrl = getApiUrl();
     if (!targetUrl) throw new Error("API_URL tidak ditemukan di config.js!");
@@ -528,6 +446,7 @@
     });
 
     const text = await res.text();
+
     if (text.trim().startsWith("<")) {
       console.error("Respons Server HTML:", text);
       throw new Error("Server mengembalikan halaman HTML. Pastikan akses Google Web App diset ke 'Anyone'.");
@@ -552,7 +471,7 @@
     }
   }
 
-  // 2. PROSES LOGIN SISWA
+  // 2. PROSES LOGIN SISWA VIA SHEET PENGGUNA
   async function loginSiswa(e) {
     if (e) e.preventDefault();
 
@@ -625,7 +544,7 @@
     muatDaftarUjianAktif();
   }
 
-  // 5. MUAT DAFTAR KARTU UJIAN AKTIF
+  // 5. MUAT DAFTAR KARTU UJIAN AKTIF (DIFILTER DENGAN KELAS SISWA)
   async function muatDaftarUjianAktif() {
     const container = document.getElementById("containerUjianAktif");
     container.innerHTML = `
@@ -644,8 +563,8 @@
       if (resKode.status !== "success" || !Array.isArray(resKode.data) || resKode.data.length === 0) {
         container.innerHTML = `
           <div class="col-12">
-            <div class="card card-custom p-4 text-center text-muted bg-white">
-              <i class="fa-solid fa-folder-open fa-3x mb-3 text-secondary"></i>
+            <div class="card card-custom p-4 text-center text-muted">
+              <i class="fa-solid fa-folder-open fa-3x mb-3"></i>
               <h6>Tidak Ada Ujian Aktif Saat Ini</h6>
             </div>
           </div>
@@ -700,7 +619,7 @@
       if (container.innerHTML === "") {
         container.innerHTML = `
           <div class="col-12">
-            <div class="card card-custom p-4 text-center text-muted bg-white">
+            <div class="card card-custom p-4 text-center text-muted">
               <i class="fa-solid fa-circle-check fa-3x mb-3 text-success"></i>
               <h6>Tidak ada ujian aktif yang ditujukan untuk kelas Anda (${akunSiswa.kelas}).</h6>
             </div>
@@ -713,7 +632,7 @@
     }
   }
 
-  // 6. REDIRECT KE UJIAN.HTML
+  // 6. DIRECT REDIRECT KE UJIAN.HTML
   function langsungMulaiUjian(kodeSoal) {
     const sesiAwal = {
       dataPeserta: {
@@ -732,7 +651,7 @@
     window.location.href = "ujian.html";
   }
 
-  // 7. MUAT RIWAYAT UJIAN & SKOR
+  // 7. MUAT RIWAYAT UJIAN & SKOR TOTAL
   async function muatRiwayatUjian() {
     const container = document.getElementById("containerRiwayatUjian");
     container.innerHTML = `
@@ -749,8 +668,8 @@
       if (soalSelesai.length === 0) {
         container.innerHTML = `
           <div class="col-12">
-            <div class="card card-custom p-4 text-center text-muted bg-white">
-              <i class="fa-solid fa-clock-rotate-left fa-3x mb-3 text-secondary"></i>
+            <div class="card card-custom p-4 text-center text-muted">
+              <i class="fa-solid fa-clock-rotate-left fa-3x mb-3"></i>
               <h6>Belum Ada Riwayat Ujian</h6>
             </div>
           </div>
@@ -813,47 +732,49 @@
     }
   }
 
-  // 8. REFRESH KATALOG BUKU
+  // 8. REFRESH IFRAME KATALOG BUKU
   function refreshIframeBuku() {
     const iframe = document.getElementById("iframeKatalogBuku");
-    if (iframe) iframe.src = iframe.src;
+    if (iframe) {
+      iframe.src = iframe.src;
+    }
   }
 
-  // 9. MODAL DETAIL JAWABAN
+  // 9. MODAL DETAIL JAWABAN SISWA (PG + ESSAI)
   async function bukaDetailJawaban(kodeSoal, encodedJawaban, encodedNilaiEssai) {
-  const modalBody = document.getElementById("modalBodyDetailJawaban");
-  document.getElementById("modalTitleDetail").innerText = `Lembar Jawaban - Kode: ${kodeSoal}`;
+    const modalBody = document.getElementById("modalBodyDetailJawaban");
+    document.getElementById("modalTitleDetail").innerText = `Lembar Jawaban - Kode: ${kodeSoal}`;
 
-  modalBody.innerHTML = `
-    <div class="text-center py-4">
-      <div class="spinner-border text-primary" role="status"></div>
-      <p class="mt-2 text-muted small">Memuat bank soal dan lembar jawaban...</p>
-    </div>
-  `;
+    modalBody.innerHTML = `
+      <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted small">Memuat bank soal dan lembar jawaban...</p>
+      </div>
+    `;
 
-  const myModal = new bootstrap.Modal(document.getElementById("modalDetailJawaban"));
-  myModal.show();
+    const myModal = new bootstrap.Modal(document.getElementById("modalDetailJawaban"));
+    myModal.show();
 
-  let jawabanMap = {};
-  try { jawabanMap = JSON.parse(decodeURIComponent(encodedJawaban)); } catch (e) { jawabanMap = {}; }
+    let jawabanMap = {};
+    try { jawabanMap = JSON.parse(decodeURIComponent(encodedJawaban)); } catch (e) { jawabanMap = {}; }
 
-  let detailNilaiEssai = {};
-  try { detailNilaiEssai = JSON.parse(decodeURIComponent(encodedNilaiEssai || "{}")); } catch (e) { detailNilaiEssai = {}; }
+    let detailNilaiEssai = {};
+    try { detailNilaiEssai = JSON.parse(decodeURIComponent(encodedNilaiEssai || "{}")); } catch (e) { detailNilaiEssai = {}; }
 
-  try {
-    const result = await apiPost({ 
-      action: "getsoalsiswa", 
-      kode: kodeSoal, 
-      kode_soal: kodeSoal,
-      no_peserta: akunSiswa ? akunSiswa.nis : "", // <-- TAMBAHKAN INI AGAR ID TERBACA DI SERVER
-      mode: "review" 
-    });
-    renderDetailJawaban(result, modalBody, jawabanMap, detailNilaiEssai);
-  } catch (err) {
-    modalBody.innerHTML = `<div class="alert alert-danger">Gagal memuat lembar jawaban: ${err.message}</div>`;
+    try {
+      const result = await apiPost({ 
+        action: "getsoalsiswa", 
+        kode: kodeSoal, 
+        kode_soal: kodeSoal, 
+        mode: "review" // <--- WAJIB DITAMBAHKAN AGAR KUNCI & SOAL SAAT NONAKTIF TERMUAT
+      });
+      renderDetailJawaban(result, modalBody, jawabanMap, detailNilaiEssai);
+    } catch (err) {
+      modalBody.innerHTML = `<div class="alert alert-danger">Gagal memuat lembar jawaban: ${err.message}</div>`;
+    }
   }
-}
-  // 10. RENDER DETAIL JAWABAN
+
+  // 10. RENDER UI LEMBAR JAWABAN LENGKAP (DENGAN GAMBAR PROPORSIONAL)
   function renderDetailJawaban(result, modalBody, jawabanMap, detailNilaiEssai) {
     const listSoal = Array.isArray(result) ? result : (result && Array.isArray(result.soal) ? result.soal : (result && Array.isArray(result.data) ? result.data : null));
 
@@ -878,7 +799,9 @@
       ).trim().toUpperCase();
 
       if (isPG) {
-        if (jawabanSiswa !== "" && jawabanSiswa === kunciJawaban) totalSkorPG += bobotSoal;
+        if (jawabanSiswa !== "" && jawabanSiswa === kunciJawaban) {
+          totalSkorPG += bobotSoal;
+        }
       } else {
         const nilaiSoalEssai = parseFloat(detailNilaiEssai[noKey] ?? detailNilaiEssai[String(noKey)] ?? detailNilaiEssai[noSoal] ?? detailNilaiEssai[String(noSoal)] ?? 0);
         totalSkorEssai += nilaiSoalEssai;
@@ -919,10 +842,13 @@
         jawabanMap[noKey] ?? jawabanMap[String(noKey)] ?? jawabanMap[noSoal] ?? jawabanMap[String(noSoal)] ?? ""
       ).trim().toUpperCase();
 
+      // --- OLAH GAMBAR SOAL DI REVIEW MODAL ---
       let urlGambar = soal.gambar || soal.gambar_soal || "";
       if (urlGambar && (urlGambar.includes("drive.google.com") || urlGambar.includes("docs.google.com"))) {
         const match = urlGambar.match(/[-\w]{25,}/);
-        if (match && match[0]) urlGambar = `https://lh3.googleusercontent.com/d/${match[0]}`;
+        if (match && match[0]) {
+          urlGambar = `https://lh3.googleusercontent.com/d/${match[0]}`;
+        }
       }
 
       const htmlGambarSoal = urlGambar ? `
@@ -930,6 +856,7 @@
           <img src="${urlGambar}" alt="Gambar Soal No. ${noKey}" onerror="this.style.display='none';" />
         </div>
       ` : "";
+      // ----------------------------------------
 
       let detailBadgeHtml = "";
       let badgeStatusSoal = "";
@@ -989,7 +916,7 @@
           <div class="p-3 bg-white rounded border">
             <div class="mb-2">
               <strong class="text-secondary small d-block mb-2">PILIHAN JAWABAN:</strong>
-              ${htmlOpsi || `<div class="alert alert-light border text-muted small mb-0">Teks pilihan tidak disertakan.</div>`}
+              ${htmlOpsi || `<div class="alert alert-light border text-muted small mb-0"><i class="fa-solid fa-info-circle me-1"></i> Teks pilihan tidak disertakan.</div>`}
             </div>
             <div class="mt-3 pt-2 border-top d-flex align-items-center justify-content-between">
               <span class="small text-muted">Jawaban Siswa: <strong>${jawabanSiswa || 'Tidak Dijawab'}</strong></span>
@@ -999,6 +926,7 @@
         `;
       } else {
         const nilaiSoalEssai = detailNilaiEssai[noKey] ?? detailNilaiEssai[String(noKey)] ?? detailNilaiEssai[noSoal] ?? detailNilaiEssai[String(noSoal)] ?? 0;
+        
         badgeStatusSoal = `<span class="badge bg-info text-dark"><i class="fa-solid fa-pen-to-square me-1"></i>Skor Essai: ${nilaiSoalEssai} / ${bobotSoal || 10}</span>`;
 
         detailBadgeHtml = `
@@ -1034,9 +962,18 @@
   function cetakLembarJawaban() {
     window.print();
   }
+  
+function muatIframeSumberSiswa() {
+  const iframe = document.getElementById("iframeSumberSiswa");
+  const kelasSiswa = akunSiswa ? akunSiswa.kelas : "";
+  // Kirim parameter kelas ke URL iframe sumber.html
+  if (iframe) {
+    iframe.src = `sumber.html?kelas=${encodeURIComponent(kelasSiswa)}`;
+  }
+}
 
-  // 11. SUMBER BELAJAR SISWA
-  async function muatSumberBelajarSiswa() {
+// FUNGSI MEMUAT SUMBER BELAJAR LANGSUNG DI SISWA.HTML
+async function muatSumberBelajarSiswa() {
     const container = document.getElementById("containerSumberBelajarSiswa");
     if (!container) return;
 
@@ -1047,20 +984,32 @@
       </div>
     `;
 
-    let kelasSiswa = akunSiswa ? akunSiswa.kelas : "";
+    // Ambil data kelas dari variabel global akunSiswa atau fallback ke localStorage
+    let kelasSiswa = "";
+    if (typeof akunSiswa !== 'undefined' && akunSiswa && akunSiswa.kelas) {
+      kelasSiswa = akunSiswa.kelas;
+    } else {
+      try {
+        const saved = localStorage.getItem("akun_siswa_login");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          kelasSiswa = parsed.kelas || "";
+        }
+      } catch (e) {}
+    }
 
     try {
       const res = await apiPost({ 
         action: "getsumberbelajar",
-        kelas: kelasSiswa,
+        kelas: kelasSiswa,  // <--- Pastikan nilai kelas ini terkirim dengan benar ke server.js
         is_guru: false 
       });
 
       if (res.status === "success" && Array.isArray(res.data)) {
         if (res.data.length === 0) {
           container.innerHTML = `
-            <div class="col-12 text-center py-5 text-muted bg-white rounded card-custom p-4">
-              <i class="fa-solid fa-folder-open fa-3x mb-2 text-secondary"></i>
+            <div class="col-12 text-center py-5 text-muted">
+              <i class="fa-solid fa-folder-open fa-2x mb-2 text-secondary"></i>
               <p class="mb-0">Belum ada sumber belajar aktif untuk kelas Anda (${kelasSiswa || 'Umum'}).</p>
             </div>
           `;
@@ -1071,13 +1020,19 @@
         res.data.forEach(item => {
           let kontenHtml = "";
 
+          // 1. Render Tipe YouTube
           if (item.tipe === "youtube") {
             let videoId = "";
             const url = item.link || "";
-            if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
-            else if (url.includes("watch?v=")) videoId = url.split("watch?v=")[1]?.split("&")[0];
-            else if (url.includes("embed/")) videoId = url.split("embed/")[1]?.split("?")[0];
-            else videoId = url;
+            if (url.includes("youtu.be/")) {
+              videoId = url.split("youtu.be/")[1]?.split("?")[0];
+            } else if (url.includes("watch?v=")) {
+              videoId = url.split("watch?v=")[1]?.split("&")[0];
+            } else if (url.includes("embed/")) {
+              videoId = url.split("embed/")[1]?.split("?")[0];
+            } else {
+              videoId = url;
+            }
 
             kontenHtml = `
               <div class="ratio ratio-16x9 mb-3">
@@ -1090,7 +1045,9 @@
                 </a>
               </div>
             `;
-          } else if (item.tipe === "website") {
+          } 
+          // 2. Render Tipe Website / Artikel
+          else if (item.tipe === "website") {
             kontenHtml = `
               <p class="text-dark mb-2">${item.isi || 'Kunjungi tautan referensi materi berikut:'}</p>
               <div class="p-2 bg-light rounded border mb-3 text-truncate">
@@ -1102,7 +1059,9 @@
                 <i class="fa-solid fa-external-link-alt me-1"></i> Buka Website / Artikel
               </a>
             `;
-          } else {
+          } 
+          // 3. Render Tipe Manual (Teks / Artikel)
+          else {
             kontenHtml = `
               <div class="p-3 bg-light rounded border text-dark" style="white-space: pre-wrap; max-height: 250px; overflow-y: auto;">
                 ${item.isi || '-'}
@@ -1110,6 +1069,7 @@
             `;
           }
 
+          // Perenderan Kartu Materi
           const card = `
             <div class="col-md-6 col-lg-4">
               <div class="card card-custom h-100 p-4 d-flex flex-column justify-content-between bg-white">
@@ -1127,12 +1087,21 @@
           container.innerHTML += card;
         });
       } else {
-        container.innerHTML = `<div class="col-12 text-center text-danger py-4">Gagal memuat data sumber belajar: ${res.message || 'Kesalahan server'}</div>`;
+        container.innerHTML = `
+          <div class="col-12 text-center text-danger py-4">
+            Gagal memuat data sumber belajar: ${res.message || 'Kesalahan server'}
+          </div>
+        `;
       }
     } catch (e) {
-      container.innerHTML = `<div class="col-12 text-center text-danger py-4">Terjadi kesalahan koneksi saat memuat sumber belajar.</div>`;
+      container.innerHTML = `
+        <div class="col-12 text-center text-danger py-4">
+          Terjadi kesalahan koneksi saat memuat sumber belajar.
+        </div>
+      `;
     }
   }
+  
 </script>
 </body>
 </html>
