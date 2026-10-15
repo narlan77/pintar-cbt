@@ -456,7 +456,7 @@
         </div>
       </div>
 
-<!-- MENU 2: PENGATURAN UJIAN -->
+      <!-- MENU 2: PENGATURAN UJIAN -->
       <div class="tab-pane fade" id="tab-pengaturan" role="tabpanel">
         <div class="card card-custom p-4 shadow-sm border-0">
           <h5 class="mb-4 fw-bold text-primary">⚙️ Pengaturan Parameter Ujian</h5>
@@ -547,9 +547,9 @@
                   </div>
               </div>
 
-              <!-- WAKTU, STATUS, KONTROL & TOKEN PENGAWAS -->
+              <!-- WAKTU & ATURAN -->
               <div class="mb-4">
-                  <h6 class="form-section-title fw-bold text-uppercase mb-3">3. Durasi, Status, Kontrol & Token Kunci Layar</h6>
+                  <h6 class="form-section-title fw-bold text-uppercase mb-3">3. Durasi, Status, & Kontrol Jawaban</h6>
                   <div class="row g-3">
                       <div class="col-md-3">
                           <label class="form-label fw-semibold">Lama Ujian (Menit)</label>
@@ -583,16 +583,6 @@
                           </select>
                       </div>
 
-                      <!-- TOKEN PENGAWAS MASUK DI SINI DENGAN GRID RAPI -->
-                      <div class="col-md-4">
-                          <label class="form-label fw-semibold text-danger">Token Pengawas (Kunci Keluar Layar)</label>
-                          <div class="input-group">
-                              <input type="text" id="cfgTokenPengawas" class="form-control fw-bold text-uppercase font-monospace text-center" placeholder="Bebas / 6 Karakter" maxlength="10">
-                              <button class="btn btn-outline-secondary" type="button" onclick="generateTokenOtomatis()" title="Buat Token Acak">🎲 Acak</button>
-                          </div>
-                          <small class="text-muted" style="font-size: 0.75rem;">Password yang diinput siswa untuk membuka kunci layar.</small>
-                      </div>
-
                   </div>
               </div>
 
@@ -609,14 +599,12 @@
 <!-- MENU TAMBAHAN: MONITORING UJIAN -->
 <div class="tab-pane fade" id="tab-monitoring" role="tabpanel">
   <div class="card card-custom p-4">
-    
-    <!-- HEADER UTAMA MONITORING -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
       <div>
         <h5 class="fw-bold mb-0 text-dark">🖥️ Real-time Monitoring Ujian Siswa</h5>
         <small class="text-muted" id="subTitleMonitoring">Kode Soal: - | Mapel: -</small>
       </div>
-      <div>
+      <div class="d-flex gap-2">
         <button class="btn btn-outline-primary btn-sm fw-bold px-3 rounded-pill" onClick="muatMonitoringUjian()">
           🔄 Refresh Status
         </button>
@@ -645,7 +633,6 @@
       </div>
     </div>
 
-<!-- TABEL MONITORING -->
     <div class="table-responsive rounded-3 border">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-dark">
@@ -664,7 +651,6 @@
         </tbody>
       </table>
     </div>
-
   </div>
 </div>
       <!-- MENU 3: HASIL UJIAN -->
@@ -1638,13 +1624,7 @@ function getKodeSoal() {
         document.getElementById("cfgDurasi").value = cfg.durasi || 90;
         document.getElementById("cfgPenyusun").value = cfg.penyusun || cfg.nama_ujian || sessionStorage.getItem("namaGuru") || "";
         document.getElementById("cfgPengawas").value = cfg.pengawas || "";
-        // === TAMBAHKAN BARIS INI AGAR TOKEN MUNCUL KEMBALI ===
-      const tokenVal = cfg.token_pengawas || cfg.tokenPengawas || "";
-      const inputTokenElem = document.getElementById("cfgTokenPengawas");
-      if (inputTokenElem) {
-        inputTokenElem.value = tokenVal;
-      }
-      // ====================================================
+        
         if ($('#cfgDaftarKelas').length && cfg.kelas) {
           const arrKelas = typeof cfg.kelas === 'string' ? cfg.kelas.split(',').map(s => s.trim()) : cfg.kelas;
           $('#cfgDaftarKelas').val(arrKelas).trigger('change');
@@ -1955,8 +1935,7 @@ function gantiHalamanKodeSoal(page) {
       status_ujian: document.getElementById("cfgStatus") ? document.getElementById("cfgStatus").value : "Aktif",
       acak_soal: document.getElementById("cfgAcak") ? document.getElementById("cfgAcak").value : "Tidak",
       kelas: kelasSelected,
-      tampil_skor: document.getElementById("cfgTampilSkor") ? document.getElementById("cfgTampilSkor").value : "Ya",
-      token_pengawas: document.getElementById("cfgTokenPengawas") ? document.getElementById("cfgTokenPengawas").value.trim().toUpperCase() : ""
+      tampil_skor: document.getElementById("cfgTampilSkor") ? document.getElementById("cfgTampilSkor").value : "Ya"
     };
 
     try {
@@ -3992,16 +3971,6 @@ async function hapusSumber(id) {
     }
   }
 }
-
-function generateTokenOtomatis() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let token = "";
-  for (let i = 0; i < 6; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  document.getElementById("cfgTokenPengawas").value = token;
-}
-
 </script>
 </body>
 </html>
