@@ -28,45 +28,7 @@
   </script>
 
   <style>
-    /* Media Query khusus Layar HP / Mobile (< 768px) */
-    @media (max-width: 767.98px) {
-      .sidebar {
-        position: fixed;
-        top: 0;
-        left: -280px; /* Sembunyikan sidebar ke kiri luar layar */
-        height: 100vh;
-        z-index: 1050;
-        transition: left 0.3s ease-in-out;
-      }
-
-      /* Saat sidebar diaktifkan lewat tombol toggle */
-      .sidebar.show {
-        left: 0;
-      }
-
-      .main-content {
-        padding: 15px;
-        width: 100%;
-      }
-
-      /* Overlay latar belakang gelap saat sidebar terbuka di HP */
-      .sidebar-backdrop {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 1040;
-      }
-
-      .sidebar-backdrop.show {
-        display: block;
-      }
-    }
-
-    :root {
+        :root {
       --primary-color: #3b82f6;
       --primary-dark: #1d4ed8;
       --secondary-color: #6366f1;
@@ -88,6 +50,7 @@
     .app-wrapper {
       display: flex;
       min-height: 100vh;
+      position: relative;
     }
 
     .sidebar {
@@ -112,6 +75,8 @@
       padding: 24px;
       background-color: var(--light-bg);
       overflow-y: auto;
+      position: relative;
+      z-index: 1;
     }
 
     .header-panel {
@@ -162,6 +127,8 @@
     /* Navigasi Menu Vertikal (Kiri) */
     .sidebar .nav-pills {
       padding: 16px 12px;
+      position: relative;
+      z-index: 1100; /* Memastikan tombol menu di dalam nav-pills berada di layer paling atas */
     }
 
     .sidebar .nav-pills .nav-link {
@@ -176,6 +143,8 @@
       align-items: center;
       gap: 12px;
       transition: all 0.2s ease;
+      cursor: pointer;
+      pointer-events: auto !important; /* Wajib agar bisa disentuh/diklik di mobile */
     }
 
     .sidebar .nav-pills .nav-link:hover {
@@ -203,7 +172,83 @@
       border-color: var(--border-color);
     }
 
+    /* Form Custom Styles */
+    .select2-container--bootstrap-5 .select2-selection {
+        border: 1px solid #ced4da !important;
+        border-radius: 0.375rem !important;
+        min-height: 38px !important;
+        background-color: #ffffff !important;
+    }
+    
+    .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+        border-color: #86b7fe !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+    }
+
+    /* STYLE KONTROL UKURAN GAMBAR PADA PRATINJAU & CETAK NASKAH SOAL */
+    #containerListTinjauSoal img,
+    .soal-item img {
+      display: block !important;
+      max-width: 100% !important;
+      max-height: 220px !important;
+      height: auto !important;
+      width: auto !important;
+      margin: 10px auto !important;
+      object-fit: contain !important;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    /* Media Query khusus Layar HP / Mobile (< 768px) - PERBAIKAN TOTAL Z-INDEX & POINTER EVENTS */
+    @media (max-width: 767.98px) {
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        height: 100vh;
+        z-index: 1090 !important; /* Paling atas di atas semua elemen */
+        transition: left 0.3s ease-in-out;
+        pointer-events: auto !important;
+      }
+
+      .sidebar.show {
+        left: 0;
+      }
+
+      .main-content {
+        padding: 15px;
+        width: 100%;
+        position: relative;
+        z-index: 1;
+      }
+
+      .sidebar-backdrop {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1080 !important;
+        pointer-events: none; /* Awalnya mati agar tidak menutupi klik layar utama */
+      }
+
+      .sidebar-backdrop.show {
+        display: block;
+        pointer-events: auto; /* Aktif hanya saat sidebar muncul */
+      }
+    }
+
+    /* Proteksi / Penyesuaian Khusus Media Print */
     @media print {
+      #containerListTinjauSoal img,
+      .soal-item img {
+        max-height: 200px !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+
       .no-print, 
       .sidebar,
       .btn, 
@@ -229,41 +274,7 @@
       table { width: 100% !important; }
     }
 
-    /* Form Custom Styles */
-    .select2-container--bootstrap-5 .select2-selection {
-        border: 1px solid #ced4da !important;
-        border-radius: 0.375rem !important;
-        min-height: 38px !important;
-        background-color: #ffffff !important;
-    }
-    
-    .select2-container--bootstrap-5.select2-container--focus .select2-selection {
-        border-color: #86b7fe !important;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
-    }
-    /* STYLE KONTROL UKURAN GAMBAR PADA PRATINJAU & CETAK NASKAH SOAL */
-    #containerListTinjauSoal img,
-    .soal-item img {
-      display: block !important;
-      max-width: 100% !important;
-      max-height: 220px !important; /* Batas tinggi maksimal untuk layar HP/Pratinjau */
-      height: auto !important;
-      width: auto !important;
-      margin: 10px auto !important;
-      object-fit: contain !important;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
 
-    /* Penyesuaian khusus saat dokumen dicetak / diexport PDF */
-    @media print {
-      #containerListTinjauSoal img,
-      .soal-item img {
-        max-height: 200px !important; /* Batas tinggi maksimal agar hemat kertas cetak */
-        box-shadow: none !important;
-        border: none !important;
-      }
-    }
   </style>
 
   <!-- Library Parser Excel (.xlsx) & Word (.docx) -->
@@ -456,7 +467,7 @@
         </div>
       </div>
 
-      <!-- MENU 2: PENGATURAN UJIAN -->
+<!-- MENU 2: PENGATURAN UJIAN -->
       <div class="tab-pane fade" id="tab-pengaturan" role="tabpanel">
         <div class="card card-custom p-4 shadow-sm border-0">
           <h5 class="mb-4 fw-bold text-primary">⚙️ Pengaturan Parameter Ujian</h5>
@@ -547,9 +558,9 @@
                   </div>
               </div>
 
-              <!-- WAKTU & ATURAN -->
+              <!-- WAKTU, STATUS, KONTROL & TOKEN PENGAWAS -->
               <div class="mb-4">
-                  <h6 class="form-section-title fw-bold text-uppercase mb-3">3. Durasi, Status, & Kontrol Jawaban</h6>
+                  <h6 class="form-section-title fw-bold text-uppercase mb-3">3. Durasi, Status, Kontrol & Token Kunci Layar</h6>
                   <div class="row g-3">
                       <div class="col-md-3">
                           <label class="form-label fw-semibold">Lama Ujian (Menit)</label>
@@ -583,6 +594,16 @@
                           </select>
                       </div>
 
+                      <!-- TOKEN PENGAWAS MASUK DI SINI DENGAN GRID RAPI -->
+                      <div class="col-md-4">
+                          <label class="form-label fw-semibold text-danger">Token Pengawas (Kunci Keluar Layar)</label>
+                          <div class="input-group">
+                              <input type="text" id="cfgTokenPengawas" class="form-control fw-bold text-uppercase font-monospace text-center" placeholder="Bebas / 6 Karakter" maxlength="10">
+                              <button class="btn btn-outline-secondary" type="button" onclick="generateTokenOtomatis()" title="Buat Token Acak">🎲 Acak</button>
+                          </div>
+                          <small class="text-muted" style="font-size: 0.75rem;">Password yang diinput siswa untuk membuka kunci layar.</small>
+                      </div>
+
                   </div>
               </div>
 
@@ -599,12 +620,14 @@
 <!-- MENU TAMBAHAN: MONITORING UJIAN -->
 <div class="tab-pane fade" id="tab-monitoring" role="tabpanel">
   <div class="card card-custom p-4">
+    
+    <!-- HEADER UTAMA MONITORING -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
       <div>
         <h5 class="fw-bold mb-0 text-dark">🖥️ Real-time Monitoring Ujian Siswa</h5>
         <small class="text-muted" id="subTitleMonitoring">Kode Soal: - | Mapel: -</small>
       </div>
-      <div class="d-flex gap-2">
+      <div>
         <button class="btn btn-outline-primary btn-sm fw-bold px-3 rounded-pill" onClick="muatMonitoringUjian()">
           🔄 Refresh Status
         </button>
@@ -633,6 +656,7 @@
       </div>
     </div>
 
+<!-- TABEL MONITORING -->
     <div class="table-responsive rounded-3 border">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-dark">
@@ -651,6 +675,7 @@
         </tbody>
       </table>
     </div>
+
   </div>
 </div>
       <!-- MENU 3: HASIL UJIAN -->
@@ -1467,10 +1492,13 @@ document.addEventListener("DOMContentLoaded", function() {
 function toggleSidebar() {
     const sidebar = document.getElementById("sidebarMenu");
     const backdrop = document.getElementById("sidebarBackdrop");
-    sidebar.classList.toggle("show");
-    backdrop.classList.toggle("show");
-  }
-  
+    
+    if (sidebar && backdrop) {
+      sidebar.classList.toggle("show");
+      backdrop.classList.toggle("show");
+    }
+}
+
   function logoutGuru() {
     if (confirm("Apakah Anda yakin ingin keluar dari Panel Guru?")) {
       sessionStorage.removeItem("isGuruLoggedIn");
@@ -1624,7 +1652,13 @@ function getKodeSoal() {
         document.getElementById("cfgDurasi").value = cfg.durasi || 90;
         document.getElementById("cfgPenyusun").value = cfg.penyusun || cfg.nama_ujian || sessionStorage.getItem("namaGuru") || "";
         document.getElementById("cfgPengawas").value = cfg.pengawas || "";
-        
+        // === TAMBAHKAN BARIS INI AGAR TOKEN MUNCUL KEMBALI ===
+      const tokenVal = cfg.token_pengawas || cfg.tokenPengawas || "";
+      const inputTokenElem = document.getElementById("cfgTokenPengawas");
+      if (inputTokenElem) {
+        inputTokenElem.value = tokenVal;
+      }
+      // ====================================================
         if ($('#cfgDaftarKelas').length && cfg.kelas) {
           const arrKelas = typeof cfg.kelas === 'string' ? cfg.kelas.split(',').map(s => s.trim()) : cfg.kelas;
           $('#cfgDaftarKelas').val(arrKelas).trigger('change');
@@ -1935,7 +1969,8 @@ function gantiHalamanKodeSoal(page) {
       status_ujian: document.getElementById("cfgStatus") ? document.getElementById("cfgStatus").value : "Aktif",
       acak_soal: document.getElementById("cfgAcak") ? document.getElementById("cfgAcak").value : "Tidak",
       kelas: kelasSelected,
-      tampil_skor: document.getElementById("cfgTampilSkor") ? document.getElementById("cfgTampilSkor").value : "Ya"
+      tampil_skor: document.getElementById("cfgTampilSkor") ? document.getElementById("cfgTampilSkor").value : "Ya",
+      token_pengawas: document.getElementById("cfgTokenPengawas") ? document.getElementById("cfgTokenPengawas").value.trim().toUpperCase() : ""
     };
 
     try {
@@ -3971,6 +4006,16 @@ async function hapusSumber(id) {
     }
   }
 }
+
+function generateTokenOtomatis() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let token = "";
+  for (let i = 0; i < 6; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  document.getElementById("cfgTokenPengawas").value = token;
+}
+
 </script>
 </body>
 </html>
