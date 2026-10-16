@@ -495,9 +495,14 @@
 
       const result = await res.json();
 
-      if (result.status === "success" || result.status === "ok") {
+if (result.status === "success" || result.status === "ok") {
         listSoal = result.soal || result.data || [];
         if (listSoal.length === 0) throw new Error("Bank soal untuk kode ini kosong.");
+
+        // SUNTIKKAN JAWABAN DRAF JIKA ADA
+        if (result.existing_jawaban && Object.keys(result.existing_jawaban).length > 0) {
+          jawabanSiswa = result.existing_jawaban;
+        }
 
         const durasiMenit = parseInt(result.durasi) || 60;
         sisaDetik = result.sisa_detik ? parseInt(result.sisa_detik) : (durasiMenit * 60);
@@ -508,7 +513,7 @@
         aktifkanProteksiNavigasi();
         simpanSesiLokal();
         renderGridNomor();
-        tampilkanSoal(0);
+        tampilkanSoal(0); // Cukup dipanggil sekali di sini
         jalankanTimer();
       } else {
         alert(result.message || "Kode soal tidak ditemukan.");
@@ -568,10 +573,15 @@
           throw new Error("Bank soal untuk kode ini masih kosong.");
         }
 
+        // --- SUNTIKKAN JAWABAN DRAF JIKA ADA ---
+        if (result.existing_jawaban && Object.keys(result.existing_jawaban).length > 0) {
+          jawabanSiswa = result.existing_jawaban;
+        }
+
         const durasiMenit = parseInt(result.durasi) || 60;
         sisaDetik = result.sisa_detik ? parseInt(result.sisa_detik) : (durasiMenit * 60);
         
-        // --- TAMBAHKAN DISINI AGAR KODE UJIAN TERSIMPAN DI LOCALSTORAGE ---
+        // --- SIMPAN KODE UJIAN AKTIF DI LOCALSTORAGE ---
         localStorage.setItem("kode_ujian_aktif", kode);
         
         localStorage.setItem("waktu_mulai_ujian", Date.now());
