@@ -317,7 +317,30 @@
   </div>
 
 </div>
-
+<!-- MODAL KUNCI LAYAR / TOKEN PENGAWAS -->
+<div class="modal fade" id="modalKunciPengawas" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-lock me-2"></i>Layar Ujian Terkunci</h5>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <div class="display-4 text-danger mb-3"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <p class="text-muted small mb-4">Anda terdeteksi keluar dari mode ujian atau mencoba meninggalkan halaman. Masukkan <strong>Token Pengawas</strong> yang diberikan oleh guru pengawas untuk membuka kembali.</p>
+        
+        <div class="mb-3 text-start">
+          <label class="form-label fw-bold small">TOKEN PENGAWAS:</label>
+          <input type="text" id="inputTokenPengawasMasuk" class="form-control form-control-lg text-center font-monospace text-uppercase" placeholder="------" maxlength="6">
+        </div>
+        <div id="errTokenMsg" class="text-danger small mb-3 d-none">Token pengawas salah!</div>
+        
+        <button type="button" class="btn btn-danger w-100 fw-bold py-2" onclick="verifikasiTokenPengawas()">
+          Buka Kunci & Lanjutkan Ujian
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Bootstrap 5 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -463,8 +486,10 @@
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ 
           action: "getsoalsiswa", 
-          kode: peserta.kode,
-          no_peserta: peserta.noPeserta // <-- TAMBAHKAN BARIS INI
+          kode: peserta.kode, 
+          no_peserta: peserta.noPeserta || peserta.nis, 
+          nama: peserta.nama, 
+          kelas: peserta.kelas 
         })
       });
 
@@ -475,7 +500,7 @@
         if (listSoal.length === 0) throw new Error("Bank soal untuk kode ini kosong.");
 
         const durasiMenit = parseInt(result.durasi) || 60;
-        sisaDetik = durasiMenit * 60;
+        sisaDetik = result.sisa_detik ? parseInt(result.sisa_detik) : (durasiMenit * 60);
 
         localStorage.setItem("waktu_mulai_ujian", Date.now());
         localStorage.setItem("durasi_total_detik", sisaDetik);
@@ -494,7 +519,87 @@
       window.location.href = "siswa.html";
     }
   }
+  
+  async function mulaiKonfirmasiUjian(event) {
+    if (event) event.preventDefault();
 
+    const elKode = document.getElementById("inputKodeSoal");
+    const elNama = document.getElementById("inputNamaSiswa");
+    const elKelas = document.getElementById("inputKelasSiswa");
+    const elNis = document.getElementById("inputNisSiswa");
+
+    const kode = elKode ? elKode.value.trim().toUpperCase() : "";
+    const nama = elNama ? elNama.value.trim() : "";
+    const kelas = elKelas ? elKelas.value.trim() : "";
+    const noPeserta = elNis ? elNis.value.trim() : "";
+
+    if (!kode || !nama || !kelas || !noPeserta) {
+      alert("Harap lengkapi semua data!");
+      return;
+    }
+
+    const btnMasuk = document.getElementById("btnMasuk");
+    btnMasuk.disabled = true;
+    btnMasuk.innerText = "Memeriksa Soal & Durasi...";
+
+    dataPeserta = { kode, noPeserta, nama, kelas };
+
+    try {
+      const targetUrl = getApiUrl();
+      const res = await fetch(targetUrl, {
+        method: "POST",
+        redirect: "follow",      
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ 
+          action: "getsoalsiswa", 
+          kode: kode, 
+          no_peserta: noPeserta, 
+          nama: nama, 
+          kelas: kelas 
+        })
+      });
+
+      const result = await res.json();
+
+      if (result.status === "success" || result.status === "ok") {
+        listSoal = result.soal || result.data || [];
+        
+        if (listSoal.length === 0) {
+          throw new Error("Bank soal untuk kode ini masih kosong.");
+        }
+
+        const durasiMenit = parseInt(result.durasi) || 60;
+        sisaDetik = result.sisa_detik ? parseInt(result.sisa_detik) : (durasiMenit * 60);
+        
+        // --- TAMBAHKAN DISINI AGAR KODE UJIAN TERSIMPAN DI LOCALSTORAGE ---
+        localStorage.setItem("kode_ujian_aktif", kode);
+        
+        localStorage.setItem("waktu_mulai_ujian", Date.now());
+        localStorage.setItem("durasi_total_detik", sisaDetik);
+
+        document.getElementById("infoSiswa").innerText = `${nama} (${kelas})`;
+        document.getElementById("infoKode").innerText = kode;
+        document.getElementById("labelMataPelajaran").innerText = `Ujian: ${kode}`;
+
+        document.getElementById("sectionLoginUjian").classList.add("d-none");
+        document.getElementById("sectionLembarUjian").classList.remove("d-none");
+        paksaFullscreenUjian();
+        aktifkanProteksiNavigasi();
+        simpanSesiLokal();
+        renderGridNomor();
+        tampilkanSoal(0);
+        jalankanTimer();
+      } else {
+        alert(result.message || "Kode Ujian tidak ditemukan.");
+      }
+    } catch (err) {
+      alert("Gagal memuat ujian: " + err.message);
+    } finally {
+      btnMasuk.disabled = false;
+      btnMasuk.innerText = "Verifikasi & Buka Soal";
+    }
+  }
+  
   async function prosesVerifikasiDanMuatKode(noPeserta) {
     const valNis = String(noPeserta || "").trim();
     const selectKode = document.getElementById("inputKodeSoal");
@@ -664,81 +769,6 @@
     localStorage.removeItem("durasi_total_detik");
   }
 
-  async function mulaiKonfirmasiUjian(event) {
-    if (event) event.preventDefault();
-
-    const elKode = document.getElementById("inputKodeSoal");
-    const elNama = document.getElementById("inputNamaSiswa");
-    const elKelas = document.getElementById("inputKelasSiswa");
-    const elNis = document.getElementById("inputNisSiswa");
-
-    const kode = elKode ? elKode.value.trim().toUpperCase() : "";
-    const nama = elNama ? elNama.value.trim() : "";
-    const kelas = elKelas ? elKelas.value.trim() : "";
-    const noPeserta = elNis ? elNis.value.trim() : "";
-
-    if (!kode || !nama || !kelas || !noPeserta) {
-      alert("Harap lengkapi semua data!");
-      return;
-    }
-
-    const btnMasuk = document.getElementById("btnMasuk");
-    btnMasuk.disabled = true;
-    btnMasuk.innerText = "Memeriksa Soal & Durasi...";
-
-    dataPeserta = { kode, noPeserta, nama, kelas };
-
-    try {
-      const targetUrl = getApiUrl();
-      const res = await fetch(targetUrl, {
-        method: "POST",
-        redirect: "follow",      
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ 
-          action: "getsoalsiswa", 
-          kode: kode,
-          no_peserta: noPeserta // <-- TAMBAHKAN BARIS INI
-        })
-      });
-
-      const result = await res.json();
-
-      if (result.status === "success" || result.status === "ok") {
-        listSoal = result.soal || result.data || [];
-        
-        if (listSoal.length === 0) {
-          throw new Error("Bank soal untuk kode ini masih kosong.");
-        }
-
-        const durasiMenit = parseInt(result.durasi) || 60;
-        sisaDetik = durasiMenit * 60;
-        
-        localStorage.setItem("waktu_mulai_ujian", Date.now());
-        localStorage.setItem("durasi_total_detik", sisaDetik);
-
-        document.getElementById("infoSiswa").innerText = `${nama} (${kelas})`;
-        document.getElementById("infoKode").innerText = kode;
-        document.getElementById("labelMataPelajaran").innerText = `Ujian: ${kode}`;
-
-        document.getElementById("sectionLoginUjian").classList.add("d-none");
-        document.getElementById("sectionLembarUjian").classList.remove("d-none");
-
-        aktifkanProteksiNavigasi();
-        simpanSesiLokal();
-        renderGridNomor();
-        tampilkanSoal(0);
-        jalankanTimer();
-      } else {
-        alert(result.message || "Kode Ujian tidak ditemukan.");
-      }
-    } catch (err) {
-      alert("Gagal memuat ujian: " + err.message);
-    } finally {
-      btnMasuk.disabled = false;
-      btnMasuk.innerText = "Verifikasi & Buka Soal";
-    }
-  }
- 
   // FUNGSI UTAMA TAMPILKAN SOAL DENGAN PENGATURAN GAMBAR PROPORSIONAL
   function tampilkanSoal(index) {
     indexSoalAktif = index;
@@ -1116,6 +1146,96 @@
     
     return str;
   }
+
+
+  
+let modalKunciObj = null;
+
+document.addEventListener("DOMContentLoaded", function() {
+  const modalEl = document.getElementById('modalKunciPengawas');
+  if (modalEl && typeof bootstrap !== "undefined") {
+    modalKunciObj = new bootstrap.Modal(modalEl);
+  }
+});
+
+// Paksa Masuk Fullscreen saat soal mulai dibuka (wajib dipicu aksi klik)
+function paksaFullscreenUjian() {
+  const elem = document.documentElement;
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen().catch(err => console.log("Fullscreen diblokir browser"));
+  } else if (elem.webkitRequestFullscreen) {
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) {
+    elem.msRequestFullscreen();
+  }
+}
+
+// Deteksi jika siswa keluar dari Fullscreen atau pindah tab (Blur)
+document.addEventListener("fullscreenchange", function() {
+  if (!document.fullscreenElement && typeof statusUjianAktif !== "undefined" && statusUjianAktif) {
+    picuKunciLayar();
+  }
+});
+
+window.addEventListener('blur', function() {
+  if (typeof statusUjianAktif !== "undefined" && statusUjianAktif) {
+    picuKunciLayar();
+  }
+});
+
+function picuKunciLayar() {
+  if (modalKunciObj) {
+    modalKunciObj.show();
+  }
+}
+
+// Verifikasi Token yang diinput siswa ke Server backend
+async function verifikasiTokenPengawas() {
+  const inputToken = document.getElementById("inputTokenPengawasMasuk").value.trim().toUpperCase();
+  const errDiv = document.getElementById("errTokenMsg");
+  
+  // Ambil kode ujian yang sedang dikerjakan siswa
+  const kodeUjian = (typeof dataPeserta !== "undefined" && dataPeserta.kode) ? dataPeserta.kode : (localStorage.getItem("kode_ujian_aktif") || "");
+
+  if (!inputToken) {
+    errDiv.innerText = "Masukkan token terlebih dahulu!";
+    errDiv.classList.remove("d-none");
+    return;
+  }
+
+  try {
+    // PERBAIKAN: Gunakan getApiUrl() agar endpoint tujuan fetch valid
+    const targetUrl = getApiUrl();
+    
+    const res = await fetch(targetUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ 
+        action: "cekTokenPengawas", 
+        kode_soal: kodeUjian, 
+        token_pengawas: inputToken 
+      })
+    });
+    
+    const result = await res.json();
+
+    if (result.status === "success") {
+      errDiv.classList.add("d-none");
+      document.getElementById("inputTokenPengawasMasuk").value = "";
+      if (modalKunciObj) modalKunciObj.hide();
+      
+      // Kembalikan ke mode fullscreen
+      paksaFullscreenUjian();
+    } else {
+      errDiv.innerText = result.message || "Token pengawas salah!";
+      errDiv.classList.remove("d-none");
+    }
+  } catch (e) {
+    errDiv.innerText = "Gagal memverifikasi token ke server.";
+    errDiv.classList.remove("d-none");
+  }
+}
+
 </script>
 </body>
 </html>
