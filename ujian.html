@@ -461,7 +461,11 @@
         method: "POST",
         redirect: "follow",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "getsoalsiswa", kode: peserta.kode })
+        body: JSON.stringify({ 
+          action: "getsoalsiswa", 
+          kode: peserta.kode,
+          no_peserta: peserta.noPeserta // <-- TAMBAHKAN BARIS INI
+        })
       });
 
       const result = await res.json();
@@ -690,7 +694,11 @@
         method: "POST",
         redirect: "follow",      
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "getsoalsiswa", kode: kode })
+        body: JSON.stringify({ 
+          action: "getsoalsiswa", 
+          kode: kode,
+          no_peserta: noPeserta // <-- TAMBAHKAN BARIS INI
+        })
       });
 
       const result = await res.json();
