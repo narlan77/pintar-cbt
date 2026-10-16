@@ -654,7 +654,10 @@
       }
 
       const semuaSoalObj = resKode.data;
-      const soalSelesai = (resCek && resCek.soal_selesai) ? resCek.soal_selesai.map(s => String(s).trim().toUpperCase()) : [];
+      
+      // PERBAIKAN: Ubah semua isi array soalSelesai menjadi huruf kapital & trim spasi
+      const rawSelesai = (resCek && resCek.soal_selesai) ? resCek.soal_selesai : [];
+      const soalSelesai = rawSelesai.map(s => String(s || "").trim().toUpperCase());
 
       container.innerHTML = "";
       const kelasSiswaLogin = String(akunSiswa.kelas || "").trim().toLowerCase();
@@ -662,6 +665,8 @@
       semuaSoalObj.forEach(item => {
         const kodeClean = String(item.kode_soal || item).trim().toUpperCase();
         const statusUjian = String(item.status || "Aktif").trim().toLowerCase();
+        
+        // Cek apakah kode soal ini ada di dalam daftar yang sudah dikerjakan
         const isSelesai = soalSelesai.includes(kodeClean);
 
         const targetKelasRaw = String(item.kelas || "").trim().toLowerCase();
@@ -674,6 +679,7 @@
           cocokKelas = arrKelasTarget.some(k => k === kelasSiswaLogin || kelasSiswaLogin.includes(k) || k.includes(kelasSiswaLogin));
         }
 
+        // Pastikan hanya ditampilkan jika status Aktif, cocok kelasnya, dan BELUM SELESAI (!isSelesai)
         if (statusUjian === "aktif" && cocokKelas && !isSelesai) {
           const mapelText = item.mata_pelajaran ? `Mapel: <strong>${item.mata_pelajaran}</strong>` : '';
           const cardHtml = `
