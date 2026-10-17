@@ -1296,7 +1296,7 @@
       </div>
       <div class="modal-footer bg-light">
         <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Batal</button>
-        <button type="button" class="btn btn-primary fw-bold" onClick="prosesSimpanUser()">Simpan Akun</button>
+        <button type="button" id="btnSimpanUser" class="btn btn-primary fw-bold" onClick="prosesSimpanUser()">Simpan Akun</button>
       </div>
     </div>
   </div>
@@ -3629,6 +3629,15 @@ async function prosesSimpanUser() {
     return;
   }
 
+  // Target tombol Simpan Akun
+  const btn = document.getElementById("btnSimpanUser");
+  const teksAsli = btn ? btn.innerHTML : "Simpan Akun";
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Menyimpan...`;
+  }
+
   // Action disesuaikan dengan handler di backend Node.js
   const payload = {
     action: mode === "add" ? "tambahguru" : "edituser",
@@ -3651,6 +3660,12 @@ async function prosesSimpanUser() {
     }
   } catch(e) {
     alert("Gagal menyimpan akun: " + e.message);
+  } finally {
+    // Kembalikan kondisi tombol seperti semula
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = teksAsli;
+    }
   }
 }
 
