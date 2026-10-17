@@ -1,0 +1,261 @@
+<div class="card card-custom p-4 mb-4 shadow-sm">
+  <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
+    <div>
+      <h5 class="fw-bold mb-1 text-primary">💬 Ruang Diskusi & Komunikasi Kelas</h5>
+      <small class="text-muted">Komunikasi teks interaktif dan konferensi audio/video pembelajaran.</small>
+    </div>
+    <div class="d-flex gap-2">
+      <!-- Tombol khusus Super Admin / Guru untuk menghapus seluruh chat -->
+      <button id="btnHapusSemuaChat" class="btn btn-outline-danger btn-sm rounded-pill px-3 d-none" onclick="konfirmasiHapusSemuaChat()">
+        🗑️ Bersihkan Semua Chat
+      </button>
+      <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="muatPesanChat()">
+        🔄 Refresh Chat
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Kolom Kiri: Live Chat Teks -->
+    <div class="col-lg-6">
+      <div class="card border rounded-3 p-3 bg-light">
+        <h6 class="fw-bold mb-3 text-dark">📜 Forum Diskusi Teks</h6>
+        
+        <!-- Area Daftar Pesan -->
+        <div id="chatMessageContainer" class="bg-white border rounded-3 p-3 mb-3" style="height: 320px; overflow-y: auto;">
+          <div class="text-center text-muted small py-5">Memuat percakapan...</div>
+        </div>
+
+        <!-- Form Kirim Pesan -->
+        <form id="formKirimPesan" onsubmit="kirimPesanChat(event)">
+          <div class="input-group">
+            <input type="text" id="inputPesanTeks" class="form-control" placeholder="Tulis pesan atau pertanyaan..." required autocomplete="off">
+            <button class="btn btn-primary fw-bold px-4" type="submit" id="btnKirimChat">Kirim</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Kolom Kanan: Audio / Video Conference -->
+    <div class="col-lg-6">
+      <div class="card border rounded-3 p-3 bg-light h-100 d-flex flex-column justify-content-between">
+        <div>
+          <h6 class="fw-bold mb-2 text-dark">🎥 Ruang Video / Audio Conference</h6>
+          <small class="text-muted d-block mb-3">Gunakan tautan Google Meet / Jitsi untuk sesi tatap muka.</small>
+          
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Link Google Meet / Ruang Meeting:</label>
+            <div class="input-group input-group-sm">
+              <input type="text" id="inputLinkMeet" class="form-control" placeholder="https://meet.google.com/xxx-xxxx-xxx">
+              <button class="btn btn-success fw-bold" type="button" onclick="simpanLinkMeet()">Sematkan Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wadah Iframe Video Conference -->
+        <div id="containerIframeMeet" class="ratio ratio-16x9 rounded overflow-hidden border bg-white">
+          <div class="d-flex flex-column align-items-center justify-content-center text-center p-4 text-muted">
+            <span class="fs-1 mb-2">📹</span>
+            <p class="small mb-0">Belum ada ruang meeting yang disematkan. Masukkan link Google Meet di atas.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let chatInterval = null;
+
+  // Cek apakah user saat ini adalah Super Admin atau Guru
+  function isUserAdminOrGuru() {
+    const roleUser = (sessionStorage.getItem("roleGuru") || "").trim().toLowerCase();
+    return roleUser.includes("admin") || roleUser.includes("guru");
+  }
+
+  // Tampilkan/Sembunyikan Tombol Hapus Semua Chat
+  function initFiturHapusChat() {
+    const btnClearAll = document.getElementById("btnHapusSemuaChat");
+    if (btnClearAll && isUserAdminOrGuru()) {
+      btnClearAll.classList.remove("d-none");
+    }
+  }
+
+  async function muatPesanChat() {
+    const container = document.getElementById("chatMessageContainer");
+    if (!container) return;
+
+    try {
+      const res = await fetch("/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "getchat" })
+      });
+      const result = await res.json();
+
+      if (result.status === "success" && Array.isArray(result.data)) {
+        if (result.data.length === 0) {
+          container.innerHTML = `<div class="text-center text-muted small py-5">Belum ada percakapan. Mulai kirim pesan pertama Anda!</div>`;
+          return;
+        }
+
+        const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+        const isAdminGuru = isUserAdminOrGuru();
+
+        container.innerHTML = result.data.map(item => {
+          const isMe = item.nama === (sessionStorage.getItem("namaGuru") || (JSON.parse(localStorage.getItem("akun_siswa_login") || "{}").nama));
+          const badgeRole = item.role === "Guru" || item.role.includes("Admin") ? "bg-primary" : "bg-secondary";
+          const bgPesan = isMe ? "bg-primary-subtle text-dark ms-auto" : "bg-light border text-dark me-auto";
+          const tgl = item.timestamp ? new Date(item.timestamp).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }) : "";
+
+          // Tombol hapus pesan satuan (muncul hanya jika Super Admin / Guru)
+          const btnHapusSatuan = isAdminGuru 
+            ? `<button class="btn btn-link text-danger p-0 ms-2" onclick="hapusPesanSatuan('${item.id}')" title="Hapus Pesan Ini" style="font-size: 0.75rem; text-decoration: none;">🗑️</button>` 
+            : "";
+
+          return `
+            <div class="mb-2 p-2 rounded-3" style="max-width: 85%; ${bgPesan}">
+              <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                <strong class="small">${escapeHtmlChat(item.nama)} <span class="badge ${badgeRole}" style="font-size: 0.65rem;">${escapeHtmlChat(item.role)}</span></strong>
+                <div class="d-flex align-items-center">
+                  <small class="text-muted" style="font-size: 0.65rem;">${tgl}</small>
+                  ${btnHapusSatuan}
+                </div>
+              </div>
+              <div class="small" style="white-space: pre-wrap;">${escapeHtmlChat(item.pesan)}</div>
+            </div>
+          `;
+        }).join('');
+
+        if (isAtBottom) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }
+    } catch (err) {
+      console.error("Gagal muat chat:", err);
+    }
+  }
+
+  async function kirimPesanChat(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById("inputPesanTeks");
+    const btn = document.getElementById("btnKirimChat");
+    const pesan = input.value.trim();
+
+    if (!pesan) return;
+
+    const namaSiswa = JSON.parse(localStorage.getItem("akun_siswa_login") || "{}").nama;
+    const namaUser = sessionStorage.getItem("namaGuru") || namaSiswa || "Pengguna";
+    const roleUser = sessionStorage.getItem("roleGuru") || (namaSiswa ? "Siswa" : "Guru");
+
+    btn.disabled = true;
+
+    try {
+      const res = await fetch("/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "kirimchat",
+          nama: namaUser,
+          role: roleUser,
+          pesan: pesan
+        })
+      });
+
+      const result = await res.json();
+      if (result.status === "success") {
+        input.value = "";
+        await muatPesanChat();
+        const container = document.getElementById("chatMessageContainer");
+        if (container) container.scrollTop = container.scrollHeight;
+      } else {
+        alert("Gagal mengirim pesan: " + result.message);
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan jaringan.");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // --- FUNGSI ACTION HAPUS CHAT ---
+
+  // 1. Hapus Semua Chat
+  async function konfirmasiHapusSemuaChat() {
+    if (!confirm("⚠️ PERINGATAN: Apakah Anda yakin ingin menghapus SELURUH riwayat pesan chat ini? Tindakan ini tidak dapat dibatalkan.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "hapuschat", mode: "semua" })
+      });
+      const result = await res.json();
+
+      if (result.status === "success") {
+        alert(result.message);
+        muatPesanChat();
+      } else {
+        alert("Gagal membersihkan chat: " + result.message);
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan jaringan.");
+    }
+  }
+
+  // 2. Hapus Pesan Satuan
+  async function hapusPesanSatuan(idChat) {
+    if (!confirm("Apakah Anda yakin ingin menghapus pesan ini?")) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "hapuschat", id_chat: idChat, mode: "satuan" })
+      });
+      const result = await res.json();
+
+      if (result.status === "success") {
+        muatPesanChat();
+      } else {
+        alert("Gagal menghapus pesan: " + result.message);
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan jaringan.");
+    }
+  }
+
+  function simpanLinkMeet() {
+    const link = document.getElementById("inputLinkMeet").value.trim();
+    const container = document.getElementById("containerIframeMeet");
+
+    if (!link) {
+      alert("Masukkan link Google Meet / Video Call yang valid!");
+      return;
+    }
+
+    container.innerHTML = `
+      <iframe src="${link}" allow="camera; microphone; fullscreen; display-capture" style="border:0; width:100%; height:100%;"></iframe>
+    `;
+  }
+
+  function escapeHtmlChat(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  // Jalankan inisialisasi tombol dan muat pesan pertama kali
+  initFiturHapusChat();
+  muatPesanChat();
+
+  if (chatInterval) clearInterval(chatInterval);
+  chatInterval = setInterval(muatPesanChat, 5000);
+</script>

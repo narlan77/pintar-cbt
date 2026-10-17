@@ -1,0 +1,297 @@
+<!-- public/chat-float.html -->
+<style>
+  #floatingChatContainer {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    z-index: 9999;
+    font-family: inherit;
+  }
+  #btnFloatToggle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+  }
+  #btnFloatToggle:hover {
+    transform: scale(1.08);
+  }
+  #chatFloatBox {
+    position: absolute;
+    bottom: 75px;
+    right: 0;
+    width: 380px;
+    max-width: 90vw;
+    height: 540px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    display: none;
+  }
+  #chatFloatBox.show {
+    display: flex;
+  }
+  .chat-float-header {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: white;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .chat-float-body {
+    flex-grow: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .chat-float-footer {
+    padding: 10px 12px;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+  }
+  /* Style Kotak Kutipan Balasan */
+  .reply-quote-box {
+    background: rgba(0, 0, 0, 0.05);
+    border-left: 4px solid #3b82f6;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-bottom: 6px;
+  }
+  .reply-preview-container {
+    background: #e2e8f0;
+    border-left: 4px solid #3b82f6;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+</style>
+
+<div id="floatingChatContainer">
+  <!-- Jendela Pop-up Chat Melayang -->
+  <div id="chatFloatBox">
+    <div class="chat-float-header">
+      <div>
+        <h6 class="fw-bold mb-0 text-white">💬 Diskusi Kelas</h6>
+        <small class="text-white-50" style="font-size: 0.75rem;">Tanya jawab & balasan pesan</small>
+      </div>
+      <button type="button" class="btn-close btn-close-white btn-sm" onclick="toggleFloatChat()"></button>
+    </div>
+
+    <div class="chat-float-body" id="chatMessageContainerFloat">
+      <div class="text-center text-muted small py-4">Memuat percakapan...</div>
+    </div>
+
+    <div class="chat-float-footer">
+      <!-- Pratinjau Balasan yang Sedang Dipilih -->
+      <div id="replyPreviewBox" class="reply-preview-container d-none">
+        <div class="text-truncate me-2">
+          <strong>Membalas <span id="replyTargetNama"></span>:</strong>
+          <div id="replyTargetPesan" class="text-muted text-truncate" style="max-width: 260px;"></div>
+        </div>
+        <button type="button" class="btn-close btn-sm" onclick="batalBalasPesan()"></button>
+      </div>
+
+      <form id="formKirimPesanFloat" onsubmit="kirimPesanChatFloat(event)">
+        <div class="input-group input-group-sm">
+          <input type="text" id="inputPesanTeksFloat" class="form-control" placeholder="Tulis pesan..." required autocomplete="off">
+          <button class="btn btn-primary fw-bold px-3" type="submit" id="btnKirimChatFloat">Kirim</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tombol Bulat Mengambang -->
+  <button id="btnFloatToggle" onclick="toggleFloatChat()" title="Ngobrol Yuks..!!">
+    💬
+  </button>
+</div>
+
+<script>
+  let chatFloatInterval = null;
+  let activeReplyTo = null; // Menyimpan objek pesan yang sedang dibalas
+
+  function toggleFloatChat() {
+    const box = document.getElementById("chatFloatBox");
+    if (box) {
+      box.classList.toggle("show");
+      if (box.classList.contains("show")) {
+        muatPesanChatFloat();
+        if (chatFloatInterval) clearInterval(chatFloatInterval);
+        chatFloatInterval = setInterval(muatPesanChatFloat, 5000);
+      } else {
+        if (chatFloatInterval) clearInterval(chatFloatInterval);
+      }
+    }
+  }
+
+  function persiapkanBalas(nama, pesan) {
+    activeReplyTo = { nama, pesan };
+    document.getElementById("replyTargetNama").innerText = nama;
+    document.getElementById("replyTargetPesan").innerText = pesan;
+    document.getElementById("replyPreviewBox").classList.remove("d-none");
+    document.getElementById("inputPesanTeksFloat").focus();
+  }
+
+  function batalBalasPesan() {
+    activeReplyTo = null;
+    document.getElementById("replyPreviewBox").classList.add("d-none");
+  }
+
+  async function muatPesanChatFloat() {
+    const container = document.getElementById("chatMessageContainerFloat");
+    if (!container) return;
+
+    try {
+      const res = await fetch("/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "getchat" })
+      });
+      const result = await res.json();
+
+      if (result.status === "success" && Array.isArray(result.data)) {
+        if (result.data.length === 0) {
+          container.innerHTML = `<div class="text-center text-muted small py-4">Belum ada percakapan.</div>`;
+          return;
+        }
+
+        const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 80;
+        const roleUser = (sessionStorage.getItem("roleGuru") || "").trim().toLowerCase();
+        const isAdminGuru = roleUser.includes("admin") || roleUser.includes("guru");
+
+        container.innerHTML = result.data.map(item => {
+          const isMe = item.nama === (sessionStorage.getItem("namaGuru") || (JSON.parse(localStorage.getItem("akun_siswa_login") || "{}").nama));
+          const badgeRole = item.role === "Guru" || item.role.includes("Admin") ? "bg-primary" : "bg-secondary";
+          const bgPesan = isMe ? "bg-primary-subtle text-dark ms-auto" : "bg-white border text-dark me-auto";
+          const tgl = item.timestamp ? new Date(item.timestamp).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }) : "";
+
+          // Tampilan kutipan balasan jika ada
+          let htmlQuote = "";
+          if (item.replyTo && item.replyTo.nama) {
+            htmlQuote = `
+              <div class="reply-quote-box text-truncate">
+                <strong>${escapeHtmlChatFloat(item.replyTo.nama)}:</strong> ${escapeHtmlChatFloat(item.replyTo.pesan)}
+              </div>
+            `;
+          }
+
+          const btnHapusSatuan = isAdminGuru 
+            ? `<button class="btn btn-link text-danger p-0 ms-2" onclick="hapusPesanSatuanFloat('${item.id}')" title="Hapus" style="font-size: 0.7rem; text-decoration: none;">🗑️</button>` 
+            : "";
+
+          // Escaping petik agar aman dipasang pada parameter fungsi onclick
+          const safeNama = escapeHtmlChatFloat(item.nama).replace(/'/g, "\\'");
+          const safePesan = escapeHtmlChatFloat(item.pesan).replace(/'/g, "\\'").replace(/\n/g, " ");
+
+          return `
+            <div class="p-2 rounded-3 shadow-sm mb-1" style="max-width: 90%; font-size: 0.85rem; ${bgPesan}">
+              <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
+                <strong>${escapeHtmlChatFloat(item.nama)} <span class="badge ${badgeRole}" style="font-size: 0.55rem;">${escapeHtmlChatFloat(item.role)}</span></strong>
+                <div class="d-flex align-items-center">
+                  <small class="text-muted" style="font-size: 0.6rem;">${tgl}</small>
+                  <button class="btn btn-link text-primary p-0 ms-2" onclick="persiapkanBalas('${safeNama}', '${safePesan}')" title="Balas Pesan Ini" style="font-size: 0.7rem; text-decoration: none;">↩️</button>
+                  ${btnHapusSatuan}
+                </div>
+              </div>
+              ${htmlQuote}
+              <div style="white-space: pre-wrap; word-break: break-word;">${escapeHtmlChatFloat(item.pesan)}</div>
+            </div>
+          `;
+        }).join('');
+
+        if (isAtBottom) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }
+    } catch (err) {
+      console.error("Gagal muat chat float:", err);
+    }
+  }
+
+  async function kirimPesanChatFloat(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById("inputPesanTeksFloat");
+    const btn = document.getElementById("btnKirimChatFloat");
+    const pesan = input.value.trim();
+
+    if (!pesan) return;
+
+    const namaSiswa = JSON.parse(localStorage.getItem("akun_siswa_login") || "{}").nama;
+    const namaUser = sessionStorage.getItem("namaGuru") || namaSiswa || "Pengguna";
+    const roleUser = sessionStorage.getItem("roleGuru") || (namaSiswa ? "Siswa" : "Guru");
+
+    btn.disabled = true;
+
+    try {
+      const res = await fetch("/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "kirimchat",
+          nama: namaUser,
+          role: roleUser,
+          pesan: pesan,
+          replyTo: activeReplyTo
+        })
+      });
+
+      const result = await res.json();
+      if (result.status === "success") {
+        input.value = "";
+        batalBalasPesan(); // Bersihkan mode balas
+        await muatPesanChatFloat();
+        const container = document.getElementById("chatMessageContainerFloat");
+        if (container) container.scrollTop = container.scrollHeight;
+      } else {
+        alert("Gagal mengirim pesan: " + result.message);
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan jaringan.");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function hapusPesanSatuanFloat(idChat) {
+    if (!confirm("Hapus pesan ini?")) return;
+    try {
+      await fetch("/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "hapuschat", id_chat: idChat, mode: "satuan" })
+      });
+      muatPesanChatFloat();
+    } catch (err) {}
+  }
+
+  function escapeHtmlChatFloat(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+</script>

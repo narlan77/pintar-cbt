@@ -9,7 +9,7 @@
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <style>
+<style>
     :root {
       --sidebar-width: 260px;
       --primary-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
@@ -79,38 +79,76 @@
     }
 
     .sidebar-menu {
-      padding: 1rem;
+      padding: 1.25rem 14px;
       overflow-y: auto;
       flex-grow: 1;
     }
 
+    /* ==================================================================== */
+    /* NAVIGASI MENU SIDEBAR SISWA: SEGI LIMA & DUA WARNA (GRADASI)        */
+    /* ==================================================================== */
     .sidebar-menu .nav-link {
       color: #64748b;
+      /* Bentuk segi lima tumpul / perisai */
+      border-radius: 12px 25px 25px 12px;
+      padding: 12px 18px;
       font-weight: 600;
-      padding: 0.75rem 1rem;
-      border-radius: 10px;
-      margin-bottom: 5px;
-      transition: all 0.2s ease;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      text-align: left;
       display: flex;
       align-items: center;
+      gap: 12px;
+      /* Efek 2 warna: Gradasi halus dipadu garis aksen biru */
+      background: linear-gradient(135deg, rgba(241, 245, 249, 0.8) 0%, rgba(226, 232, 240, 0.9) 100%);
+      border-left: 5px solid #2a5298;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .sidebar-menu .nav-link i {
       width: 24px;
-      margin-right: 10px;
+      margin-right: 0;
       font-size: 1.1rem;
-    }
-
-    .sidebar-menu .nav-link:hover {
-      background-color: #f1f5f9;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: rgba(30, 60, 114, 0.08);
       color: #1e3c72;
+      transition: all 0.3s ease;
     }
 
-    .sidebar-menu .nav-link.active {
-      background: var(--primary-gradient);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(30, 60, 114, 0.2);
+    /* Efek Hover (Saat kursor di atas tombol) */
+    .sidebar-menu .nav-link:hover {
+      color: #1e3c72;
+      background: linear-gradient(135deg, rgba(42, 82, 152, 0.15) 0%, rgba(241, 245, 249, 0.95) 100%);
+      border-left-color: #1e3c72;
+      transform: translateX(6px);
+      box-shadow: 0 6px 15px rgba(42, 82, 152, 0.1);
     }
+
+    .sidebar-menu .nav-link:hover i {
+      background: rgba(30, 60, 114, 0.2);
+      transform: scale(1.1);
+    }
+
+    /* Efek Active (Saat menu sedang dibuka) - Gradasi Biru Utama + Aksen Emas */
+    .sidebar-menu .nav-link.active {
+      color: #ffffff;
+      background: var(--primary-gradient) !important;
+      border-left-color: #f59e0b; /* Garis emas menyala di sisi kiri */
+      box-shadow: 0 6px 20px rgba(30, 60, 114, 0.3);
+      transform: translateX(6px);
+    }
+
+    .sidebar-menu .nav-link.active i {
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+    /* ==================================================================== */
 
     /* MAIN CONTENT AREA */
     .main-content {
@@ -170,7 +208,7 @@
       margin-bottom: 15px;
     }
 
-    /* RESPONSIVE MEDIA QUERIES UNTUK HP */
+    /* RESPONSIVE MEDIA QUERIES UNTukan HP */
     @media (max-width: 991.98px) {
       .sidebar {
         transform: translateX(-100%);
@@ -298,6 +336,9 @@
         <button class="nav-link text-start w-100" id="tabSumberBelajar" data-bs-toggle="pill" data-bs-target="#contentSumberBelajar" type="button" onclick="toggleSidebarOnMobile()">
           <i class="fa-solid fa-book-open"></i> Cari Buku Referensi
         </button>
+        <button class="nav-link text-start w-100" id="tabChatSiswa" data-bs-toggle="pill" data-bs-target="#contentChatSiswa" type="button" onclick="muatModulChatSiswa(); toggleSidebarOnMobile();">
+            <i class="fa-solid fa-comments me-2"></i> Diskusi Kelas
+        </button>
       </div>
 
       <div class="p-3 border-top bg-light">
@@ -371,6 +412,7 @@
 
           <!-- TAB 2: RIWAYAT, KARTU NILAI & JAWABAN -->
           <div class="tab-pane fade" id="contentRiwayat" role="tabpanel">
+              
             <div class="d-flex justify-content-between align-items-center mb-3">
               <h6 class="fw-bold mb-0 text-secondary"><i class="fa-solid fa-square-poll-vertical me-2"></i>Hasil & Lembar Jawaban</h6>
               <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="muatRiwayatUjian()">
@@ -434,7 +476,10 @@
               </div>
             </div>
           </div>
-
+        <!-- TAB 5: KOMUNIKASI KELAS -->
+        <div class="tab-pane fade" id="contentChatSiswa" role="tabpanel">
+          <div id="includeChatSiswa"></div>
+        </div>
         </div>
 
       </div>
@@ -1133,6 +1178,116 @@
       container.innerHTML = `<div class="col-12 text-center text-danger py-4">Terjadi kesalahan koneksi saat memuat sumber belajar.</div>`;
     }
   }
+  
+function muatModulChatSiswa() {
+  const container = document.getElementById("includeChatSiswa");
+  if (container && container.innerHTML.trim() === "") {
+    fetch("/chat.html")
+      .then(response => {
+        if (!response.ok) throw new Error("File chat.html tidak ditemukan (404)");
+        return response.text();
+      })
+      .then(html => {
+        container.innerHTML = html;
+        const scripts = container.querySelectorAll("script");
+        scripts.forEach(script => {
+          const newScript = document.createElement("script");
+          newScript.text = script.innerText;
+          document.body.appendChild(newScript);
+        });
+      })
+      .catch(err => {
+        container.innerHTML = `<div class="alert alert-danger">Gagal memuat modul chat: ${err.message}</div>`;
+      });
+  }
+}
+</script>
+<!-- Pemuat Otomatis Floating Chat Mengambang -->
+<div id="floatingChatWrapper"></div>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    fetch("/chat-float.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("floatingChatWrapper").innerHTML = html;
+        const scripts = document.querySelectorAll("#floatingChatWrapper script");
+        scripts.forEach(script => {
+          const newScript = document.createElement("script");
+          newScript.text = script.innerText;
+          document.body.appendChild(newScript);
+        });
+      });
+  });
+  
+  // --- FITUR NOTIFIKASI PESAN MASUK (SISWA) ---
+  let jumlahPesanSebelumnyaSiswa = 0;
+
+  async function cekPesanBaruSiswa() {
+    if (!akunSiswa || !akunSiswa.nis) return;
+
+    try {
+      // Memanggil action backend untuk memeriksa pesan masuk berdasarkan NIS siswa
+      const res = await apiPost({ 
+        action: "getjumlahpesanbaru", 
+        nis: akunSiswa.nis,
+        role: "siswa" 
+      });
+      
+      if (res && res.status === "success") {
+        const totalBaru = res.total_baru || 0;
+        
+        // Cari elemen badge pada menu tab chat siswa
+        let badgeSiswa = document.getElementById("badgeChatSiswa");
+        const tabChatSiswa = document.getElementById("tabChatSiswa");
+
+        if (totalBaru > 0) {
+          if (!badgeSiswa && tabChatSiswa) {
+            tabChatSiswa.style.position = "relative";
+            tabChatSiswa.insertAdjacentHTML('beforeend', `
+              <span id="badgeChatSiswa" class="position-absolute top-50 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
+                ${totalBaru}
+              </span>
+            `);
+          } else if (badgeSiswa) {
+            badgeSiswa.innerText = totalBaru;
+            badgeSiswa.classList.remove("d-none");
+          }
+
+          // Bunyikan notifikasi suara jika ada pesan baru masuk
+          if (totalBaru > jumlahPesanSebelumnyaSiswa && jumlahPesanSebelumnyaSiswa !== 0) {
+            putarSuaraNotifikasiSiswa();
+          }
+          jumlahPesanSebelumnyaSiswa = totalBaru;
+        } else {
+          if (badgeSiswa) badgeSiswa.classList.add("d-none");
+        }
+      }
+    } catch (e) {
+      console.log("Cek pesan siswa background error:", e);
+    }
+  }
+
+  function putarSuaraNotifikasiSiswa() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 880; // Nada A5
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.12);
+    } catch (err) {}
+  }
+
+  // Cek pesan baru setiap 10 detik secara otomatis setelah siswa login
+  setInterval(() => {
+    if (typeof akunSiswa !== 'undefined' && akunSiswa !== null) {
+      cekPesanBaruSiswa();
+    }
+  }, 10000);
 </script>
 </body>
 </html>
