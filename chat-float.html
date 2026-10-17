@@ -130,7 +130,7 @@
 
 <script>
   let chatFloatInterval = null;
-  let activeReplyTo = null; // Menyimpan objek pesan yang sedang dibalas
+  let activeReplyTo = null;
 
   function toggleFloatChat() {
     const box = document.getElementById("chatFloatBox");
@@ -159,17 +159,33 @@
     document.getElementById("replyPreviewBox").classList.add("d-none");
   }
 
+  // Menggunakan helper apiPost bawaan aplikasi jika ada, atau fallback langsung ke URL GAS
+  async function kirimKeGAS(payload) {
+    const targetUrl = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : (typeof API_URL !== 'undefined' ? API_URL : "");
+    if (!targetUrl) throw new Error("API_URL tidak ditemukan!");
+
+    const formData = new URLSearchParams();
+    for (const key in payload) {
+      if (payload.hasOwnProperty(key)) {
+        const val = payload[key];
+        formData.append(key, typeof val === "object" ? JSON.stringify(val) : val);
+      }
+    }
+
+    const res = await fetch(targetUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: formData.toString()
+    });
+    return await res.json();
+  }
+
   async function muatPesanChatFloat() {
     const container = document.getElementById("chatMessageContainerFloat");
     if (!container) return;
 
     try {
-      const res = await fetch("/api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "getchat" })
-      });
-      const result = await res.json();
+      const result = await kirimKeGAS({ action: "getchat" });
 
       if (result.status === "success" && Array.isArray(result.data)) {
         if (result.data.length === 0) {
@@ -187,7 +203,6 @@
           const bgPesan = isMe ? "bg-primary-subtle text-dark ms-auto" : "bg-white border text-dark me-auto";
           const tgl = item.timestamp ? new Date(item.timestamp).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }) : "";
 
-          // Tampilan kutipan balasan jika ada
           let htmlQuote = "";
           if (item.replyTo && item.replyTo.nama) {
             htmlQuote = `
@@ -201,7 +216,6 @@
             ? `<button class="btn btn-link text-danger p-0 ms-2" onclick="hapusPesanSatuanFloat('${item.id}')" title="Hapus" style="font-size: 0.7rem; text-decoration: none;">🗑️</button>` 
             : "";
 
-          // Escaping petik agar aman dipasang pada parameter fungsi onclick
           const safeNama = escapeHtmlChatFloat(item.nama).replace(/'/g, "\\'");
           const safePesan = escapeHtmlChatFloat(item.pesan).replace(/'/g, "\\'").replace(/\n/g, " ");
 
@@ -211,7 +225,7 @@
                 <strong>${escapeHtmlChatFloat(item.nama)} <span class="badge ${badgeRole}" style="font-size: 0.55rem;">${escapeHtmlChatFloat(item.role)}</span></strong>
                 <div class="d-flex align-items-center">
                   <small class="text-muted" style="font-size: 0.6rem;">${tgl}</small>
-                  <button class="btn btn-link text-primary p-0 ms-2" onclick="persiapkanBalas('${safeNama}', '${safePesan}')" title="Balas Pesan Ini" style="font-size: 0.7rem; text-decoration: none;">↩️</button>
+                  <button class="btn btn-link text-primary p-0 ms-2" onclick="persiapkanBalas('${safeNama}', '${safePesan}')" title="Balas" style="font-size: 0.7rem; text-decoration: none;">↩️</button>
                   ${btnHapusSatuan}
                 </div>
               </div>
@@ -245,22 +259,17 @@
     btn.disabled = true;
 
     try {
-      const res = await fetch("/api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "kirimchat",
-          nama: namaUser,
-          role: roleUser,
-          pesan: pesan,
-          replyTo: activeReplyTo
-        })
+      const result = await kirimKeGAS({
+        action: "kirimchat",
+        nama: namaUser,
+        role: roleUser,
+        pesan: pesan,
+        replyTo: activeReplyTo ? JSON.stringify(activeReplyTo) : ""
       });
 
-      const result = await res.json();
       if (result.status === "success") {
         input.value = "";
-        batalBalasPesan(); // Bersihkan mode balas
+        batalBalasPesan();
         await muatPesanChatFloat();
         const container = document.getElementById("chatMessageContainerFloat");
         if (container) container.scrollTop = container.scrollHeight;
@@ -277,11 +286,7 @@
   async function hapusPesanSatuanFloat(idChat) {
     if (!confirm("Hapus pesan ini?")) return;
     try {
-      await fetch("/api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "hapuschat", id_chat: idChat, mode: "satuan" })
-      });
+      await kirimKeGAS({ action: "hapuschat", id_chat: idChat, mode: "satuan" });
       muatPesanChatFloat();
     } catch (err) {}
   }

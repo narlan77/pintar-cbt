@@ -81,17 +81,33 @@
     }
   }
 
+  // Helper fungsi komunikasi khusus Google Apps Script (GAS)
+  async function kirimKeGASChat(payload) {
+    const targetUrl = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : (typeof API_URL !== 'undefined' ? API_URL : "");
+    if (!targetUrl) throw new Error("API_URL tidak ditemukan!");
+
+    const formData = new URLSearchParams();
+    for (const key in payload) {
+      if (payload.hasOwnProperty(key)) {
+        const val = payload[key];
+        formData.append(key, typeof val === "object" ? JSON.stringify(val) : val);
+      }
+    }
+
+    const res = await fetch(targetUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: formData.toString()
+    });
+    return await res.json();
+  }
+
   async function muatPesanChat() {
     const container = document.getElementById("chatMessageContainer");
     if (!container) return;
 
     try {
-      const res = await fetch("/api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "getchat" })
-      });
-      const result = await res.json();
+      const result = await kirimKeGASChat({ action: "getchat" });
 
       if (result.status === "success" && Array.isArray(result.data)) {
         if (result.data.length === 0) {
@@ -151,18 +167,13 @@
     btn.disabled = true;
 
     try {
-      const res = await fetch("/api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "kirimchat",
-          nama: namaUser,
-          role: roleUser,
-          pesan: pesan
-        })
+      const result = await kirimKeGASChat({
+        action: "kirimchat",
+        nama: namaUser,
+        role: roleUser,
+        pesan: pesan
       });
 
-      const result = await res.json();
       if (result.status === "success") {
         input.value = "";
         await muatPesanChat();
@@ -187,12 +198,7 @@
     }
 
     try {
-      const res = await fetch("/api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "hapuschat", mode: "semua" })
-      });
-      const result = await res.json();
+      const result = await kirimKeGASChat({ action: "hapuschat", mode: "semua" });
 
       if (result.status === "success") {
         alert(result.message);
@@ -212,12 +218,7 @@
     }
 
     try {
-      const res = await fetch("/api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "hapuschat", id_chat: idChat, mode: "satuan" })
-      });
-      const result = await res.json();
+      const result = await kirimKeGASChat({ action: "hapuschat", id_chat: idChat, mode: "satuan" });
 
       if (result.status === "success") {
         muatPesanChat();
