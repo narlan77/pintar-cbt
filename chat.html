@@ -1,3 +1,27 @@
+<!-- public/chat.html -->
+<style>
+  /* Style Kotak Kutipan Balasan */
+  .reply-quote-box {
+    background: rgba(0, 0, 0, 0.05);
+    border-left: 4px solid #3b82f6;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-bottom: 6px;
+  }
+  .reply-preview-container {
+    background: #e2e8f0;
+    border-left: 4px solid #3b82f6;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: between;
+    margin-bottom: 10px;
+  }
+</style>
+
 <div class="chat-float-header d-flex align-items-center justify-content-between">
       <div>
         <h6 class="fw-bold mb-0 text-white">💬 Diskusi Kelas</h6>
@@ -14,7 +38,11 @@
 <div class="card card-custom p-4 mb-4 shadow-sm">
   <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
     <div>
-      <h5 class="fw-bold mb-1 text-primary">💬 Ruang Diskusi & Komunikasi Kelas</h5>
+      <h5 class="fw-bold mb-1 text-primary">
+        💬 Ruang Diskusi & Komunikasi Kelas 
+        <!-- Badge Penghitung Pesan Belum Dibaca -->
+        <span id="badgeUnreadChat" class="badge bg-danger rounded-pill ms-2" style="font-size: 0.65rem; display: none;">0</span>
+      </h5>
       <small class="text-muted">Komunikasi teks interaktif dan konferensi audio/video pembelajaran.</small>
     </div>
     <div class="d-flex gap-2">
@@ -35,12 +63,21 @@
         <h6 class="fw-bold mb-3 text-dark">📜 Forum Diskusi Teks</h6>
         
         <!-- Area Daftar Pesan -->
-        <div id="chatMessageContainer" class="bg-white border rounded-3 p-3 mb-3" style="height: 320px; overflow-y: auto;">
+        <div id="chatMessageContainer" class="bg-white border rounded-3 p-3 mb-3" style="height: 320px; overflow-y: auto;" onscroll="cekScrollChat()">
           <div class="text-center text-muted small py-5">Memuat percakapan...</div>
         </div>
 
         <!-- Form Kirim Pesan -->
         <form id="formKirimPesan" onsubmit="kirimPesanChat(event)">
+          <!-- Pratinjau Balasan yang Sedang Dipilih -->
+          <div id="replyPreviewBox" class="reply-preview-container d-none justify-content-between align-items-center">
+            <div class="text-truncate me-2">
+              <strong>Membalas <span id="replyTargetNama"></span>:</strong>
+              <div id="replyTargetPesan" class="text-muted text-truncate" style="max-width: 350px;"></div>
+            </div>
+            <button type="button" class="btn-close btn-sm" onclick="batalBalasPesan()"></button>
+          </div>
+
           <div class="input-group">
             <input type="text" id="inputPesanTeks" class="form-control" placeholder="Tulis pesan atau pertanyaan..." required autocomplete="off">
             <button class="btn btn-primary fw-bold px-4" type="submit" id="btnKirimChat">Kirim</button>
@@ -79,6 +116,9 @@
 
 <script>
   let chatInterval = null;
+  let activeReplyTo = null;
+  let lastTotalPesan = 0;
+  let unreadCount = 0;
 
   // Cek apakah user saat ini adalah Super Admin atau Guru
   function isUserAdminOrGuru() {
@@ -92,6 +132,19 @@
     if (btnClearAll && isUserAdminOrGuru()) {
       btnClearAll.classList.remove("d-none");
     }
+  }
+
+  function persiapkanBalas(nama, pesan) {
+    activeReplyTo = { nama, pesan };
+    document.getElementById("replyTargetNama").innerText = nama;
+    document.getElementById("replyTargetPesan").innerText = pesan;
+    document.getElementById("replyPreviewBox").classList.remove("d-none");
+    document.getElementById("inputPesanTeks").focus();
+  }
+
+  function batalBalasPesan() {
+    activeReplyTo = null;
+    document.getElementById("replyPreviewBox").classList.add("d-none");
   }
 
   // Helper fungsi komunikasi khusus Google Apps Script (GAS)
@@ -125,8 +178,18 @@
       if (result.status === "success" && Array.isArray(result.data)) {
         if (result.data.length === 0) {
           container.innerHTML = `<div class="text-center text-muted small py-5">Belum ada percakapan. Mulai kirim pesan pertama Anda!</div>`;
+          lastTotalPesan = 0;
+          updateUnreadBadge(0);
           return;
         }
+
+        // Hitung pesan baru jika ada penambahan data dan posisi container tidak sedang dilihat/dibuka penuh (atau hitung sebagai pesan masuk)
+        if (lastTotalPesan > 0 && result.data.length > lastTotalPesan) {
+          const selisih = result.data.length - lastTotalPesan;
+          unreadCount += selisih;
+          updateUnreadBadge(unreadCount);
+        }
+        lastTotalPesan = result.data.length;
 
         const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
         const isAdminGuru = isUserAdminOrGuru();
@@ -137,31 +200,73 @@
           const bgPesan = isMe ? "bg-primary-subtle text-dark ms-auto" : "bg-light border text-dark me-auto";
           const tgl = item.timestamp ? new Date(item.timestamp).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }) : "";
 
+          let htmlQuote = "";
+          if (item.replyTo && item.replyTo.nama) {
+            htmlQuote = `
+              <div class="reply-quote-box text-truncate">
+                <strong>${escapeHtmlChat(item.replyTo.nama)}:</strong> ${escapeHtmlChat(item.replyTo.pesan)}
+              </div>
+            `;
+          }
+
           // Tombol hapus pesan satuan (muncul hanya jika Super Admin / Guru)
           const btnHapusSatuan = isAdminGuru 
             ? `<button class="btn btn-link text-danger p-0 ms-2" onclick="hapusPesanSatuan('${item.id}')" title="Hapus Pesan Ini" style="font-size: 0.75rem; text-decoration: none;">🗑️</button>` 
             : "";
 
+          const safeNama = escapeHtmlChat(item.nama).replace(/'/g, "\\'");
+          const safePesan = escapeHtmlChat(item.pesan).replace(/'/g, "\\'").replace(/\n/g, " ");
+
           return `
-            <div class="mb-2 p-2 rounded-3" style="max-width: 85%; ${bgPesan}">
+            <div class="mb-2 p-2 rounded-3 shadow-sm" style="max-width: 85%; ${bgPesan}">
               <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
                 <strong class="small">${escapeHtmlChat(item.nama)} <span class="badge ${badgeRole}" style="font-size: 0.65rem;">${escapeHtmlChat(item.role)}</span></strong>
                 <div class="d-flex align-items-center">
                   <small class="text-muted" style="font-size: 0.65rem;">${tgl}</small>
+                  <button class="btn btn-link text-primary p-0 ms-2" onclick="persiapkanBalas('${safeNama}', '${safePesan}')" title="Balas Pesan" style="font-size: 0.75rem; text-decoration: none;">↩️</button>
                   ${btnHapusSatuan}
                 </div>
               </div>
-              <div class="small" style="white-space: pre-wrap;">${escapeHtmlChat(item.pesan)}</div>
+              ${htmlQuote}
+              <div class="small" style="white-space: pre-wrap; word-break: break-word;">${escapeHtmlChat(item.pesan)}</div>
             </div>
           `;
         }).join('');
 
         if (isAtBottom) {
           container.scrollTop = container.scrollHeight;
+          // Otomatis anggap sudah dibaca jika discroll ke bawah / dibuka
+          resetUnreadCounter();
         }
       }
     } catch (err) {
       console.error("Gagal muat chat:", err);
+    }
+  }
+
+  // Fungsi memantau scroll untuk menghilangkan penghitung jika pesan sudah dibuka/dilihat
+  function cekScrollChat() {
+    const container = document.getElementById("chatMessageContainer");
+    if (!container) return;
+    const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+    if (isAtBottom) {
+      resetUnreadCounter();
+    }
+  }
+
+  function resetUnreadCounter() {
+    unreadCount = 0;
+    updateUnreadBadge(0);
+  }
+
+  function updateUnreadBadge(count) {
+    const badge = document.getElementById("badgeUnreadChat");
+    if (!badge) return;
+    if (count > 0) {
+      badge.innerText = count > 99 ? '99+' : count;
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
     }
   }
 
@@ -184,14 +289,17 @@
         action: "kirimchat",
         nama: namaUser,
         role: roleUser,
-        pesan: pesan
+        pesan: pesan,
+        replyTo: activeReplyTo ? JSON.stringify(activeReplyTo) : ""
       });
 
       if (result.status === "success") {
         input.value = "";
+        batalBalasPesan();
         await muatPesanChat();
         const container = document.getElementById("chatMessageContainer");
         if (container) container.scrollTop = container.scrollHeight;
+        resetUnreadCounter();
       } else {
         alert("Gagal mengirim pesan: " + result.message);
       }
@@ -256,7 +364,6 @@
     }
 
     try {
-      // Kirim link ke server GAS agar tersimpan
       const result = await kirimKeGASChat({ action: "simpanmeet", link: link });
       if (result.status === "success") {
         alert("Link Meet berhasil disematkan untuk semua siswa!");
@@ -301,24 +408,23 @@
   if (chatInterval) clearInterval(chatInterval);
   chatInterval = setInterval(muatPesanChat, 5000);
 
-// Fungsi mengecek apakah guru sedang membuka link meet
+  // Fungsi mengecek apakah guru sedang membuka link meet
   async function cekLinkMeetAktif() {
     try {
-      const res = await kirimKeGASChat({ action: "getmeet" }); // Menggunakan helper fetch GAS yang sudah ada
+      const res = await kirimKeGASChat({ action: "getmeet" });
       const btnMeet = document.getElementById("linkMeetSiswa");
       
       if (res && res.status === "success" && res.link) {
         if (btnMeet) {
           btnMeet.href = res.link;
-          btnMeet.classList.remove("d-none"); // Tampilkan tombol jika link ada
+          btnMeet.classList.remove("d-none");
         }
       } else {
-        if (btnMeet) btnMeet.classList.add("d-none"); // Sembunyikan jika kosong
+        if (btnMeet) btnMeet.classList.add("d-none");
       }
     } catch (e) {
       console.error("Gagal cek link meet:", e);
     }
   }
-  // Jalankan pengecekan setiap kali chat float dibuka atau setiap 10 detik
   setInterval(cekLinkMeetAktif, 10000);
 </script>

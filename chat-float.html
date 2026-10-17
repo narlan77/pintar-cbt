@@ -21,9 +21,19 @@
     align-items: center;
     justify-content: center;
     transition: transform 0.2s ease;
+    position: relative;
   }
   #btnFloatToggle:hover {
     transform: scale(1.08);
+  }
+  /* Badge Penghitung Pesan Belum Dibaca pada Tombol Melayang */
+  #badgeUnreadFloat {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 0.7rem;
+    padding: 0.35em 0.65em;
+    display: none;
   }
   #chatFloatBox {
     position: absolute;
@@ -99,7 +109,7 @@
       <button type="button" class="btn-close btn-close-white btn-sm" onclick="toggleFloatChat()"></button>
     </div>
 
-    <div class="chat-float-body" id="chatMessageContainerFloat">
+    <div class="chat-float-body" id="chatMessageContainerFloat" onscroll="cekScrollChatFloat()">
       <div class="text-center text-muted small py-4">Memuat percakapan...</div>
     </div>
 
@@ -122,21 +132,26 @@
     </div>
   </div>
 
-  <!-- Tombol Bulat Mengambang -->
+  <!-- Tombol Bulat Mengambang dengan Badge Unread -->
   <button id="btnFloatToggle" onclick="toggleFloatChat()" title="Ngobrol Yuks..!!">
     💬
+    <span id="badgeUnreadFloat" class="badge bg-danger rounded-pill">0</span>
   </button>
 </div>
 
 <script>
   let chatFloatInterval = null;
   let activeReplyTo = null;
+  let lastTotalPesanFloat = 0;
+  let unreadCountFloat = 0;
 
   function toggleFloatChat() {
     const box = document.getElementById("chatFloatBox");
     if (box) {
       box.classList.toggle("show");
       if (box.classList.contains("show")) {
+        // Saat chat dibuka, reset counter pesan belum dibaca
+        resetUnreadCounterFloat();
         muatPesanChatFloat();
         if (chatFloatInterval) clearInterval(chatFloatInterval);
         chatFloatInterval = setInterval(muatPesanChatFloat, 5000);
@@ -190,8 +205,24 @@
       if (result.status === "success" && Array.isArray(result.data)) {
         if (result.data.length === 0) {
           container.innerHTML = `<div class="text-center text-muted small py-4">Belum ada percakapan.</div>`;
+          lastTotalPesanFloat = 0;
+          updateUnreadBadgeFloat(0);
           return;
         }
+
+        const box = document.getElementById("chatFloatBox");
+        const isOpen = box && box.classList.contains("show");
+
+        // Deteksi pesan baru masuk jika jumlah data bertambah
+        if (lastTotalPesanFloat > 0 && result.data.length > lastTotalPesanFloat) {
+          const selisih = result.data.length - lastTotalPesanFloat;
+          // Jika jendela chat sedang tertutup, tambahkan ke unread counter
+          if (!isOpen) {
+            unreadCountFloat += selisih;
+            updateUnreadBadgeFloat(unreadCountFloat);
+          }
+        }
+        lastTotalPesanFloat = result.data.length;
 
         const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 80;
         const roleUser = (sessionStorage.getItem("roleGuru") || "").trim().toLowerCase();
@@ -235,12 +266,38 @@
           `;
         }).join('');
 
-        if (isAtBottom) {
+        if (isAtBottom && isOpen) {
           container.scrollTop = container.scrollHeight;
+          resetUnreadCounterFloat();
         }
       }
     } catch (err) {
       console.error("Gagal muat chat float:", err);
+    }
+  }
+
+  function cekScrollChatFloat() {
+    const container = document.getElementById("chatMessageContainerFloat");
+    if (!container) return;
+    const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+    if (isAtBottom) {
+      resetUnreadCounterFloat();
+    }
+  }
+
+  function resetUnreadCounterFloat() {
+    unreadCountFloat = 0;
+    updateUnreadBadgeFloat(0);
+  }
+
+  function updateUnreadBadgeFloat(count) {
+    const badge = document.getElementById("badgeUnreadFloat");
+    if (!badge) return;
+    if (count > 0) {
+      badge.innerText = count > 99 ? '99+' : count;
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
     }
   }
 
@@ -254,7 +311,7 @@
 
     const namaSiswa = JSON.parse(localStorage.getItem("akun_siswa_login") || "{}").nama;
     const namaUser = sessionStorage.getItem("namaGuru") || namaSiswa || "Pengguna";
-    const roleUser = sessionStorage.getItem("roleGuru") || (namaSiswa ? "Siswa" : "Guru");
+    const roleUser = sessionStorage.getItem("roleGuru") || (namaS]iswa ? "Siswa" : "Guru");
 
     btn.disabled = true;
 
@@ -273,6 +330,7 @@
         await muatPesanChatFloat();
         const container = document.getElementById("chatMessageContainerFloat");
         if (container) container.scrollTop = container.scrollHeight;
+        resetUnreadCounterFloat();
       } else {
         alert("Gagal mengirim pesan: " + result.message);
       }
@@ -299,4 +357,8 @@
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
+
+  // Panggil pengecekan latar belakang secara berkala meskipun chat tertutup agar badge unread bisa muncul
+  if (chatFloatInterval) clearInterval(chatFloatInterval);
+  chatFloatInterval = setInterval(muatPesanChatFloat, 5000);
 </script>
