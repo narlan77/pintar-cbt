@@ -115,12 +115,12 @@
 
     <div class="chat-float-footer">
       <!-- Pratinjau Balasan yang Sedang Dipilih -->
-      <div id="replyPreviewBox" class="reply-preview-container d-none">
+      <div id="replyPreviewBoxFloat" class="reply-preview-container d-none">
         <div class="text-truncate me-2">
-          <strong>Membalas <span id="replyTargetNama"></span>:</strong>
-          <div id="replyTargetPesan" class="text-muted text-truncate" style="max-width: 260px;"></div>
+          <strong>Membalas <span id="replyTargetNamaFloat"></span>:</strong>
+          <div id="replyTargetPesanFloat" class="text-muted text-truncate" style="max-width: 260px;"></div>
         </div>
-        <button type="button" class="btn-close btn-sm" onclick="batalBalasPesan()"></button>
+        <button type="button" class="btn-close btn-sm" onclick="batalBalasPesanFloat()"></button>
       </div>
 
       <form id="formKirimPesanFloat" onsubmit="kirimPesanChatFloat(event)">
@@ -141,7 +141,7 @@
 
 <script>
   let chatFloatInterval = null;
-  let activeReplyTo = null;
+  let activeReplyToFloat = null;
   let lastTotalPesanFloat = 0;
   let unreadCountFloat = 0;
 
@@ -150,7 +150,6 @@
     if (box) {
       box.classList.toggle("show");
       if (box.classList.contains("show")) {
-        // Saat chat dibuka, reset counter pesan belum dibaca
         resetUnreadCounterFloat();
         muatPesanChatFloat();
         if (chatFloatInterval) clearInterval(chatFloatInterval);
@@ -161,21 +160,21 @@
     }
   }
 
-  function persiapkanBalas(nama, pesan) {
-    activeReplyTo = { nama, pesan };
-    document.getElementById("replyTargetNama").innerText = nama;
-    document.getElementById("replyTargetPesan").innerText = pesan;
-    document.getElementById("replyPreviewBox").classList.remove("d-none");
+  function persiapkanBalasFloat(nama, pesan) {
+    activeReplyToFloat = { nama, pesan };
+    document.getElementById("replyTargetNamaFloat").innerText = nama;
+    document.getElementById("replyTargetPesanFloat").innerText = pesan;
+    document.getElementById("replyPreviewBoxFloat").classList.remove("d-none");
     document.getElementById("inputPesanTeksFloat").focus();
   }
 
-  function batalBalasPesan() {
-    activeReplyTo = null;
-    document.getElementById("replyPreviewBox").classList.add("d-none");
+  function batalBalasPesanFloat() {
+    activeReplyToFloat = null;
+    document.getElementById("replyPreviewBoxFloat").classList.add("d-none");
   }
 
-  // Menggunakan helper apiPost bawaan aplikasi jika ada, atau fallback langsung ke URL GAS
-  async function kirimKeGAS(payload) {
+  // Helper komunikasi khusus Google Apps Script (GAS)
+  async function kirimKeGASFloat(payload) {
     const targetUrl = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : (typeof API_URL !== 'undefined' ? API_URL : "");
     if (!targetUrl) throw new Error("API_URL tidak ditemukan!");
 
@@ -200,7 +199,7 @@
     if (!container) return;
 
     try {
-      const result = await kirimKeGAS({ action: "getchat" });
+      const result = await kirimKeGASFloat({ action: "getchat" });
 
       if (result.status === "success" && Array.isArray(result.data)) {
         if (result.data.length === 0) {
@@ -213,10 +212,8 @@
         const box = document.getElementById("chatFloatBox");
         const isOpen = box && box.classList.contains("show");
 
-        // Deteksi pesan baru masuk jika jumlah data bertambah
         if (lastTotalPesanFloat > 0 && result.data.length > lastTotalPesanFloat) {
           const selisih = result.data.length - lastTotalPesanFloat;
-          // Jika jendela chat sedang tertutup, tambahkan ke unread counter
           if (!isOpen) {
             unreadCountFloat += selisih;
             updateUnreadBadgeFloat(unreadCountFloat);
@@ -229,16 +226,27 @@
         const isAdminGuru = roleUser.includes("admin") || roleUser.includes("guru");
 
         container.innerHTML = result.data.map(item => {
-          const isMe = item.nama === (sessionStorage.getItem("namaGuru") || (JSON.parse(localStorage.getItem("akun_siswa_login") || "{}").nama));
+          const namaSiswaLogin = JSON.parse(localStorage.getItem("akun_siswa_login") || "{}").nama;
+          const isMe = item.nama === (sessionStorage.getItem("namaGuru") || namaSiswaLogin);
           const badgeRole = item.role === "Guru" || item.role.includes("Admin") ? "bg-primary" : "bg-secondary";
           const bgPesan = isMe ? "bg-primary-subtle text-dark ms-auto" : "bg-white border text-dark me-auto";
           const tgl = item.timestamp ? new Date(item.timestamp).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }) : "";
 
+          // Penanganan hierarki balasan pesan (reply)
           let htmlQuote = "";
-          if (item.replyTo && item.replyTo.nama) {
+          let parsedReply = item.replyTo;
+          if (typeof parsedReply === "string" && parsedReply.trim() !== "") {
+            try {
+              parsedReply = JSON.parse(parsedReply);
+            } catch (e) {
+              parsedReply = null;
+            }
+          }
+
+          if (parsedReply && parsedReply.nama) {
             htmlQuote = `
               <div class="reply-quote-box text-truncate">
-                <strong>${escapeHtmlChatFloat(item.replyTo.nama)}:</strong> ${escapeHtmlChatFloat(item.replyTo.pesan)}
+                <strong>Membalas ${escapeHtmlChatFloat(parsedReply.nama)}:</strong> ${escapeHtmlChatFloat(parsedReply.pesan)}
               </div>
             `;
           }
@@ -256,7 +264,7 @@
                 <strong>${escapeHtmlChatFloat(item.nama)} <span class="badge ${badgeRole}" style="font-size: 0.55rem;">${escapeHtmlChatFloat(item.role)}</span></strong>
                 <div class="d-flex align-items-center">
                   <small class="text-muted" style="font-size: 0.6rem;">${tgl}</small>
-                  <button class="btn btn-link text-primary p-0 ms-2" onclick="persiapkanBalas('${safeNama}', '${safePesan}')" title="Balas" style="font-size: 0.7rem; text-decoration: none;">↩️</button>
+                  <button class="btn btn-link text-primary p-0 ms-2" onclick="persiapkanBalasFloat('${safeNama}', '${safePesan}')" title="Balas" style="font-size: 0.7rem; text-decoration: none;">↩️</button>
                   ${btnHapusSatuan}
                 </div>
               </div>
@@ -272,7 +280,7 @@
         }
       }
     } catch (err) {
-      console.error("Gagal muat chat float:", err);
+      console.error("Gagal memuat chat float:", err);
     }
   }
 
@@ -311,22 +319,22 @@
 
     const namaSiswa = JSON.parse(localStorage.getItem("akun_siswa_login") || "{}").nama;
     const namaUser = sessionStorage.getItem("namaGuru") || namaSiswa || "Pengguna";
-    const roleUser = sessionStorage.getItem("roleGuru") || (namaS]iswa ? "Siswa" : "Guru");
+    const roleUser = sessionStorage.getItem("roleGuru") || (namaSiswa ? "Siswa" : "Guru");
 
     btn.disabled = true;
 
     try {
-      const result = await kirimKeGAS({
+      const result = await kirimKeGASFloat({
         action: "kirimchat",
         nama: namaUser,
         role: roleUser,
         pesan: pesan,
-        replyTo: activeReplyTo ? JSON.stringify(activeReplyTo) : ""
+        replyTo: activeReplyToFloat ? JSON.stringify(activeReplyToFloat) : ""
       });
 
       if (result.status === "success") {
         input.value = "";
-        batalBalasPesan();
+        batalBalasPesanFloat();
         await muatPesanChatFloat();
         const container = document.getElementById("chatMessageContainerFloat");
         if (container) container.scrollTop = container.scrollHeight;
@@ -344,7 +352,7 @@
   async function hapusPesanSatuanFloat(idChat) {
     if (!confirm("Hapus pesan ini?")) return;
     try {
-      await kirimKeGAS({ action: "hapuschat", id_chat: idChat, mode: "satuan" });
+      await kirimKeGASFloat({ action: "hapuschat", id_chat: idChat, mode: "satuan" });
       muatPesanChatFloat();
     } catch (err) {}
   }
@@ -358,7 +366,6 @@
       .replace(/'/g, "&#039;");
   }
 
-  // Panggil pengecekan latar belakang secara berkala meskipun chat tertutup agar badge unread bisa muncul
   if (chatFloatInterval) clearInterval(chatFloatInterval);
   chatFloatInterval = setInterval(muatPesanChatFloat, 5000);
 </script>
