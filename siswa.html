@@ -1182,7 +1182,7 @@
 function muatModulChatSiswa() {
   const container = document.getElementById("includeChatSiswa");
   if (container && container.innerHTML.trim() === "") {
-    fetch("/chat.html")
+    fetch("chat.html")
       .then(response => {
         if (!response.ok) throw new Error("File chat.html tidak ditemukan (404)");
         return response.text();
@@ -1206,7 +1206,7 @@ function muatModulChatSiswa() {
 <div id="floatingChatWrapper"></div>
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    fetch("/chat-float.html")
+    fetch("chat-float.html")
       .then(res => res.text())
       .then(html => {
         document.getElementById("floatingChatWrapper").innerHTML = html;
