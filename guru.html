@@ -4225,7 +4225,7 @@ function muatModulChat() {
   const container = document.getElementById("includeChatGuru");
   if (container && container.innerHTML.trim() === "") {
     // Tambahkan tanda slash di depan agar membaca dari root server
-    fetch("/chat.html") 
+    fetch("chat.html") 
       .then(response => {
         if (!response.ok) throw new Error("File chat.html tidak ditemukan (404)");
         return response.text();
@@ -4250,7 +4250,7 @@ function muatModulChat() {
 <div id="floatingChatWrapper"></div>
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    fetch("/chat-float.html")
+    fetch("chat-float.html")
       .then(res => res.text())
       .then(html => {
         document.getElementById("floatingChatWrapper").innerHTML = html;
