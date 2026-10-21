@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduSmart - Dashboard Siswa LMS/CBT</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+    <!-- MODUL 1: PROTEKSI AKSES & AUTHENTICATION GUARD -->
+<script>
+  // Script Proteksi Akses Siswa (Session Guard)
+  (function() {
+    // Ambil data sesi siswa yang disimpan saat login sukses di index.html
+    const sesiSiswa = localStorage.getItem("akun_siswa_login");
+
+    // Jika data sesi tidak ada (artinya pengguna mengetik langsung URL siswa.html)
+    if (!sesiSiswa) {
+      alert("Akses ditolak! Siahkan login terlebih dahulu.");
+      // Redirect paksa kembali ke halaman index/login
+      window.location.replace("index.html");
+      return;
+    }
+
+    try {
+      const data = JSON.parse(sesiSiswa);
+      // Validasi tambahan jika struktur data tidak lengkap
+      if (!data.nis) {
+        throw new Error("Sesi tidak valid");
+      }
+    } catch (e) {
+      // Jika data rusak atau dimanipulasi
+      localStorage.removeItem("akun_siswa_login");
+      window.location.replace("index.html");
+    }
+  })();
+</script>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="h-full font-sans antialiased text-slate-800 flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Mobile Header Navigation Toggle -->
+    <div class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center z-50">
+        <div class="flex items-center space-x-3">
+            <div class="bg-blue-600 text-white p-2 rounded-lg font-bold text-lg">
+                <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <span class="font-bold text-lg tracking-wide">EduSmart Siswa</span>
+        </div>
+        <button id="mobile-menu-btn" class="text-slate-300 hover:text-white focus:outline-none">
+            <i class="fa-solid fa-bars text-2xl"></i>
+        </button>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out w-64 bg-slate-900 text-slate-300 flex flex-col z-40 h-full shadow-xl">
+        <div class="hidden md:flex items-center space-x-3 p-6 border-b border-slate-800">
+            <div class="bg-blue-600 text-white p-2.5 rounded-xl font-bold text-xl shadow-lg shadow-blue-500/30">
+                <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg text-white leading-tight">EduSmart</h1>
+                <span class="text-xs text-slate-400 font-medium">Portal Siswa CBT</span>
+            </div>
+        </div>
+        <div class="p-4 mx-3 my-4 bg-slate-800/60 rounded-xl border border-slate-700/50 flex items-center space-x-3">
+            <img id="userSidebarFoto" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=256" alt="Profile" class="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500">
+            <div class="overflow-hidden">
+                <span id="profilNama" class="d-block fw-bold text-dark text-truncate" style="font-size: 0.85rem;">-</span>
+                <span class="text-muted" style="font-size: 0.75rem;"> &bull; <span id="profilKelas">-</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="flex-1 px-3 space-y-1 overflow-y-auto">
+            <a href="#" onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 bg-blue-600 text-white shadow-md shadow-blue-600/20">
+                <i class="fa-solid fa-chart-pie w-6 text-lg"></i>
+                <span>Dashboard Utama</span>
+            </a>
+
+            <div class="pt-4 pb-1 pl-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Belajar & Materi</div>
+            <a href="#" onclick="switchTab('materi')" id="nav-materi" class="nav-item flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all duration-200">
+                <i class="fa-solid fa-book-open w-6 text-lg"></i>
+                <span>Materi & Modul Ajar</span>
+            </a>
+            <a href="#" onclick="switchTab('tugas')" id="nav-tugas" class="nav-item flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all duration-200">
+                <i class="fa-solid fa-file-lines w-6 text-lg"></i>
+                <span>Tugas & Portofolio</span>
+                <span class="badge-tugas-baru ml-auto bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full" style="display: none;">0 Baru</span>
+            </a>
+            <a href="#" onclick="switchTab('pengumuman')" id="nav-pengumuman" class="nav-item flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all duration-200">
+                <i class="fa-solid fa-bullhorn w-6 text-lg"></i>
+                <span>Pengumuman Kelas</span>
+            </a>
+
+            <div class="pt-4 pb-1 pl-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ujian CBT</div>
+            <a href="#" onclick="switchTab('ujian')" id="nav-ujian" class="nav-item flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all duration-200">
+                <i class="fa-solid fa-file-pen w-6 text-lg"></i>
+                <span>Ujian / CAT Aktif</span>
+                <span class="badge-ujian-aktif ml-auto bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse" style="display: none;">0 Ujian</span>
+            </a>
+            <a href="#" onclick="switchTab('riwayat')" id="nav-riwayat" class="nav-item flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all duration-200">
+                <i class="fa-solid fa-square-poll-vertical w-6 text-lg"></i>
+                <span>Riwayat & Nilai Saya</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 text-xs text-slate-500 flex items-center justify-between">
+            <span>EduSmart v2.5 Siswa</span>
+            <button class="btn btn-danger" onclick="logoutSiswa()">
+                <i class="fa-solid fa-right-from-bracket me-2"></i> Keluar
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full bg-slate-50 overflow-y-auto">
+        
+        <!-- Top App Bar Header -->
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-6 py-4 flex items-center justify-between shadow-sm">
+            <div class="flex items-center space-x-4">
+                <h2 id="page-title" class="text-xl font-bold text-slate-800">Dashboard Utama</h2>
+                <span class="hidden sm:inline-block bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-full border border-blue-200 font-medium">Semester Genap 2026/2027</span>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button class="relative p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-all">
+                    <i class="fa-regular fa-bell text-lg"></i>
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <div class="flex items-center space-x-2 text-xs font-semibold text-slate-700 bg-slate-100 px-3 py-2 rounded-xl">
+                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                    <span>Status: Terverifikasi Hadir</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Views Container -->
+        <div class="p-6 space-y-6">
+
+            <!-- 1. DASHBOARD UTAMA TAB -->
+            <div id="tab-dashboard" class="tab-content active space-y-6">
+                <!-- Welcome Banner -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="space-y-2">
+                        <span class="bg-white/20 text-white text-[11px] font-semibold px-3 py-1 rounded-full">Tahun Ajaran Aktif</span>
+                        <!-- Elemen Nama -->
+                        <div class="welcome-banner p-6 bg-blue-600 text-white rounded-2xl shadow-md mb-6">
+                            <h6 class="text-2xl font-bold">Selamat Datang, <span id="welcomeNama">Siswa</span>! 👋</h6>
+                            <p class="text-blue-100 mt-1">Silakan pilih menu ujian atau periksa jadwal ujian Anda di bawah ini.</p>
+                        </div>
+                        <p class="text-blue-100 text-xs max-w-xl mt-1">
+    Kamu memiliki <strong id="jmlUjianAktif">0</strong> jadwal ujian aktif hari ini dan <strong id="jmlTugasAktif">0</strong> tugas baru yang belum dikumpulkan. Tetap semangat belajar!
+  </p>
+                    </div>
+                    <button onclick="switchTab('ujian')" class="bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-md whitespace-nowrap">
+                        <i class="fa-solid fa-arrow-right mr-2"></i> Mulai Ujian Sekarang
+                    </button>
+                </div>
+
+                <!-- Stat Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+    <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Materi Dibaca</p>
+        <h3 id="textMateriDibaca" class="text-2xl font-bold text-slate-800 mt-1">0 / 0</h3>
+        <span id="textPersentaseMateri" class="text-xs font-medium text-emerald-600 flex items-center mt-1"><i class="fa-solid fa-check mr-1"></i> 0% Selesai</span>
+    </div>
+    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-book"></i></div>
+</div>
+                    </div>
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+    <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tugas Menunggu</p>
+        <!-- Tambahkan id di sini -->
+        <h3 id="textTugasMenunggu" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+        <span id="textKeteranganTugas" class="text-xs font-medium text-amber-600 flex items-center mt-1">
+            <i class="fa-solid fa-clock mr-1"></i> Tenggat Aktif
+        </span>
+    </div>
+    <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl font-bold">
+        <i class="fa-solid fa-business-time"></i>
+    </div>
+</div>
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+    <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ujian Selesai</p>
+        <!-- Tambahkan id di sini -->
+        <h3 id="textUjianSelesai" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+        <span class="text-xs font-medium text-emerald-600 flex items-center mt-1"><i class="fa-solid fa-circle-check mr-1"></i> Telah dikerjakan</span>
+    </div>
+    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl font-bold">
+        <i class="fa-solid fa-clipboard-check"></i>
+    </div>
+</div>
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+    <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rata-Rata Nilai</p>
+        <!-- Tambahkan id di sini -->
+        <h3 id="textRataRataNilai" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+        <span class="text-xs font-medium text-blue-600 flex items-center mt-1"><i class="fa-solid fa-chart-line mr-1"></i> Akumulasi skor</span>
+    </div>
+    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl font-bold">
+        <i class="fa-solid fa-award"></i>
+    </div>
+</div>
+</div>
+
+                <!-- Grafik Nilai & Jadwal Ujian Hari Ini -->
+<!-- Baris Grid 2 Kolom (Responsif: 1 kolom di HP, 2 kolom berdampingan di Laptop/Tablet) -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+    <!-- Kolom 1: Ujian Hari Ini -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div>
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Ujian Hari Ini</h3>
+                <span id="badgeJumlahUjianHariIni" class="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">0 Aktif</span>
+            </div>
+
+            <!-- Tempat daftar ujian aktif dirender secara dinamis -->
+            <div id="daftarUjianHariIniContainer" class="space-y-3 max-h-64 overflow-y-auto pr-1">
+                <p class="text-xs text-slate-400 italic">Memuat jadwal ujian...</p>
+            </div>
+        </div>
+    </div>
+    <!-- Kolom 2: Grafik Perkembangan Nilai Ujian -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Grafik Perkembangan Nilai</h3>
+            <span class="text-xs text-slate-400">Akumulasi Skor</span>
+        </div>
+        
+        <!-- Wadah Canvas Grafik -->
+        <div class="relative w-full h-56">
+            <canvas id="grafikNilaiSiswa"></canvas>
+        </div>
+    </div>
+
+</div>
+</div>
+</div>
+
+            <!-- 2. MATERI & MODUL AJAR TAB -->
+<div id="tab-materi" class="tab-content hidden space-y-6">
+  
+  <!-- Header Bagian Materi -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+    <div>
+      <h3 class="text-lg font-bold text-slate-800">Daftar Sumber Belajar & Materi</h3>
+      <p class="text-xs text-slate-500 mt-0.5">Pilih modul, video pembelajaran, atau tautan materi sesuai mata pelajaran.</p>
+    </div>
+    
+    <!-- Filter Mapel (Dropdown dari config.js) -->
+    <div class="w-full sm:w-auto">
+      <select id="filterMapel" class="w-full sm:w-48 text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Semua Mapel</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Grid Penampung Kartu Materi (Dirender otomatis oleh JavaScript) -->
+  <div id="containerSumberBelajarSiswa" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    <!-- Indikator Loading / Data Kosong akan muncul di sini secara dinamis -->
+  </div>
+
+</div>
+
+            <!-- 3. TUGAS & PORTOFOLIO TAB -->
+<div id="tab-tugas" class="tab-content space-y-6">
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="p-4 bg-slate-50 border-b border-slate-200 font-bold text-slate-700 text-xs uppercase tracking-wider">
+            Daftar Tugas & PR Siswa
+        </div>
+        
+        <!-- Berikan ID "containerTugasSiswa" agar data dinamis dari server bisa masuk ke sini -->
+        <div id="containerTugasSiswa" class="divide-y divide-slate-100 text-xs">
+            <!-- Konten di bawah ini akan di-generate secara otomatis oleh fungsi JavaScript muatDaftarTugasSiswa() -->
+            <div class="p-4 text-center text-slate-400 py-6">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                Memuat daftar tugas...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB PAPAN PENGUMUMAN SISWA (READ-ONLY) -->
+<div id="tab-pengumuman" class="tab-content-item hidden space-y-4">
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <!-- Header Pengumuman -->
+        <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+            <div>
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-bullhorn text-blue-600"></i> Papan Pengumuman Kelas
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Informasi penting dan pengumuman resmi dari guru atau sekolah.</p>
+            </div>
+            <button onclick="muatPapanPengumumanSiswa()" title="Muat Ulang" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition">
+                <i class="fa-solid fa-rotate-right text-sm"></i>
+            </button>
+        </div>
+        
+        <!-- Wadah List Pengumuman -->
+        <div id="containerListPengumuman" class="space-y-3">
+            <div class="text-center py-8 text-slate-400 text-xs italic">
+                <i class="fa-solid fa-spinner fa-spin mr-2"></i>Memuat pengumuman...
+            </div>
+        </div>
+    </div>
+</div>
+
+            <!-- 5. UJIAN / CAT AKTIF TAB -->
+            <div id="tab-ujian" class="tab-content space-y-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center max-w-lg mx-auto space-y-4">
+                    <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mx-auto shadow-inner">
+                        <i class="fa-solid fa-file-pen"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-800 text-lg">Halaman Pengerjaan CBT Online</h3>
+                    <p class="text-xs text-slate-500">Masukkan token ujian yang diberikan oleh pengawas atau guru pengampu mata pelajaran untuk memulai lembar soal.</p>
+                    <button onclick="openModal('modal-token-ujian')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs py-3 rounded-xl shadow-md">
+                        Masukkan Token Ujian
+                    </button>
+                </div>
+            </div>
+
+            <!-- 6. RIWAYAT & NILAI SAYA TAB -->
+            <!-- Tab Konten: Riwayat Nilai & Hasil Ujian -->
+<div id="tab-riwayat" class="tab-content hidden space-y-6">
+  <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+    <h3 class="text-lg font-bold text-slate-800 mb-1">Riwayat Nilai & Hasil Ujian</h3>
+    <p class="text-xs text-slate-500 mb-4">Daftar ujian yang telah Anda selesaikan beserta rekap nilai dan opsi review jawaban.</p>
+    
+    <!-- Tabel Rekap Nilai -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="border-b border-slate-200 text-slate-600 text-xs bg-slate-50">
+            <th class="p-3 font-semibold">Kode Soal</th>
+            <th class="p-3 font-semibold">Mata Pelajaran</th>
+            <th class="p-3 font-semibold text-center">Skor PG</th>
+            <th class="p-3 font-semibold text-center">Nilai Essai</th>
+            <th class="p-3 font-semibold text-center">Total Nilai</th>
+            <th class="p-3 font-semibold text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tabelRiwayatSiswa" class="text-xs text-slate-700 divide-y divide-slate-100">
+          <!-- Data akan dimuat secara dinamis oleh JavaScript -->
+          <tr>
+            <td colspan="6" class="text-center py-6 text-slate-400">Memuat riwayat nilai...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Review Jawaban Siswa -->
+<div id="modal-review-ujian" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+            <div>
+                <h3 class="font-bold text-slate-800 text-base" id="reviewJudulMapel">Review Hasil Ujian</h3>
+                <p class="text-xs text-slate-500" id="reviewSubJudul">Perbandingan jawaban Anda dengan kunci jawaban</p>
+            </div>
+        </div>
+        
+        <!-- Kontainer Daftar Soal & Jawaban -->
+        <div id="containerDetailReview" class="overflow-y-auto space-y-4 pr-2 flex-1">
+            <!-- Render detail soal per nomor via JS -->
+        </div>
+
+        <div class="flex justify-end pt-3 border-t border-slate-100">
+            <button onclick="closeModal('modal-review-ujian')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition">Tutup</button>
+        </div>
+    </div>
+</div>
+
+</div>
+</main>
+
+    <!-- MODAL: MASUKKAN TOKEN UJIAN -->
+<div id="modal-token-ujian" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-800 text-base">Konfirmasi Token Ujian CBT</h3>
+            <button onclick="closeModal('modal-token-ujian')" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        
+        <!-- Form Validasi Token & Pilihan Ujian -->
+        <form class="space-y-4 text-xs" onsubmit="event.preventDefault(); verifikasiTokenUjian();">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Pilih Mata Pelajaran / Ujian Aktif</label>
+                <!-- Dropdown diisi otomatis dari tabel pengaturan dengan status Aktif -->
+                <select id="pilihanMapelUjian" required class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- Memuat daftar ujian aktif... --</option>
+                </select>
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Masukkan Token Rahasia</label>
+                <input type="text" id="inputTokenSiswa" placeholder="Contoh: X92K-RT" required class="w-full uppercase tracking-widest text-center font-bold text-lg border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <span id="pesanErrorToken" class="text-rose-500 text-[11px] mt-1.5 block hidden font-medium"></span>
+            </div>
+            <div class="flex justify-end space-x-2 pt-4 border-t border-slate-100">
+                <button type="button" onclick="closeModal('modal-token-ujian')" class="px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 font-semibold transition">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-md transition">Mulai Kerjakan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+    <!-- MODAL: UNGGAH TUGAS -->
+    <div id="modal-kumpul-tugas" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base">Unggah Berkas Tugas</h3>
+                <button onclick="closeModal('modal-kumpul-tugas')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form class="space-y-4 text-xs" onsubmit="event.preventDefault(); alert('Tugas berhasil diunggah!'); closeModal('modal-kumpul-tugas');">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Catatan / Keterangan Tambahan</label>
+                    <textarea rows="3" placeholder="Tuliskan keterangan untuk guru..." class="w-full border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Pilih File Berkas (PDF / DOCX / ZIP)</label>
+                    <input type="file" required class="w-full border border-slate-200 rounded-xl p-2 bg-slate-50">
+                </div>
+                <div class="flex justify-end space-x-2 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('modal-kumpul-tugas')" class="px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 font-semibold">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold shadow-md">Kirim Tugas</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Interactivity -->
+<script>
+// ==========================================
+// 1. HELPER & FUNGSI UTAMA (Harus di atas agar siap dipanggil)
+// ==========================================
+function parseYoutubeEmbed(url) {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+}
+
+function formatResourceLink(url) {
+  if (!url) return "#";
+  const strUrl = url.trim();
+  if (strUrl.startsWith("/public/") || strUrl.startsWith("public/") || strUrl.startsWith("materi/")) {
+    return strUrl.startsWith("/") ? strUrl : "/" + strUrl;
+  }
+  if (!/^https?:\/\//i.test(strUrl)) {
+    return "https://" + strUrl;
+  }
+  return strUrl;
+}
+
+// Fungsi Muat Sumber Belajar (Dijadikan async dan menempel ke window agar bisa dipanggil global/F12)
+// Variabel global untuk menyimpan data cache dari server
+window._cacheSumberBelajar = [];
+
+window.muatSumberBelajarSiswa = async function(filterMapel = "") {
+    const container = document.getElementById("containerSumberBelajarSiswa");
+    if (!container) return;
+
+    // Tampilkan loading jika cache masih kosong
+    if (window._cacheSumberBelajar.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted mt-2 small">Memuat sumber belajar...</p>
+          </div>
+        `;
+
+        let kelasSiswa = "";
+        try {
+          const sesiSiswaStr = localStorage.getItem("akun_siswa_login");
+          if (sesiSiswaStr) {
+            const dataSiswa = JSON.parse(sesiSiswaStr);
+            kelasSiswa = dataSiswa.kelas || "";
+          }
+        } catch (err) {
+          console.error("Gagal membaca sesi siswa:", err);
+        }
+
+        try {
+          const targetUrl = window.API_URL || "/api";
+          const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              action: "getsumberbelajar",
+              kelas: kelasSiswa,
+              is_guru: false 
+            })
+          });
+
+          const res = await response.json();
+          if (res.status === "success" && Array.isArray(res.data)) {
+            window._cacheSumberBelajar = res.data; // Simpan ke cache
+          } else {
+            container.innerHTML = `<div class="col-span-full text-center text-danger py-4">Gagal memuat data sumber belajar.</div>`;
+            return;
+          }
+        } catch (e) {
+          console.error("Error fetch sumber belajar:", e);
+          container.innerHTML = `<div class="col-span-full text-center text-danger py-4">Terjadi kesalahan koneksi.</div>`;
+          return;
+        }
+    }
+
+    // Filter data berdasarkan mapel yang dipilih di dropdown
+    let dataFiltered = window._cacheSumberBelajar;
+    if (filterMapel && filterMapel.trim() !== "") {
+        dataFiltered = window._cacheSumberBelajar.filter(item => {
+            const mapelItem = item.mapel || item.mata_pelajaran || "";
+            return mapelItem.toLowerCase() === filterMapel.toLowerCase();
+        });
+    }
+
+    // Render ke HTML
+    container.innerHTML = "";
+    if (dataFiltered.length === 0) {
+      container.innerHTML = `
+        <div class="col-span-full text-center py-5 text-slate-400 bg-white rounded-2xl border border-slate-200 p-6">
+          <i class="fa-solid fa-folder-open fa-3x mb-2 opacity-50"></i>
+          <p class="mb-0 text-xs">Tidak ada materi ditemukan untuk mata pelajaran ini.</p>
+        </div>
+      `;
+      return;
+    }
+
+    dataFiltered.forEach(item => {
+      let kontenHtml = "";
+      const id = item.id || ""; // Ekstrak ID dengan aman di sini
+      const tipe = item.tipe || "website";
+      const link = item.link || "";
+      const judul = item.judul || "Materi";
+      const isi = item.isi || "";
+      const kelasItem = item.kelas || "Semua Kelas";
+      const mapelItem = item.mapel || item.mata_pelajaran || "Umum";
+
+      if (tipe === "youtube") {
+        let videoId = "";
+        if (link.includes("youtu.be/")) videoId = link.split("youtu.be/")[1]?.split("?")[0];
+        else if (link.includes("watch?v=")) videoId = link.split("watch?v=")[1]?.split("&")[0];
+        else if (link.includes("embed/")) videoId = link.split("embed/")[1]?.split("?")[0];
+        else videoId = link;
+
+        kontenHtml = `
+          <div class="aspect-video w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm my-2">
+            <iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen class="w-full h-full"></iframe>
+          </div>
+          <p class="text-xs text-slate-600 line-clamp-2 mt-2">${isi}</p>
+        `;
+      } else if (tipe === "website") {
+        kontenHtml = `
+          <p class="text-xs text-slate-600 mb-3">${isi || 'Kunjungi tautan referensi materi berikut:'}</p>
+          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs truncate mb-2">
+            <a href="${link}" target="_blank" onclick="bukaDanCatatMateri('${id}', '${link}')" class="text-blue-600 hover:underline font-medium flex items-center gap-1.5 truncate">
+              <i class="fa-solid fa-link shrink-0"></i> <span class="truncate">${link}</span>
+            </a>
+          </div>
+        `;
+      } else {
+        kontenHtml = `
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 max-h-32 overflow-y-auto whitespace-pre-wrap">
+            ${isi || '-'}
+          </div>
+        `;
+      }
+
+      // Tentukan tombol aksi bawah (jika tipe manual tanpa link, arahkan agar tetap mencatat log ID materi)
+      let tombolAksiHtml = "";
+      if (link && link !== "#") {
+        tombolAksiHtml = `
+          <a href="${link}" target="_blank" onclick="bukaDanCatatMateri('${id}', '${link}')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-1.5">
+            <span>Buka Materi</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+          </a>
+        `;
+      } else {
+        tombolAksiHtml = `
+          <button onclick="bukaDanCatatMateri('${id}', '#')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-1.5">
+            <span>Tandai Dibaca</span>
+            <i class="fa-solid fa-check text-[10px]"></i>
+          </button>
+        `;
+      }
+
+      const card = `
+        <div class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+          <div class="p-5 space-y-3">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+              <span class="bg-blue-50 text-blue-700 font-bold text-[10px] px-2.5 py-1 rounded-md border border-blue-100 uppercase">${mapelItem}</span>
+              <span class="bg-slate-100 text-slate-700 font-semibold text-[10px] px-2.5 py-1 rounded-md uppercase tracking-wider">Kelas: ${kelasItem}</span>
+            </div>
+            
+            <h4 class="font-bold text-slate-800 text-sm leading-snug">${judul}</h4>
+            <div>${kontenHtml}</div>
+          </div>
+
+          <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+            <span class="text-[11px] text-slate-500 font-medium uppercase">${tipe}</span>
+            ${tombolAksiHtml}
+          </div>
+        </div>
+      `;
+      container.innerHTML += card;
+    });
+};
+/*
+window.muatSumberBelajarSiswa = async function(filterMapel = "") {
+    const container = document.getElementById("containerSumberBelajarSiswa");
+    if (!container) return;
+
+    // Tampilkan loading jika cache masih kosong
+    if (window._cacheSumberBelajar.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted mt-2 small">Memuat sumber belajar...</p>
+          </div>
+        `;
+
+        let kelasSiswa = "";
+        try {
+          const sesiSiswaStr = localStorage.getItem("akun_siswa_login");
+          if (sesiSiswaStr) {
+            const dataSiswa = JSON.parse(sesiSiswaStr);
+            kelasSiswa = dataSiswa.kelas || "";
+          }
+        } catch (err) {
+          console.error("Gagal membaca sesi siswa:", err);
+        }
+
+        try {
+          const targetUrl = window.API_URL || "/api";
+          const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              action: "getsumberbelajar",
+              kelas: kelasSiswa,
+              is_guru: false 
+            })
+          });
+
+          const res = await response.json();
+          if (res.status === "success" && Array.isArray(res.data)) {
+            window._cacheSumberBelajar = res.data; // Simpan ke cache
+          } else {
+            container.innerHTML = `<div class="col-span-full text-center text-danger py-4">Gagal memuat data sumber belajar.</div>`;
+            return;
+          }
+        } catch (e) {
+          console.error("Error fetch sumber belajar:", e);
+          container.innerHTML = `<div class="col-span-full text-center text-danger py-4">Terjadi kesalahan koneksi.</div>`;
+          return;
+        }
+    }
+
+    // Filter data berdasarkan mapel yang dipilih di dropdown
+    let dataFiltered = window._cacheSumberBelajar;
+    if (filterMapel && filterMapel.trim() !== "") {
+        dataFiltered = window._cacheSumberBelajar.filter(item => {
+            const mapelItem = item.mapel || item.mata_pelajaran || "";
+            return mapelItem.toLowerCase() === filterMapel.toLowerCase();
+        });
+    }
+
+    // Render ke HTML
+    container.innerHTML = "";
+    if (dataFiltered.length === 0) {
+      container.innerHTML = `
+        <div class="col-span-full text-center py-5 text-slate-400 bg-white rounded-2xl border border-slate-200 p-6">
+          <i class="fa-solid fa-folder-open fa-3x mb-2 opacity-50"></i>
+          <p class="mb-0 text-xs">Tidak ada materi ditemukan untuk mata pelajaran ini.</p>
+        </div>
+      `;
+      return;
+    }
+
+    dataFiltered.forEach(item => {
+      let kontenHtml = "";
+      const tipe = item.tipe || "website";
+      const link = item.link || "";
+      const judul = item.judul || "Materi";
+      const isi = item.isi || "";
+      const kelasItem = item.kelas || "Semua Kelas";
+      const mapelItem = item.mapel || "Umum";
+
+      if (tipe === "youtube") {
+        let videoId = "";
+        if (link.includes("youtu.be/")) videoId = link.split("youtu.be/")[1]?.split("?")[0];
+        else if (link.includes("watch?v=")) videoId = link.split("watch?v=")[1]?.split("&")[0];
+        else if (link.includes("embed/")) videoId = link.split("embed/")[1]?.split("?")[0];
+        else videoId = link;
+
+        kontenHtml = `
+          <div class="aspect-video w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm my-2">
+            <iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen class="w-full h-full"></iframe>
+          </div>
+          <p class="text-xs text-slate-600 line-clamp-2 mt-2">${isi}</p>
+        `;
+      } else if (tipe === "website") {
+        kontenHtml = `
+          <p class="text-xs text-slate-600 mb-3">${isi || 'Kunjungi tautan referensi materi berikut:'}</p>
+          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs truncate mb-2">
+            <a href="${link}" target="_blank" class="text-blue-600 hover:underline font-medium flex items-center gap-1.5 truncate">
+              <i class="fa-solid fa-link shrink-0"></i> <span class="truncate">${link}</span>
+            </a>
+          </div>
+        `;
+      } else {
+        kontenHtml = `
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 max-h-32 overflow-y-auto whitespace-pre-wrap">
+            ${isi || '-'}
+          </div>
+        `;
+      }
+
+      const card = `
+        <div class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+          <div class="p-5 space-y-3">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+              <span class="bg-blue-50 text-blue-700 font-bold text-[10px] px-2.5 py-1 rounded-md border border-blue-100 uppercase">${mapelItem}</span>
+              <span class="bg-slate-100 text-slate-700 font-semibold text-[10px] px-2.5 py-1 rounded-md uppercase tracking-wider">Kelas: ${kelasItem}</span>
+            </div>
+            
+            <h4 class="font-bold text-slate-800 text-sm leading-snug">${judul}</h4>
+            <div>${kontenHtml}</div>
+          </div>
+
+          <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+            <span class="text-[11px] text-slate-500 font-medium uppercase">${tipe}</span>
+    
+            <!-- Ubah tag <a> dengan menambahkan event onclick untuk mencatat log -->
+                <a href="${link}" target="_blank" onclick="bukaDanCatatMateri('${id}', '${link}');" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-1.5">
+            <span>Buka Materi</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                </a>
+            </div>
+        </div>
+      `;
+      container.innerHTML += card;
+    });
+};
+*/
+// Pasang Event Listener ke Dropdown Mapel di dalam DOMContentLoaded
+document.addEventListener("DOMContentLoaded", function() {
+    const selectMapel = document.getElementById("filterMapel");
+    if (selectMapel) {
+        selectMapel.addEventListener("change", function() {
+            const mapelTerpilih = this.value;
+            window.muatSumberBelajarSiswa(mapelTerpilih); // Panggil ulang dengan membawa parameter filter
+        });
+    }
+});
+
+// Fungsi Statistik Ujian
+async function muatStatistikUjian() {
+  try {
+    const targetUrl = window.API_URL || '/api';
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'getstatistik' })
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      const elUjian = document.getElementById('jmlUjianAktif');
+      const elTugas = document.getElementById('jmlTugasAktif');
+      if (elUjian) elUjian.innerText = result.ujian || 0;
+      if (elTugas) elTugas.innerText = result.tugas || 0;
+    }
+  } catch (err) {
+    console.error("Gagal memuat statistik ujian:", err);
+  }
+}
+
+// ==========================================
+// 2. DOMContentLoaded (DIJALANKAN SETELAH HALAMAN SIAP)
+// ==========================================
+document.addEventListener("DOMContentLoaded", function() {
+  // A. Ambil data sesi yang disimpan saat login
+  const sesiSiswaStr = localStorage.getItem("akun_siswa_login");
+
+  if (sesiSiswaStr) {
+    try {
+      const dataSiswa = JSON.parse(sesiSiswaStr);
+      const namaUser = dataSiswa.nama || "Siswa";
+      const identitasUnik = dataSiswa.no_peserta || dataSiswa.nis || dataSiswa.username || dataSiswa.nama;
+      const elWelcomeNama = document.getElementById("welcomeNama");
+      if (elWelcomeNama) {
+        elWelcomeNama.innerText = namaUser;
+      }
+
+      if (document.getElementById("profilNama")) document.getElementById("profilNama").innerText = dataSiswa.nama || "Tidak Diketahui";
+      if (document.getElementById("profilKelas")) document.getElementById("profilKelas").innerText = dataSiswa.kelas || "-";
+      if (document.getElementById("profilRole")) document.getElementById("profilRole").innerText = dataSiswa.role || "Siswa";
+      if (document.getElementById("profilNoPeserta")) {
+          document.getElementById("profilNoPeserta").innerText = identitasUnik;
+      }
+      // B. Load Dropdown Mata Pelajaran dari config.js
+      const selectMapel = document.getElementById("filterMapel");
+      if (selectMapel && window.APP_CONFIG && window.APP_CONFIG.DAFTAR_MAPEL) {
+        selectMapel.innerHTML = '<option value="">Semua Mapel</option>';
+        window.APP_CONFIG.DAFTAR_MAPEL.forEach(mapel => {
+          selectMapel.innerHTML += `<option value="${mapel}">${mapel}</option>`;
+        });
+      }
+    } catch (err) {
+      console.error("Gagal memparsing data sesi siswa:", err);
+    }
+  }
+
+  // C. Panggil fungsi pendukung secara aman di sini
+  muatStatistikUjian();
+  muatRiwayatNilaiSiswa();
+  muatStatistikMateriSiswa();
+  muatDaftarTugasSiswa();
+  muatNotifikasiTugasBaru();
+  muatNotifikasiUjianBerlangsung();
+  muatStatistikTugasMenunggu();
+  muatStatistikUjianSelesai();
+  muatStatistikRataRataNilai();
+  muatDropdownUjianAktif();
+  muatDaftarUjianHariIni();
+  muatGrafikPerkembanganNilai();
+  muatPapanPengumuman();
+  
+  if (typeof window.muatSumberBelajarSiswa === "function") {
+    window.muatSumberBelajarSiswa();
+  }
+});
+
+// ==========================================
+// 3. NAVIGASI, MODAL & PENDUKUNG LAINNYA
+// ==========================================
+document.addEventListener("DOMContentLoaded", function() {
+  const menuBtn = document.getElementById('mobile-menu-btn');
+  if (menuBtn) {
+    menuBtn.addEventListener('click', function() {
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.toggle('-translate-x-full');
+    });
+  }
+});
+
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
+        item.classList.add('text-slate-400');
+    });
+
+    const targetTab = document.getElementById('tab-' + tabId);
+    if (targetTab) targetTab.classList.add('active');
+
+    const activeNav = document.getElementById('nav-' + tabId);
+    if (activeNav) {
+        activeNav.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+        activeNav.classList.remove('text-slate-400');
+    }
+
+    const pageTitle = document.getElementById('page-title');
+    const titles = {
+        'dashboard': 'Dashboard Utama Siswa',
+        'materi': 'Daftar Materi & Modul Ajar',
+        'tugas': 'Pengumpulan Tugas & Portofolio',
+        'pengumuman': 'Papan Pengumuman Kelas',
+        'ujian': 'Ujian / CAT CBT Aktif',
+        'riwayat': 'Riwayat Nilai & Hasil Ujian'
+    };
+    if (pageTitle && titles[tabId]) pageTitle.textContent = titles[tabId];
+
+    if (window.innerWidth < 768) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.add('-translate-x-full');
+    }
+}
+
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.add('hidden');
+}
+
+window.onload = function() {
+    const canvasNilai = document.getElementById('chartNilaiSiswa');
+    if (canvasNilai) {
+        const ctxNilai = canvasNilai.getContext('2d');
+        new Chart(ctxNilai, {
+            type: 'line',
+            data: {
+                labels: ['Ulangan 1', 'UTS', 'Ulangan 2', 'Kuis 3', 'UAS Simulasi'],
+                datasets: [{
+                    label: 'Nilai Perkembangan Siswa',
+                    data: [78, 85, 80, 92, 88],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    borderWidth: 3
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } }, 
+                scales: { y: { beginAtZero: true, max: 100 } } 
+            }
+        });
+    }
+};
+
+function logoutSiswa() {
+    if (confirm("Apakah Anda yakin ingin keluar dari sesi ujian?")) {
+        localStorage.removeItem("akun_siswa_login");
+        window.location.replace("index.html");
+    }
+}
+
+// ==========================================
+// 4. MODUL UJIAN / CAT AKTIF
+// ==========================================
+// 1. Fungsi untuk Memuat Daftar Ujian Aktif ke dalam Dropdown
+async function muatDropdownUjianAktif() {
+    const selectDropdown = document.getElementById("pilihanMapelUjian");
+    if (!selectDropdown) return;
+
+    selectDropdown.innerHTML = `<option value="">-- Memuat daftar ujian aktif... --</option>`;
+
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (!sesiStr) {
+            selectDropdown.innerHTML = `<option value="">Sesi login tidak ditemukan. Silakan login ulang.</option>`;
+            return;
+        }
+        const dataSiswa = JSON.parse(sesiStr);
+        const kelasSiswa = String(dataSiswa.kelas || "").trim().toLowerCase();
+
+        const targetUrl = window.API_URL || "/api";
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "getdaftarkode",
+                role: "siswa",
+                kelas: kelasSiswa
+            })
+        });
+
+        const result = await response.json();
+        if (result.status === "success" && Array.isArray(result.data)) {
+            // Saring hanya ujian yang berstatus "Aktif" dan bukan bertipe "Tugas"
+            const ujianAktif = result.data.filter(item => {
+                const statusUjian = String(item.status || "Aktif").trim().toLowerCase();
+                const tipeUjian = String(item.tipe || "Ujian").trim().toLowerCase();
+                
+                // Jika status bukan aktif atau tipenya tugas, abaikan
+                if (statusUjian !== "aktif" || tipeUjian === "tugas") return false;
+
+                // Validasi kelas siswa
+                const rawKelas = String(item.kelas || "").trim().toLowerCase();
+                const isSemuaKelas = rawKelas === "" || rawKelas === "semua" || rawKelas === "-";
+                if (!isSemuaKelas) {
+                    const kelasArr = rawKelas.split(",").map(k => k.trim());
+                    if (!kelasArr.includes(kelasSiswa)) return false;
+                }
+
+                return true;
+            });
+
+            selectDropdown.innerHTML = `<option value="">-- Pilih Mata Pelajaran / Ujian --</option>`;
+
+            if (ujianAktif.length === 0) {
+                selectDropdown.innerHTML += `<option value="" disabled>Tidak ada ujian aktif saat ini</option>`;
+                return;
+            }
+
+            ujianAktif.forEach(ujian => {
+                const kode = ujian.kode_soal;
+                const mapel = ujian.mata_pelajaran || kode;
+                const jenis = ujian.jenis_ujian || "Ujian";
+
+                const option = document.createElement("option");
+                option.value = kode;
+                option.textContent = `${mapel} (${jenis} - ${kode})`;
+                selectDropdown.appendChild(option);
+            });
+        } else {
+            selectDropdown.innerHTML = `<option value="">Gagal memuat daftar ujian.</option>`;
+        }
+    } catch (err) {
+        console.error("Error muat dropdown ujian:", err);
+        selectDropdown.innerHTML = `<option value="">Terjadi kesalahan koneksi.</option>`;
+    }
+}
+
+// 2. Fungsi untuk Membuka Modal Token (Dipanggil saat tombol menu Ujian/CAT diklik)
+function bukaModalTokenUjian() {
+    const modal = document.getElementById("modal-token-ujian");
+    if (modal) {
+        modal.classList.remove("hidden");
+        document.getElementById("inputTokenSiswa").value = "";
+        const errSpan = document.getElementById("pesanErrorToken");
+        if (errSpan) {
+            errSpan.innerText = "";
+            errSpan.classList.add("hidden");
+        }
+        muatDropdownUjianAktif(); // Muat otomatis pilihan ujian aktif
+    }
+}
+
+// 3. Fungsi untuk Menutup Modal
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add("hidden");
+    }
+}
+
+// 4. Fungsi Verifikasi Token dan Masuk ke Halaman Pengerjaan Ujian
+async function verifikasiTokenUjian() {
+    const selectMapel = document.getElementById("pilihanMapelUjian");
+    const inputToken = document.getElementById("inputTokenSiswa");
+    const errSpan = document.getElementById("pesanErrorToken");
+
+    const kodeSoal = selectMapel ? selectMapel.value : "";
+    const tokenInput = inputToken ? inputToken.value.trim().toUpperCase() : "";
+
+    if (!kodeSoal) {
+        if (errSpan) {
+            errSpan.innerText = "Silakan pilih mata pelajaran / ujian terlebih dahulu!";
+            errSpan.classList.remove("hidden");
+        }
+        return;
+    }
+
+    if (!tokenInput) {
+        if (errSpan) {
+            errSpan.innerText = "Token pengawas wajib diisi!";
+            errSpan.classList.remove("hidden");
+        }
+        return;
+    }
+
+    try {
+        const targetUrl = window.API_URL || "/api";
+        
+        // Cek validitas token ke backend
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "cektokenpengawas",
+                kode_soal: kodeSoal,
+                token_pengawas: tokenInput
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.status === "success") {
+            // Token valid, arahkan siswa ke halaman pengerjaan soal / lembar ujian
+            closeModal('modal-token-ujian');
+            
+            // Simpan kode ujian aktif ke sessionStorage / localStorage untuk lembar ujian
+            sessionStorage.setItem("active_kode_soal", kodeSoal);
+
+            // Panggil fungsi untuk mulai mengerjakan soal (sesuaikan dengan fungsi render soal di sistem Anda)
+            if (typeof mulaiPengerjaanUjian === "function") {
+                mulaiPengerjaanUjian(kodeSoal);
+            } else {
+                // Alternatif: Alihkan ke halaman lembar soal jika terpisah, contoh:
+                window.location.href = `ujian.html?kode=${kodeSoal}`;
+            }
+        } else {
+            if (errSpan) {
+                errSpan.innerText = result.message || "Token pengawas salah!";
+                errSpan.classList.remove("hidden");
+            }
+        }
+    } catch (err) {
+        console.error("Error verifikasi token:", err);
+        if (errSpan) {
+            errSpan.innerText = "Terjadi kesalahan koneksi ke server.";
+            errSpan.classList.remove("hidden");
+        }
+    }
+}
+// ==========================================
+// 5. MODAL RIWAYAT UJIAN
+// ==========================================
+window._cacheRiwayatUjian = [];
+
+async function muatRiwayatNilaiSiswa() {
+    const container = document.getElementById("tabelRiwayatSiswa");
+    if (!container) return;
+
+    // Tampilkan indikator loading yang bersih
+    container.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center py-6 text-slate-400">
+          <div class="spinner-border text-primary sm" role="status"></div>
+          <p class="mt-2 text-xs font-medium">Memuat riwayat & nilai siswa...</p>
+        </td>
+      </tr>
+    `;
+
+    try {
+      // Ambil data sesi siswa langsung dari localStorage dengan aman
+      let nisSiswa = "";
+      const sesiSiswaStr = localStorage.getItem("akun_siswa_login");
+      if (sesiSiswaStr) {
+          try {
+              const dataSiswa = JSON.parse(sesiSiswaStr);
+              nisSiswa = dataSiswa.no_peserta || dataSiswa.nis || dataSiswa.username || "";
+          } catch (e) {
+              console.error("Gagal parse sesi login:", e);
+          }
+      }
+
+      if (!nisSiswa) {
+        container.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-rose-600 font-bold bg-rose-50">Sesi siswa tidak ditemukan. Silakan login ulang.</td></tr>`;
+        return;
+      }
+
+      // 1. Ambil daftar soal yang sudah dikerjakan
+      const targetUrl = window.API_URL || "/api";
+      const resCek = await fetch(targetUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "cekSoalSiswa", no_peserta: nisSiswa })
+      });
+      const resultCek = await resCek.json();
+      const soalSelesai = (resultCek && resultCek.soal_selesai) ? resultCek.soal_selesai : [];
+
+      if (soalSelesai.length === 0) {
+        container.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-10 text-slate-400 bg-slate-50/50">
+              <i class="fa-solid fa-clock-rotate-left fa-2x mb-2 text-slate-300"></i>
+              <p class="text-xs font-medium">Belum Ada Riwayat Ujian yang Dikerjakan</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      container.innerHTML = "";
+
+      // 2. Tarik semua data hasil ujian secara PARALEL menggunakan Promise.all
+      const promises = soalSelesai.map(async (kode) => {
+          const kodeClean = String(kode).trim().toUpperCase();
+          try {
+              const res = await fetch(targetUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "gethasilujian", kode_soal: kodeClean })
+              });
+              const resHasil = await res.json();
+              return { kodeClean, resHasil };
+          } catch (err) {
+              console.error(`Gagal memuat kode ${kodeClean}:`, err);
+              return { kodeClean, resHasil: null };
+          }
+      });
+
+      const hasilSemuaUjian = await Promise.all(promises);
+
+      // 3. Render baris tabel dengan desain tegas dan warna indikator
+      hasilSemuaUjian.forEach(({ kodeClean, resHasil }, index) => {
+          let idJawaban = "";
+          let skorPG = 0;
+          let nilaiEssai = 0;
+          let totalSkor = 0;
+          let namaMapel = `Ujian (${kodeClean})`;
+
+          if (resHasil && resHasil.status === "success" && Array.isArray(resHasil.data)) {
+              const rowSaya = resHasil.data.find(item => 
+                  String(item.no_peserta || item.noPeserta || "").trim().toLowerCase() === String(nisSiswa).trim().toLowerCase()
+              );
+              
+              if (rowSaya) {
+                  idJawaban = rowSaya.id || "";
+                  skorPG = parseFloat(rowSaya.skor_pg || 0);
+                  nilaiEssai = parseFloat(rowSaya.nilai_essai || 0);
+                  totalSkor = skorPG + nilaiEssai;
+                  namaMapel = rowSaya.mata_pelajaran || rowSaya.mapel || namaMapel;
+              }
+          }
+
+          // Tentukan warna badge total skor berdasarkan nilai pencapaian
+          let badgeSkorClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
+          if (totalSkor < 75) {
+              badgeSkorClass = "bg-amber-100 text-amber-800 border-amber-300";
+          }
+          if (totalSkor < 60) {
+              badgeSkorClass = "bg-rose-100 text-rose-800 border-rose-300";
+          }
+
+          const rowHtml = `
+            <tr class="hover:bg-blue-50/40 transition-colors border-b border-slate-100">
+              <td class="p-3.5 font-bold text-slate-700">
+                <span class="bg-slate-100 border border-slate-200 px-2 py-1 rounded text-slate-800">${kodeClean}</span>
+              </td>
+              <td class="p-3.5 font-semibold text-slate-800">${namaMapel}</td>
+              <td class="p-3.5 text-center font-medium text-slate-600">${skorPG}</td>
+              <td class="p-3.5 text-center font-medium text-slate-600">${nilaiEssai}</td>
+              <td class="p-3.5 text-center">
+                <span class="inline-block px-3 py-1 rounded-full font-bold border text-xs shadow-xs ${badgeSkorClass}">
+                  ${totalSkor}
+                </span>
+              </td>
+              <td class="p-3.5 text-center">
+                <button onclick="bukaModalReview('${idJawaban}', '${kodeClean}', '${encodeURIComponent(namaMapel)}')" 
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-[11px] shadow-sm transition flex items-center justify-center gap-1 mx-auto">
+                  <i class="fa-solid fa-eye text-[10px]"></i> Review
+                </button>
+              </td>
+            </tr>
+          `;
+          container.innerHTML += rowHtml;
+      });
+
+    } catch (err) {
+      console.error("Error muat riwayat:", err);
+      container.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-rose-600 bg-rose-50 font-semibold">Gagal memuat riwayat: ${err.message}</td></tr>`;
+    }
+}
+
+function bukaDetailJawaban(kodeSoal, encodedDetailJawaban, encodedDetailEssai) {
+    const detailJawaban = JSON.parse(decodeURIComponent(encodedDetailJawaban || "{}"));
+    
+    // Buka modal review (pastikan modal dengan ID terkait sudah tersedia di HTML Anda)
+    if (typeof openModal === 'function') {
+        openModal('modal-review-ujian');
+    }
+
+    const containerReview = document.getElementById("containerDetailReview");
+    if (!containerReview) return;
+
+    containerReview.innerHTML = `
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-3">
+            <h5 class="font-bold text-slate-800 text-sm">Ringkasan Jawaban Siswa (${kodeSoal})</h5>
+            <pre class="bg-white p-3 rounded-lg border border-slate-200 overflow-x-auto font-mono text-[11px]">${JSON.stringify(detailJawaban, null, 2)}</pre>
+        </div>
+    `;
+}
+
+// 2. Fungsi Membuka Modal Review Jawaban (Menghubungkan HasilUjian & BankSoal via Kode Soal)
+
+async function bukaModalReview(idJawaban, kodeSoal, namaMapel) {
+    const decodedMapel = decodeURIComponent(namaMapel || 'Ujian');
+    
+    // Ambil No Peserta / NIS secara dinamis dari sesi login (localStorage) jika variabel global belum ada
+    let currentNoPeserta = "";
+    if (typeof noPeserta !== 'undefined' && noPeserta) {
+        currentNoPeserta = noPeserta;
+    } else {
+        try {
+            const sesiSiswaStr = localStorage.getItem("akun_siswa_login");
+            if (sesiSiswaStr) {
+                const dataSiswa = JSON.parse(sesiSiswaStr);
+                currentNoPeserta = dataSiswa.no_peserta || dataSiswa.nis || dataSiswa.username || "";
+            }
+        } catch (e) {
+            console.error("Gagal membaca sesi siswa:", e);
+        }
+    }
+    
+    // 1. Set judul modal
+    const elJudul = document.getElementById("reviewJudulMapel");
+    const elSub = document.getElementById("reviewSubJudul");
+    if (elJudul) elJudul.innerText = `Review: ${decodedMapel}`;
+    if (elSub) elSub.innerText = `Kode Soal: ${kodeSoal}`;
+    
+    const containerDetail = document.getElementById("containerDetailReview");
+    if (!containerDetail) return;
+
+    // Tampilkan loading sementara
+    containerDetail.innerHTML = `
+      <div class="text-center py-8 text-slate-400">
+        <div class="spinner-border text-primary sm" role="status"></div>
+        <p class="mt-2 text-xs font-medium">Memuat detail soal dan jawaban...</p>
+      </div>
+    `;
+    
+    // Buka modal
+    if (typeof openModal === 'function') {
+        openModal('modal-review-ujian');
+    }
+
+    try {
+        const targetUrl = window.API_URL || "/api";
+        
+        // Gunakan AbortController untuk timeout fetch (mencegah hang jika server lambat)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // Batas 15 detik
+
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                action: "getdetailreview", 
+                kode_soal: kodeSoal,
+                no_peserta: currentNoPeserta // Mengirimkan no_peserta yang akurat ke backend
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        const result = await response.json();
+
+        if (result.status === "success") {
+            const daftarSoal = result.soal || [];
+            const jawabanSiswa = result.jawaban_siswa || {};
+
+            if (daftarSoal.length === 0) {
+                containerDetail.innerHTML = `
+                  <div class="text-center py-10 text-slate-400">
+                    <i class="fa-solid fa-triangle-exclamation fa-2x mb-2 text-amber-400"></i>
+                    <p class="text-xs font-medium">Data bank soal tidak ditemukan untuk kode soal: ${kodeSoal}</p>
+                  </div>
+                `;
+                return;
+            }
+
+            // Gunakan array mapping untuk mencegah manipulasi DOM berulang-ulang di dalam loop
+            let htmlContent = "";
+            containerDetail.innerHTML = "";
+            daftarSoal.forEach((soal, idx) => {
+                const nomorSoal = String(soal.no_soal || (idx + 1)).trim();
+                const tipeSoal = String(soal.tipe || "PG").trim().toUpperCase();
+                
+                // Ambil jawaban siswa secara fleksibel
+                const jawabanSiswaPilihan = String(
+                    jawabanSiswa[nomorSoal] || 
+                    jawabanSiswa[soal.no_soal] || 
+                    jawabanSiswa[idx + 1] || 
+                    jawabanSiswa[idx] || 
+                    jawabanSiswa[`soal_${nomorSoal}`] || 
+                    "-"
+                ).trim();
+
+                const kunciJawaban = String(soal.kunci_jawaban || "").trim();
+                
+                // Logika Evaluasi Status Berdasarkan Tipe Soal
+                let statusBadge = "";
+                let bagianJawabanInfo = "";
+
+                if (tipeSoal === "ESSAI" || tipeSoal === "ESAI") {
+                    // Untuk soal Essai, tampilkan jawaban teks siswa dan kunci/keterangan guru
+                    statusBadge = `<span class="bg-blue-100 text-blue-800 border border-blue-300 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-pen"></i> Essai</span>`;
+                    
+                    bagianJawabanInfo = `
+                        <div class="space-y-1.5 pt-2.5 border-t border-slate-100 text-[11px]">
+                            <div class="text-blue-600 font-semibold">Jawaban Anda:</div>
+                            <div class="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-slate-800 whitespace-pre-wrap">${jawabanSiswaPilihan !== "-" ? jawabanSiswaPilihan : "(Belum dijawab)"}</div>
+                            <div class="text-emerald-600 font-semibold pt-1">Kunci / Catatan Guru:</div>
+                            <div class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-slate-800 whitespace-pre-wrap">${kunciJawaban || '-'}</div>
+                        </div>
+                    `;
+                } else {
+                    // Untuk soal Pilihan Ganda (PG), tampilkan opsi A, B, C, D dan evaluasi benar/salah
+                    const ansUpper = jawabanSiswaPilihan.toUpperCase();
+                    const kunciUpper = kunciJawaban.toUpperCase();
+                    const isBenar = (ansUpper === kunciUpper) && (ansUpper !== "-");
+
+                    statusBadge = isBenar 
+                        ? `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-check"></i> Benar</span>`
+                        : `<span class="bg-rose-100 text-rose-800 border border-rose-300 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-xmark"></i> Salah</span>`;
+
+                    bagianJawabanInfo = `
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                            <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700">A. ${soal.opsi_a || ''}</div>
+                            <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700">B. ${soal.opsi_b || ''}</div>
+                            <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700">C. ${soal.opsi_c || ''}</div>
+                            <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700">D. ${soal.opsi_d || ''}</div>
+                        </div>
+                        <div class="flex gap-4 pt-2.5 border-t border-slate-100 text-[11px] font-semibold">
+                            <span class="text-blue-600">Jawaban Anda: <strong class="px-2 py-0.5 bg-blue-50 border border-blue-200 rounded">${ansUpper}</strong></span>
+                            <span class="text-emerald-600">Kunci Jawaban: <strong class="px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded">${kunciUpper || '-'}</strong></span>
+                        </div>
+                    `;
+                }
+
+                // Render Gambar Soal Jika Ada
+                let gambarHtml = "";
+                if (soal.gambar && String(soal.gambar).trim() !== "") {
+                    gambarHtml = `<div class="my-2"><img src="${soal.gambar}" alt="Gambar Soal" class="max-h-48 rounded-lg border border-slate-200 object-contain"></div>`;
+                }
+
+                // Gabungkan ke kontainer utama
+                htmlContent += `
+                    <div class="p-4 bg-white border border-slate-200 rounded-2xl space-y-2.5 text-xs shadow-xs">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">Soal No. ${nomorSoal} (${tipeSoal})</span>
+                            ${statusBadge}
+                        </div>
+                        <p class="text-slate-800 font-medium leading-relaxed">${soal.pertanyaan || '-'}</p>
+                        ${gambarHtml}
+                        ${bagianJawabanInfo}
+                    </div>
+                `;
+            });
+
+            containerDetail.innerHTML = htmlContent;
+        } else {
+            containerDetail.innerHTML = `<p class="text-center text-rose-500 py-6 text-xs font-semibold">Gagal memuat detail review dari server.</p>`;
+        }
+    } catch (err) {
+        console.error("Error review:", err);
+        let pesanError = err.name === 'AbortError' ? "Koneksi ke server timeout (terlalu lama)." : "Terjadi kesalahan koneksi jaringan.";
+        containerDetail.innerHTML = `<p class="text-center text-rose-500 py-6 text-xs font-semibold">${pesanError}</p>`;
+    }
+}
+
+async function bukaDanCatatMateri(idSumber, linkMateri) {
+    let noPeserta = "";
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (sesiStr) {
+            const dataSiswa = JSON.parse(sesiStr);
+            // Sesuaikan dengan kunci objek sesi login Anda (nis atau no_peserta)
+            noPeserta = dataSiswa.no_peserta || dataSiswa.nis || "";
+        }
+    } catch (e) {
+        console.error("Gagal membaca sesi siswa:", e);
+    }
+
+    console.log("Mencatat materi dibaca - NIS:", noPeserta, "ID Sumber:", idSumber);
+
+    if (noPeserta && idSumber) {
+        try {
+            const targetUrl = window.API_URL || "/api";
+            const response = await fetch(targetUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "catatlogmateri",
+                    no_peserta: noPeserta,
+                    id_sumber: idSumber
+                })
+            });
+            const result = await response.json();
+            console.log("Response log materi:", result);
+
+            // Refresh statistik materi jika ada fungsinya
+            if (typeof muatStatistikMateriSiswa === "function") {
+                muatStatistikMateriSiswa();
+            }
+        } catch (err) {
+            console.error("Gagal mengirim log materi ke server:", err);
+        }
+    } else {
+        console.warn("No Peserta atau ID Sumber tidak ditemukan. Log tidak dikirim.");
+    }
+
+    // Buka link materi di tab baru (jika ada link)
+    if (linkMateri && linkMateri !== "-") {
+        window.open(linkMateri, '_blank');
+    }
+}
+
+async function muatStatistikMateriSiswa() {
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (!sesiStr) return;
+        const dataSiswa = JSON.parse(sesiStr);
+        const nisSiswa = dataSiswa.no_peserta || dataSiswa.nis || "";
+        const kelasSiswa = dataSiswa.kelas || "";
+
+        if (!nisSiswa) return;
+
+        const targetUrl = window.API_URL || "/api";
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                action: "getstatistikmateri", 
+                no_peserta: nisSiswa, 
+                kelas: kelasSiswa 
+            })
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+            const dibaca = result.materi_dibaca || 0;
+            const total = result.total_materi || 0;
+            const persentase = total > 0 ? Math.round((dibaca / total) * 100) : 0;
+
+            // Update elemen HTML badge di dashboard
+            const elTotal = document.getElementById("textMateriDibaca");
+            const elPersen = document.getElementById("textPersentaseMateri");
+
+            if (elTotal) elTotal.innerText = `${dibaca} / ${total}`;
+            if (elPersen) elPersen.innerHTML = `<i class="fa-solid fa-check mr-1"></i> ${persentase}% Selesai`;
+        }
+    } catch (err) {
+        console.error("Gagal memuat statistik materi:", err);
+    }
+}
+
+async function muatDaftarTugasSiswa() {
+    const container = document.getElementById("containerTugasSiswa");
+    if (!container) return;
+
+    container.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="small text-muted mt-2">Memuat daftar tugas...</p></div>`;
+
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (!sesiStr) return;
+        const dataSiswa = JSON.parse(sesiStr);
+
+        const targetUrl = window.API_URL || "/api";
+        const res = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "getdaftartugassiswa",
+                no_peserta: dataSiswa.no_peserta || dataSiswa.nis,
+                kelas: dataSiswa.kelas
+            })
+        });
+
+        const result = await res.json();
+        if (result.status === "success" && Array.isArray(result.data)) {
+            if (result.data.length === 0) {
+                container.innerHTML = `<div class="text-center text-muted py-5"><i class="fa-solid fa-circle-check fa-3x mb-2 opacity-50 text-emerald-500"></i><p class="small">Belum ada tugas atau PR aktif untuk saat ini.</p></div>`;
+                return;
+            }
+
+            let html = "";
+            result.data.forEach(tugas => {
+                let badgeStatus = "";
+                let tombolAksi = "";
+
+                if (tugas.sudah_dikerjakan) {
+                    badgeStatus = `<span class="badge bg-emerald-100 text-emerald-700">Selesai Dikerjakan</span>`;
+                    tombolAksi = `<button class="btn btn-sm btn-outline-secondary fw-bold" disabled><i class="fa-solid fa-check me-1"></i> Selesai</button>`;
+                } else if (tugas.status_waktu === "Belum Dimulai") {
+                    badgeStatus = `<span class="badge bg-warning text-dark">Belum Dimulai</span>`;
+                    tombolAksi = `<button class="btn btn-sm btn-secondary fw-bold" disabled>Belum Dibuka</button>`;
+                } else if (tugas.status_waktu === "Ditutup") {
+                    badgeStatus = `<span class="badge bg-danger text-white">Waktu Habis</span>`;
+                    tombolAksi = `<button class="btn btn-sm btn-danger fw-bold" disabled>Ditutup</button>`;
+                } else {
+                    badgeStatus = `<span class="badge bg-primary text-white">Aktif</span>`;
+                    tombolAksi = `<button class="btn btn-sm btn-primary fw-bold" onclick="mulaiUjian('${tugas.kode_soal}')"><i class="fa-solid fa-pen-to-square me-1"></i> Kerjakan</button>`;
+                }
+
+                html += `
+                    <div class="card border-0 shadow-sm mb-3 rounded-4 p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge bg-light text-primary border fw-bold mb-1">${tugas.mata_pelajaran}</span>
+                                <h5 class="fw-bold text-dark mb-0">${tugas.jenis_ujian} (${tugas.kode_soal})</h5>
+                            </div>
+                            <div>${badgeStatus}</div>
+                        </div>
+                        <p class="text-muted small mb-3"><i class="fa-solid fa-clock me-1"></i> Mulai: ${tugas.waktu_mulai || '-'} | Berakhir: ${tugas.waktu_berakhir || '-'}</p>
+                        <div class="d-flex justify-content-end">${tombolAksi}</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `<div class="text-center text-danger py-4">Gagal memuat data tugas.</div>`;
+        }
+    } catch (err) {
+        console.error("Error muat tugas:", err);
+        container.innerHTML = `<div class="text-center text-danger py-4">Terjadi kesalahan koneksi.</div>`;
+    }
+}
+
+async function muatNotifikasiTugasBaru() {
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (!sesiStr) return;
+        const dataSiswa = JSON.parse(sesiStr);
+
+        const targetUrl = window.API_URL || "/api";
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "getdaftartugassiswa",
+                no_peserta: dataSiswa.no_peserta || dataSiswa.nis,
+                kelas: dataSiswa.kelas
+            })
+        });
+
+        const result = await response.json();
+        if (result.status === "success" && Array.isArray(result.data)) {
+            // Hitung tugas yang belum dikerjakan dan status waktunya aktif/belum dimulai (bukan yang ditutup)
+            const tugasBelumDikerjakan = result.data.filter(tugas => 
+                !tugas.sudah_dikerjakan && tugas.status_waktu !== "Ditutup"
+            );
+
+            const jumlahBaru = tugasBelumDikerjakan.length;
+
+            // Cari elemen badge notifikasi di sidebar atau menu Anda
+            // Contoh menggunakan selector class atau id pada elemen badge
+            const badgeElements = document.querySelectorAll(".badge-tugas-baru"); 
+            
+            badgeElements.forEach(badge => {
+                if (jumlahBaru > 0) {
+                    badge.style.display = "inline-block";
+                    badge.innerText = `${jumlahBaru} Baru`;
+                } else {
+                    badge.style.display = "none"; // Sembunyikan jika tidak ada tugas baru
+                }
+            });
+        }
+    } catch (err) {
+        console.error("Gagal memuat notifikasi tugas:", err);
+    }
+}
+
+async function muatNotifikasiUjianBerlangsung() {
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (!sesiStr) return;
+        const dataSiswa = JSON.parse(sesiStr);
+
+        const targetUrl = window.API_URL || "/api";
+        // 1. Ambil daftar kode soal/ujian yang sudah dikerjakan siswa
+        const resCekSoal = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "ceksoalsiswa",
+                no_peserta: dataSiswa.no_peserta || dataSiswa.nis
+            })
+        });
+        const dataCek = await resCekSoal.json();
+        const soalSelesai = (dataCek.status === "success" && Array.isArray(dataCek.soal_selesai)) ? dataCek.soal_selesai : [];
+
+        // 2. Ambil semua daftar pengaturan ujian
+        const resPengaturan = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "getdaftarkode",
+                role: "siswa",
+                kelas: dataSiswa.kelas
+            })
+        });
+        const dataPengaturan = await resPengaturan.json();
+
+        if (dataPengaturan.status === "success" && Array.isArray(dataPengaturan.data)) {
+            const currentTime = new Date().getTime();
+            const kelasSiswa = String(dataSiswa.kelas || "").trim().toLowerCase();
+
+            // Filter ujian yang sedang berlangsung
+            const ujianBerlangsung = dataPengaturan.data.filter(item => {
+                const kodeSoal = String(item.kode_soal || "").toUpperCase();
+                const tipeUjian = String(item.tipe || "Ujian").trim().toLowerCase();
+                const statusUjian = String(item.status || "Aktif").trim().toLowerCase();
+
+                // Abaikan jika tipenya tugas (karena tugas ditangani terpisah) atau status nonaktif
+                if (tipeUjian === "tugas" || statusUjian !== "aktif") return false;
+
+                // Cek apakah sudah dikerjakan oleh siswa
+                if (soalSelesai.includes(kodeSoal)) return false;
+
+                // Cek batasan kelas
+                const rawKelas = String(item.kelas || "").trim().toLowerCase();
+                const isSemuaKelas = rawKelas === "" || rawKelas === "semua" || rawKelas === "-";
+                if (!isSemuaKelas) {
+                    const kelasArr = rawKelas.split(",").map(k => k.trim());
+                    if (!kelasArr.includes(kelasSiswa)) return false;
+                }
+
+                // Cek rentang waktu jika ada kolom waktu mulai & berakhir (opsional jika diterapkan di pengaturan ujian)
+                // Jika server Anda tidak menggunakan waktu mulai/berakhir untuk ujian, bagian ini bisa dilewati.
+                return true; 
+            });
+
+            const jumlahUjian = ujianBerlangsung.length;
+
+            // Cari elemen badge ujian di HTML Anda
+            const badgeElements = document.querySelectorAll(".badge-ujian-aktif");
+            badgeElements.forEach(badge => {
+                if (jumlahUjian > 0) {
+                    badge.style.display = "inline-block";
+                    badge.innerText = `${jumlahUjian} Ujian`;
+                } else {
+                    badge.style.display = "none"; // Sembunyikan jika tidak ada ujian aktif
+                }
+            });
+        }
+    } catch (err) {
+        console.error("Gagal memuat notifikasi ujian:", err);
+    }
+}
+
+async function muatStatistikTugasMenunggu() {
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (!sesiStr) return;
+        const dataSiswa = JSON.parse(sesiStr);
+
+        const targetUrl = window.API_URL || "/api";
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "getdaftartugassiswa",
+                no_peserta: dataSiswa.no_peserta || dataSiswa.nis,
+                kelas: dataSiswa.kelas
+            })
+        });
+
+        const result = await response.json();
+        if (result.status === "success" && Array.isArray(result.data)) {
+            // Saring tugas yang belum dikerjakan dan belum ditutup waktunya
+            const tugasMenunggu = result.data.filter(tugas => 
+                !tugas.sudah_dikerjakan && tugas.status_waktu !== "Ditutup"
+            );
+
+            const jumlahMenunggu = tugasMenunggu.length;
+
+            // Update elemen HTML kartu statistik
+            const elAngka = document.getElementById("textTugasMenunggu");
+            const elKeterangan = document.getElementById("textKeteranganTugas");
+
+            if (elAngka) {
+                elAngka.innerText = jumlahMenunggu;
+            }
+
+            if (elKeterangan) {
+                if (jumlahMenunggu > 0) {
+                    elKeterangan.innerHTML = `<i class="fa-solid fa-clock mr-1"></i> ${jumlahMenunggu} Tugas belum selesai`;
+                    elKeterangan.className = "text-xs font-medium text-amber-600 flex items-center mt-1";
+                } else {
+                    elKeterangan.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> Semua tugas selesai!`;
+                    elKeterangan.className = "text-xs font-medium text-emerald-600 flex items-center mt-1";
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Gagal memuat statistik tugas menunggu:", err);
+    }
+}
+
+async function muatStatistikUjianSelesai() {
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (!sesiStr) return;
+        const dataSiswa = JSON.parse(sesiStr);
+        const nisSiswa = dataSiswa.no_peserta || dataSiswa.nis || "";
+
+        if (!nisSiswa) return;
+
+        const targetUrl = window.API_URL || "/api";
+        
+        // 1. Ambil data ujian yang sudah selesai dikerjakan
+        const resUjian = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "ceksoalsiswa",
+                no_peserta: nisSiswa
+            })
+        });
+        const dataUjian = await resUjian.json();
+        const jumlahUjianSelesai = (dataUjian.status === "success" && Array.isArray(dataUjian.soal_selesai)) 
+            ? dataUjian.soal_selesai.length 
+            : 0;
+
+        // 2. Ambil juga data tugas untuk menghitung tugas yang sudah dikerjakan (opsional jika ingin digabung)
+        const resTugas = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "getdaftartugassiswa",
+                no_peserta: nisSiswa,
+                kelas: dataSiswa.kelas
+            })
+        });
+        const dataTugas = await resTugas.json();
+        let jumlahTugasSelesai = 0;
+        if (dataTugas.status === "success" && Array.isArray(dataTugas.data)) {
+            jumlahTugasSelesai = dataTugas.data.filter(t => t.sudah_dikerjakan).length;
+        }
+
+        // Total keseluruhan yang sudah diselesaikan (Ujian + Tugas) atau bisa dipisah sesuai kebutuhan
+        const totalSelesai = jumlahUjianSelesai + jumlahTugasSelesai;
+
+        // Update elemen HTML
+        const elUjianSelesai = document.getElementById("textUjianSelesai");
+        if (elUjianSelesai) {
+            elUjianSelesai.innerText = totalSelesai;
+        }
+
+    } catch (err) {
+        console.error("Gagal memuat statistik ujian selesai:", err);
+    }
+}
+
+async function muatStatistikRataRataNilai() {
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (!sesiStr) return;
+        const dataSiswa = JSON.parse(sesiStr);
+        const nisSiswa = dataSiswa.no_peserta || dataSiswa.nis || "";
+
+        if (!nisSiswa) return;
+
+        const targetUrl = window.API_URL || "/api";
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "getrataratanilaisiswa",
+                no_peserta: nisSiswa
+            })
+        });
+
+        const result = await response.json();
+        if (result.status === "success") {
+            const rataRata = result.rata_rata || 0;
+            const totalUjian = result.total_ujian || 0;
+
+            const elNilai = document.getElementById("textRataRataNilai");
+            if (elNilai) {
+                elNilai.innerText = rataRata;
+            }
+        }
+    } catch (err) {
+        console.error("Gagal memuat rata-rata nilai:", err);
+    }
+}
+
+async function muatDropdownUjianAktif() {
+    const selectDropdown = document.getElementById("pilihanMapelUjian");
+    if (!selectDropdown) {
+        console.warn("Elemen #pilihanMapelUjian tidak ditemukan di DOM!");
+        return;
+    }
+
+    selectDropdown.innerHTML = `<option value="">-- Memuat daftar ujian aktif... --</option>`;
+
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (!sesiStr) {
+            console.error("Sesi siswa kosong di localStorage!");
+            selectDropdown.innerHTML = `<option value="">Sesi login tidak ditemukan.</option>`;
+            return;
+        }
+
+        const dataSiswa = JSON.parse(sesiStr);
+        // Tangkap berbagai kemungkinan nama properti kelas
+        const kelasSiswa = String(dataSiswa.kelas || dataSiswa.rombel || "").trim().toLowerCase();
+        
+        console.log("Debug Kelas Siswa:", kelasSiswa);
+
+        if (!kelasSiswa) {
+            selectDropdown.innerHTML = `<option value="">Data kelas siswa kosong.</option>`;
+            return;
+        }
+
+        const targetUrl = window.API_URL || "/api";
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "getdaftarkode",
+                role: "siswa",
+                kelas: kelasSiswa
+            })
+        });
+
+        const result = await response.json();
+        console.log("Debug Response Server:", result);
+
+        if (result.status === "success" && Array.isArray(result.data)) {
+            // Saring ujian aktif
+            const ujianAktif = result.data.filter(item => {
+                const statusUjian = String(item.status || "Aktif").trim().toLowerCase();
+                const tipeUjian = String(item.tipe || "Ujian").trim().toLowerCase();
+                
+                if (statusUjian !== "aktif" || tipeUjian === "tugas") return false;
+
+                const rawKelas = String(item.kelas || "").trim().toLowerCase();
+                const isSemuaKelas = rawKelas === "" || rawKelas === "semua" || rawKelas === "-";
+                if (!isSemuaKelas) {
+                    const kelasArr = rawKelas.split(",").map(k => k.trim());
+                    // Cek apakah kelas siswa ada di daftar kelas soal
+                    if (!kelasArr.includes(kelasSiswa)) return false;
+                }
+
+                return true;
+            });
+
+            console.log("Debug Ujian Aktif Setelah Filter:", ujianAktif);
+
+            selectDropdown.innerHTML = `<option value="">-- Pilih Mata Pelajaran / Ujian --</option>`;
+
+            if (ujianAktif.length === 0) {
+                selectDropdown.innerHTML += `<option value="" disabled>Tidak ada ujian aktif untuk kelas ${kelasSiswa}</option>`;
+                return;
+            }
+
+            ujianAktif.forEach(ujian => {
+                const kode = ujian.kode_soal;
+                const mapel = ujian.mata_pelajaran || kode;
+                const jenis = ujian.jenis_ujian || "Ujian";
+
+                const option = document.createElement("option");
+                option.value = kode;
+                option.textContent = `${mapel} (${jenis} - ${kode})`;
+                selectDropdown.appendChild(option);
+            });
+        } else {
+            selectDropdown.innerHTML = `<option value="">Gagal memuat daftar ujian dari server.</option>`;
+        }
+    } catch (err) {
+        console.error("Error saat memuat dropdown ujian:", err);
+        selectDropdown.innerHTML = `<option value="">Terjadi kesalahan koneksi.</option>`;
+    }
+}
+
+async function muatDaftarUjianHariIni() {
+    const container = document.getElementById("daftarUjianHariIniContainer");
+    const badgeJumlah = document.getElementById("badgeJumlahUjianHariIni");
+    if (!container) return;
+
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (!sesiStr) return;
+        const dataSiswa = JSON.parse(sesiStr);
+        const kelasSiswa = String(dataSiswa.kelas || "").trim().toLowerCase();
+        const nisSiswa = dataSiswa.no_peserta || dataSiswa.nis || "";
+
+        const targetUrl = window.API_URL || "/api";
+
+        // 1. Ambil daftar ujian yang sudah dikerjakan siswa agar tidak muncul lagi
+        const resCekSoal = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "ceksoalsiswa",
+                no_peserta: nisSiswa
+            })
+        });
+        const dataCek = await resCekSoal.json();
+        const soalSelesai = (dataCek.status === "success" && Array.isArray(dataCek.soal_selesai)) 
+            ? dataCek.soal_selesai.map(s => String(s).trim().toUpperCase()) 
+            : [];
+
+        // 2. Ambil semua daftar pengaturan ujian dari server
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "getdaftarkode",
+                role: "siswa",
+                kelas: kelasSiswa
+            })
+        });
+
+        const result = await response.json();
+        if (result.status === "success" && Array.isArray(result.data)) {
+            const sekarang = new Date();
+
+            // 3. Saring ujian yang:
+            // - Statusnya Aktif
+            // - Bukan Tugas
+            // - Belum dikerjakan oleh siswa
+            // - Sesuai dengan kelas siswa
+            // - Berada dalam rentang waktu mulai & berakhir (jika diatur)
+            const ujianHariIni = result.data.filter(item => {
+                const kodeSoal = String(item.kode_soal || "").trim().toUpperCase();
+                const statusUjian = String(item.status || "Aktif").trim().toLowerCase();
+                const tipeUjian = String(item.tipe || "Ujian").trim().toLowerCase();
+
+                if (statusUjian !== "aktif" || tipeUjian === "tugas") return false;
+                if (soalSelesai.includes(kodeSoal)) return false;
+
+                // Cek kelas
+                const rawKelas = String(item.kelas || "").trim().toLowerCase();
+                const isSemuaKelas = rawKelas === "" || rawKelas === "semua" || rawKelas === "-";
+                if (!isSemuaKelas) {
+                    const kelasArr = rawKelas.split(",").map(k => k.trim());
+                    if (!kelasArr.includes(kelasSiswa)) return false;
+                }
+
+                // Cek rentang waktu (Opsional: Jika waktu_mulai / waktu_berakhir diisi di tabel Pengaturan)
+                if (item.waktu_mulai && item.waktu_berakhir) {
+                    const waktuMulai = new Date(item.waktu_mulai);
+                    const waktuBerakhir = new Date(item.waktu_berakhir);
+                    if (sekarang < waktuMulai || sekarang > waktuBerakhir) return false;
+                }
+
+                return true;
+            });
+
+            // Update Badge Jumlah
+            if (badgeJumlah) {
+                badgeJumlah.innerText = `${ujianHariIni.length} Aktif`;
+            }
+
+            // Render ke HTML
+            if (ujianHariIni.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fa-solid fa-circle-check text-emerald-500 text-2xl mb-1"></i>
+                        <p class="text-xs text-slate-500 font-medium">Tidak ada ujian aktif saat ini.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = "";
+            ujianHariIni.forEach(ujian => {
+                const kode = ujian.kode_soal;
+                const mapel = ujian.mata_pelajaran || kode;
+                const jenis = ujian.jenis_ujian || "Ujian";
+                const durasi = ujian.durasi || "90";
+
+                const htmlCard = `
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between hover:bg-slate-100 transition">
+                        <div>
+                            <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md uppercase">${jenis}</span>
+                            <h4 class="text-xs font-bold text-slate-800 mt-1">${mapel}</h4>
+                            <p class="text-[11px] text-slate-500 mt-0.5"><i class="fa-solid fa-clock mr-1"></i> Durasi: ${durasi} Menit | Kode: ${kode}</p>
+                        </div>
+                        <button onclick="bukaModalTokenUjianKhusus('${kode}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
+                            Kerjakan
+                        </button>
+                    </div>
+                `;
+                container.innerHTML += htmlCard;
+            });
+        }
+    } catch (err) {
+        console.error("Gagal memuat ujian hari ini:", err);
+        container.innerHTML = `<p class="text-xs text-rose-500">Gagal memuat data ujian.</p>`;
+    }
+}
+
+function bukaModalTokenUjianKhusus(kodeSoal) {
+    // Panggil fungsi buka modal yang sudah ada sebelumnya
+    if (typeof bukaModalTokenUjian === "function") {
+        bukaModalTokenUjian();
+    } else {
+        const modal = document.getElementById("modal-token-ujian");
+        if (modal) modal.classList.remove("hidden");
+    }
+
+    // Set otomatis pilihan dropdown ke kode soal yang diklik
+    setTimeout(() => {
+        const selectDropdown = document.getElementById("pilihanMapelUjian");
+        if (selectDropdown) {
+            selectDropdown.value = kodeSoal;
+        }
+    }, 300); // Beri jeda sedikit agar dropdown selesai dimuat async oleh server
+}
+
+// Fungsi Grafik/Chart nilai
+let myChartInstance = null; // Variabel global untuk menampung instance chart
+
+async function muatGrafikPerkembanganNilai() {
+    try {
+        const sesiStr = localStorage.getItem("akun_siswa_login");
+        if (!sesiStr) return;
+        const dataSiswa = JSON.parse(sesiStr);
+        const nisSiswa = dataSiswa.no_peserta || dataSiswa.nis || "";
+
+        if (!nisSiswa) return;
+
+        const targetUrl = window.API_URL || "/api";
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "getriwayatnilaisiswa",
+                no_peserta: nisSiswa
+            })
+        });
+
+        const result = await response.json();
+        if (result.status === "success" && Array.isArray(result.data)) {
+            const riwayat = result.data;
+
+            // Urutkan berdasarkan waktu pengerjaan jika ada timestamp (opsional)
+            riwayat.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            // Ambil label (Nama Mata Pelajaran / Jenis Ujian) dan Data (Total Nilai)
+            const labels = riwayat.map(item => item.mata_pelajaran);
+            const dataSkor = riwayat.map(item => item.total_nilai);
+
+            const ctx = document.getElementById("grafikNilaiSiswa");
+            if (!ctx) return;
+
+            // Hancurkan chart sebelumnya jika sudah ada untuk menghindari duplikat render
+            if (myChartInstance) {
+                myChartInstance.destroy();
+            }
+
+            // Buat grafik garis (Line Chart) menggunakan Chart.js
+            myChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Belum Ada Ujian'],
+                    datasets: [{
+                        label: 'Total Skor',
+                        data: dataSkor.length > 0 ? dataSkor : [0],
+                        borderColor: '#2563eb', // Warna Biru (Tailwind Blue-600)
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#2563eb',
+                        pointRadius: 5,
+                        fill: true,
+                        tension: 0.3 // Membuat garis sedikit melengkung halus
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100, // Sesuaikan skala maksimal nilai (misal 100)
+                            ticks: {
+                                font: { size: 11 }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 11 }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    } catch (err) {
+        console.error("Gagal memuat grafik perkembangan nilai:", err);
+    }
+}
+
+async function muatPapanPengumumanSiswa() {
+    const container = document.getElementById("containerListPengumuman");
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="text-center py-8 text-slate-400 text-xs italic">
+            <i class="fa-solid fa-spinner fa-spin mr-2"></i>Memuat pengumuman...
+        </div>
+    `;
+
+    try {
+        // Ambil data sesi siswa yang tersimpan dari localStorage saat login
+        const sesiStr = localStorage.getItem("akun_siswa_login") || localStorage.getItem("siswa_login") || "{}";
+        let kelasSiswa = "";
+        
+        try {
+            const dataSiswa = JSON.parse(sesiStr);
+            kelasSiswa = String(dataSiswa.kelas || "").trim().toLowerCase();
+        } catch (e) {
+            kelasSiswa = "";
+        }
+
+        const targetUrl = window.API_URL || "/api";
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "getpengumumansiswa",
+                kelas: kelasSiswa
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.status === "success" && Array.isArray(result.data)) {
+            const list = result.data;
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
+                        <i class="fa-solid fa-envelope-open text-slate-300 text-3xl mb-2"></i>
+                        <p class="text-xs text-slate-500 font-medium">Belum ada pengumuman untuk kelas Anda saat ini.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = list.map(item => {
+                let tglFormatted = "Baru";
+                if (item.timestamp) {
+                    const d = new Date(item.timestamp);
+                    if (!isNaN(d)) {
+                        tglFormatted = d.toLocaleDateString("id-ID", { 
+                            day: 'numeric', 
+                            month: 'short', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                }
+
+                return `
+                    <div class="p-4.5 bg-slate-50/80 border border-slate-200 rounded-xl space-y-2.5 hover:border-blue-300 hover:bg-white transition-all shadow-2xs">
+                        <div class="flex justify-between items-start gap-3">
+                            <h4 class="text-sm font-bold text-slate-800 leading-snug">${escapeHtml(item.judul)}</h4>
+                            <span class="shrink-0 text-[10px] font-medium text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-md shadow-2xs">
+                                <i class="fa-regular fa-clock mr-1 text-blue-500"></i>${tglFormatted}
+                            </span>
+                        </div>
+                        
+                        <p class="text-xs text-slate-600 leading-relaxed whitespace-pre-line">${escapeHtml(item.isi)}</p>
+                        
+                        <div class="flex items-center justify-between pt-2.5 border-t border-slate-200/60 text-[11px] text-slate-400">
+                            <span class="font-medium text-slate-500">
+                                <i class="fa-solid fa-user-pen mr-1 text-slate-400"></i> ${escapeHtml(item.pengirim)}
+                            </span>
+                            <span class="bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-md font-semibold text-[10px]">
+                                Target: ${escapeHtml(item.kelas_target)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        } else {
+            container.innerHTML = `<p class="text-xs text-rose-500 text-center py-6">Gagal memuat pengumuman dari server.</p>`;
+        }
+    } catch (err) {
+        console.error("Error memuat pengumuman siswa:", err);
+        container.innerHTML = `<p class="text-xs text-rose-500 text-center py-6">Terjadi kesalahan koneksi ke server.</p>`;
+    }
+}
+
+// Helper Pengaman XSS
+function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+</script>
+</body>
+</html>
